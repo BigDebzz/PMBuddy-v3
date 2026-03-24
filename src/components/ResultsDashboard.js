@@ -15,12 +15,6 @@ export default function ResultsDashboard({ mode, answers, analysis, onReset, onE
   const accent = modeAccents[mode];
   const tabs = TABS[mode];
 
-  const name = answers.startup_q1
-    ? answers.startup_q1.slice(0, 40) + '...'
-    : answers.hack_q1
-    ? answers.hack_q1.slice(0, 40) + '...'
-    : 'Your Project';
-
   const handleTab = (t) => { setTab(t); Analytics.reportTabViewed(t, mode); };
 
   return (
