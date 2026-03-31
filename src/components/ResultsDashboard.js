@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { supabase } from '../lib/supabase';
 import { modeConfig } from '../data/questions';
 import { Analytics } from '../lib/analytics';
 
