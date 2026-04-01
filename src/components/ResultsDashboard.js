@@ -10,13 +10,27 @@ const TABS = {
   startup: ['Report', 'Roadmap', 'Tools to Use', 'Methodology', 'Proof Points'],
 };
 
-export default function ResultsDashboard({ mode, answers, analysis, onReset, onEdit }) {
+export default function ResultsDashboard({ mode, answers, analysis, onReset, onEdit, onSave, user, projectId }) {
   const [tab, setTab] = useState('Report');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(!!projectId);
+  const [title, setTitle] = useState('');
+  const [showTitleInput, setShowTitleInput] = useState(false);
   const config = modeConfig[mode];
   const accent = modeAccents[mode];
   const tabs = TABS[mode];
 
   const handleTab = (t) => { setTab(t); Analytics.reportTabViewed(t, mode); };
+
+  const handleSave = async () => {
+    if (!user) { onSave(); return; }
+    if (!title.trim() && !projectId) { setShowTitleInput(true); return; }
+    setSaving(true);
+    await onSave(title.trim() || 'Untitled project');
+    setSaving(false);
+    setSaved(true);
+    setShowTitleInput(false);
+  };
 
   return (
     <div style={s.page}>
@@ -34,8 +48,31 @@ export default function ResultsDashboard({ mode, answers, analysis, onReset, onE
           <div style={s.headerBtns}>
             <button style={s.btn} onClick={onEdit}>Edit answers</button>
             <button style={s.btn} onClick={() => { Analytics.restartClicked(); onReset(); }}>New project</button>
+            {saved ? (
+              <button style={s.savedBtn} disabled>Saved</button>
+            ) : (
+              <button style={s.saveBtn} onClick={handleSave} disabled={saving}>
+                {saving ? 'Saving...' : 'Save project'}
+              </button>
+            )}
           </div>
         </div>
+
+        {showTitleInput && (
+          <div style={s.titleInputRow}>
+            <input
+              style={s.titleInput}
+              placeholder="Give this project a name e.g. Fintech MVP idea"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              autoFocus
+            />
+            <button style={s.saveBtn} onClick={handleSave} disabled={saving}>
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+            <button style={s.btn} onClick={() => setShowTitleInput(false)}>Cancel</button>
+          </div>
+        )}
 
         <div style={{ ...s.scoreBanner, borderTop: `3px solid ${accent}` }}>
           <div style={s.scoreLeft}>
@@ -82,7 +119,6 @@ function ReportTab({ analysis, accent }) {
   return (
     <div>
       <SectionHead title="What your answers reveal" sub="This report is based on exactly what you said. Every insight and challenge is a direct response to your answers." />
-
       {analysis.insights?.length > 0 && (
         <div style={s.section}>
           <p style={s.colLabel}>What is working in your thinking</p>
@@ -96,7 +132,6 @@ function ReportTab({ analysis, accent }) {
           ))}
         </div>
       )}
-
       {analysis.challenges?.length > 0 && (
         <div style={s.section}>
           <p style={s.colLabel}>What needs to change</p>
@@ -113,7 +148,6 @@ function ReportTab({ analysis, accent }) {
           ))}
         </div>
       )}
-
       {analysis.nextSteps?.length > 0 && (
         <div style={s.section}>
           <p style={s.colLabel}>Your most important next steps in order</p>
@@ -300,37 +334,14 @@ function FeedbackForm({ mode }) {
       <p style={s.feedbackSub}>Takes 60 seconds. Helps us improve for every founder after you.</p>
       <div style={s.starRow}>
         {[1, 2, 3, 4, 5].map(n => (
-          <button key={n} onClick={() => setRating(n)} style={{ ...s.star, color: n <= rating ? '#F59E0B' : '#D1D5DB' }}>
-            ★
-          </button>
+          <button key={n} onClick={() => setRating(n)} style={{ ...s.star, color: n <= rating ? '#F59E0B' : '#D1D5DB' }}>★</button>
         ))}
         <span style={s.starLabel}>{rating > 0 ? ratingLabels[rating] : 'How useful was this report?'}</span>
       </div>
-      <textarea
-        style={s.feedbackInput}
-        placeholder="What was most useful?"
-        value={useful}
-        onChange={e => setUseful(e.target.value)}
-        rows={2}
-      />
-      <textarea
-        style={s.feedbackInput}
-        placeholder="What was missing or could be better?"
-        value={missing}
-        onChange={e => setMissing(e.target.value)}
-        rows={2}
-      />
-      <input
-        style={s.feedbackInputSingle}
-        placeholder="Your email (optional) — get notified about new features"
-        value={email}
-        onChange={e => setEmail(e.target.value)}
-      />
-      <button
-        style={{ ...s.feedbackBtn, opacity: rating === 0 ? 0.5 : 1 }}
-        onClick={handleSubmit}
-        disabled={rating === 0 || loading}
-      >
+      <textarea style={s.feedbackInput} placeholder="What was most useful?" value={useful} onChange={e => setUseful(e.target.value)} rows={2} />
+      <textarea style={s.feedbackInput} placeholder="What was missing or could be better?" value={missing} onChange={e => setMissing(e.target.value)} rows={2} />
+      <input style={s.feedbackInputSingle} placeholder="Your email (optional) — get notified about new features" value={email} onChange={e => setEmail(e.target.value)} />
+      <button style={{ ...s.feedbackBtn, opacity: rating === 0 ? 0.5 : 1 }} onClick={handleSubmit} disabled={rating === 0 || loading}>
         {loading ? 'Sending...' : 'Send feedback'}
       </button>
     </div>
@@ -344,8 +355,12 @@ const s = {
   breadcrumb: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, marginBottom: 4 },
   sep: { color: '#D1D5DB' },
   title: { fontSize: 26, fontWeight: 800, color: '#0A0A0A', letterSpacing: '-0.4px' },
-  headerBtns: { display: 'flex', gap: 8 },
+  headerBtns: { display: 'flex', gap: 8, flexWrap: 'wrap' },
   btn: { padding: '8px 16px', background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' },
+  saveBtn: { padding: '8px 16px', background: '#2563EB', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
+  savedBtn: { padding: '8px 16px', background: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'default', fontFamily: 'inherit' },
+  titleInputRow: { display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' },
+  titleInput: { flex: 1, border: '1px solid #E5E7EB', borderRadius: 8, padding: '9px 14px', fontSize: 14, fontFamily: 'inherit', color: '#111827', outline: 'none', minWidth: 200 },
   scoreBanner: { background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: 16, padding: '20px 22px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' },
   scoreLeft: { display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 70 },
   scoreNum: { fontSize: 42, fontWeight: 800, lineHeight: 1, letterSpacing: '-1px' },
