@@ -29,16 +29,47 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const selectMode = (m) => { setMode(m); setAnswers({}); setAnalysis(null); setProjectId(null); setScreen(S.QA); };
-  const complete = (a) => { const r = analyze(mode, a); setAnswers(a); setAnalysis(r); Analytics.reportGenerated(mode, r.score); setScreen(S.RESULTS); };
-  const reset = () => { setMode(null); setAnswers({}); setAnalysis(null); setProjectId(null); setScreen(S.LAND); };
+  const selectMode = (m) => {
+    setMode(m);
+    setAnswers({});
+    setAnalysis(null);
+    setProjectId(null);
+    setScreen(S.QA);
+  };
+
+  const complete = (a) => {
+    const r = analyze(mode, a);
+    setAnswers(a);
+    setAnalysis(r);
+    Analytics.reportGenerated(mode, r.score);
+    setScreen(S.RESULTS);
+  };
+
+  const reset = () => {
+    setMode(null);
+    setAnswers({});
+    setAnalysis(null);
+    setProjectId(null);
+    setScreen(S.LAND);
+  };
 
   const saveProject = async (title) => {
     if (!user) { setScreen(S.AUTH); return; }
     if (projectId) {
-      await supabase.from('projects').update({ title, answers, analysis, updated_at: new Date().toISOString() }).eq('id', projectId);
+      await supabase.from('projects').update({
+        title,
+        answers,
+        analysis,
+        updated_at: new Date().toISOString()
+      }).eq('id', projectId);
     } else {
-      const { data } = await supabase.from('projects').insert({ user_id: user.id, mode, title, answers, analysis }).select().single();
+      const { data } = await supabase.from('projects').insert({
+        user_id: user.id,
+        mode,
+        title,
+        answers,
+        analysis
+      }).select().single();
       if (data) setProjectId(data.id);
     }
   };
@@ -78,9 +109,32 @@ export default function App() {
 
       {screen === S.LAND && <LandingScreen onSelectMode={selectMode} />}
       {screen === S.QA && mode && <QuestionWizard mode={mode} onComplete={complete} onBack={() => setScreen(S.LAND)} />}
-      {screen === S.RESULTS && analysis && <ResultsDashboard mode={mode} answers={answers} analysis={analysis} onReset={reset} onEdit={() => setScreen(S.QA)} onSave={saveProject} user={user} projectId={projectId} />}
-      {screen === S.AUTH && <AuthScreen onAuth={(u) => { setUser(u); setScreen(S.DASHBOARD); }} onBack={() => setScreen(screen === S.AUTH ? S.LAND : screen)} />}
-      {screen === S.DASHBOARD && user && <Dashboard user={user} onOpen={openProject} onNew={reset} onLogout={logout} />}
+      {screen === S.RESULTS && analysis && (
+        <ResultsDashboard
+          mode={mode}
+          answers={answers}
+          analysis={analysis}
+          onReset={reset}
+          onEdit={() => setScreen(S.QA)}
+          onSave={saveProject}
+          user={user}
+          projectId={projectId}
+        />
+      )}
+      {screen === S.AUTH && (
+        <AuthScreen
+          onAuth={(u) => { setUser(u); setScreen(S.DASHBOARD); }}
+          onBack={() => setScreen(S.LAND)}
+        />
+      )}
+      {screen === S.DASHBOARD && user && (
+        <Dashboard
+          user={user}
+          onOpen={openProject}
+          onNew={reset}
+          onLogout={logout}
+        />
+      )}
     </div>
   );
 }
@@ -90,4 +144,7 @@ const nav = {
   logo: { display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0 },
   title: { fontSize: 17, fontWeight: 800, color: '#0A0A0A', letterSpacing: '-0.3px' },
   right: { display: 'flex', gap: 8, alignItems: 'center' },
-  dashBt
+  dashBtn: { padding: '7px 14px', background: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer', fontFamily: 'inherit' },
+  loginBtn: { padding: '7px 14px', background: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer', fontFamily: 'inherit' },
+  newBtn: { padding: '7px 14px', background: '#0A0A0A', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+};
