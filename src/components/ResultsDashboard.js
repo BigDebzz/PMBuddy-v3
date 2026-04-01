@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { supabase } from '../lib/supabase';
 import { modeConfig } from '../data/questions';
 import { Analytics } from '../lib/analytics';
 
@@ -70,6 +71,8 @@ export default function ResultsDashboard({ mode, answers, analysis, onReset, onE
           {tab === 'Proof Points' && <ProofTab analysis={analysis} />}
         </div>
 
+        <FeedbackForm mode={mode} />
+
       </div>
     </div>
   );
@@ -140,13 +143,15 @@ function PitchTab({ analysis, accent }) {
             <span style={s.duration}>{step.duration}</span>
           </div>
           <p style={s.pitchContent}>{step.content}</p>
-          <div style={s.tipBox}>
-            <p style={s.tipText}>{step.tip}</p>
-          </div>
+          {step.tip && (
+            <div style={s.tipBox}>
+              <p style={s.tipText}><strong>Tip:</strong> {step.tip}</p>
+            </div>
+          )}
         </div>
       ))}
       <div style={s.practiceBox}>
-        <p style={s.practiceText}>Practice this pitch out loud at least 5 times before presenting. Time each section. Record yourself once. Always have a backup demo video ready in case the live demo fails.</p>
+        <p style={s.practiceText}><strong>Practice advice:</strong> Record yourself giving this pitch. Watch it back once. Fix the part where you slow down or sound unsure. That is the part judges will notice.</p>
       </div>
     </div>
   );
@@ -181,7 +186,6 @@ function RoadmapTab({ analysis, accent }) {
 function ToolsTab({ analysis, accent }) {
   const tools = analysis.tools;
   if (!tools || tools.length === 0) return <p style={s.empty}>No tool recommendations generated.</p>;
-
   return (
     <div>
       <SectionHead title="Tools Recommended for You" sub="Specific tools based on your team, timeline, and what you are building. All free or free to start." />
@@ -258,6 +262,81 @@ function SectionHead({ title, sub }) {
   );
 }
 
+function FeedbackForm({ mode }) {
+  const [rating, setRating] = useState(0);
+  const [useful, setUseful] = useState('');
+  const [missing, setMissing] = useState('');
+  const [email, setEmail] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const ratingLabels = ['', 'Not useful at all', 'Somewhat useful', 'Useful but incomplete', 'Very useful', 'Exactly what I needed'];
+
+  const handleSubmit = async () => {
+    if (rating === 0) return;
+    setLoading(true);
+    await supabase.from('feedback').insert({
+      mode,
+      rating,
+      useful_text: useful,
+      missing_text: missing,
+      email: email || null,
+    });
+    setLoading(false);
+    setSubmitted(true);
+  };
+
+  if (submitted) {
+    return (
+      <div style={s.feedbackCard}>
+        <p style={s.feedbackThanks}>Thank you. Your feedback helps make PM Buddy better for every founder after you.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={s.feedbackCard}>
+      <p style={s.feedbackTitle}>Was this report useful?</p>
+      <p style={s.feedbackSub}>Takes 60 seconds. Helps us improve for every founder after you.</p>
+      <div style={s.starRow}>
+        {[1, 2, 3, 4, 5].map(n => (
+          <button key={n} onClick={() => setRating(n)} style={{ ...s.star, color: n <= rating ? '#F59E0B' : '#D1D5DB' }}>
+            ★
+          </button>
+        ))}
+        <span style={s.starLabel}>{rating > 0 ? ratingLabels[rating] : 'How useful was this report?'}</span>
+      </div>
+      <textarea
+        style={s.feedbackInput}
+        placeholder="What was most useful?"
+        value={useful}
+        onChange={e => setUseful(e.target.value)}
+        rows={2}
+      />
+      <textarea
+        style={s.feedbackInput}
+        placeholder="What was missing or could be better?"
+        value={missing}
+        onChange={e => setMissing(e.target.value)}
+        rows={2}
+      />
+      <input
+        style={s.feedbackInputSingle}
+        placeholder="Your email (optional) — get notified about new features"
+        value={email}
+        onChange={e => setEmail(e.target.value)}
+      />
+      <button
+        style={{ ...s.feedbackBtn, opacity: rating === 0 ? 0.5 : 1 }}
+        onClick={handleSubmit}
+        disabled={rating === 0 || loading}
+      >
+        {loading ? 'Sending...' : 'Send feedback'}
+      </button>
+    </div>
+  );
+}
+
 const s = {
   page: { minHeight: '100vh', background: '#FAFAFA', padding: '28px 20px 64px' },
   wrap: { maxWidth: 780, margin: '0 auto' },
@@ -329,4 +408,14 @@ const s = {
   proofResult: { fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 8 },
   lessonBox: { background: '#F9FAFB', border: '1px solid #F3F4F6', borderRadius: 8, padding: '10px 12px' },
   lessonText: { fontSize: 13, color: '#374151', lineHeight: 1.65 },
+  feedbackCard: { background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: 16, padding: '28px', marginTop: 48, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' },
+  feedbackTitle: { fontSize: 18, fontWeight: 800, color: '#0A0A0A', marginBottom: 4, letterSpacing: '-0.3px' },
+  feedbackSub: { fontSize: 14, color: '#6B7280', marginBottom: 20 },
+  feedbackThanks: { fontSize: 16, fontWeight: 600, color: '#15803D', textAlign: 'center', padding: '16px 0' },
+  starRow: { display: 'flex', alignItems: 'center', gap: 4, marginBottom: 20, flexWrap: 'wrap' },
+  star: { fontSize: 32, background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', lineHeight: 1 },
+  starLabel: { fontSize: 13, color: '#6B7280', fontWeight: 600, marginLeft: 8 },
+  feedbackInput: { width: '100%', border: '1px solid #E5E7EB', borderRadius: 8, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', marginBottom: 12, resize: 'vertical', boxSizing: 'border-box', color: '#111827', outline: 'none' },
+  feedbackInputSingle: { width: '100%', border: '1px solid #E5E7EB', borderRadius: 8, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', marginBottom: 20, boxSizing: 'border-box', color: '#111827', outline: 'none' },
+  feedbackBtn: { background: '#0A0A0A', color: '#FFFFFF', border: 'none', borderRadius: 8, padding: '12px 28px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
 };
