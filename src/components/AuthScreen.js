@@ -93,7 +93,7 @@ export default function AuthScreen({ onAuth, onBack }) {
                 <input
                   style={s.input}
                   type="text"
-                  placeholder="Deborah"
+                  placeholder="First name"
                   value={firstName}
                   onChange={e => setFirstName(e.target.value)}
                 />
@@ -103,7 +103,7 @@ export default function AuthScreen({ onAuth, onBack }) {
                 <input
                   style={s.input}
                   type="text"
-                  placeholder="Akpokighe"
+                  placeholder="Last name"
                   value={lastName}
                   onChange={e => setLastName(e.target.value)}
                 />
