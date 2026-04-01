@@ -330,4 +330,75 @@ const s = {
   proofResult: { fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 8 },
   lessonBox: { background: '#F9FAFB', border: '1px solid #F3F4F6', borderRadius: 8, padding: '10px 12px' },
   lessonText: { fontSize: 13, color: '#374151', lineHeight: 1.65 },
-};;
+};; function FeedbackForm({ mode }) {
+  const [rating, setRating] = useState(0);
+  const [useful, setUseful] = useState('');
+  const [missing, setMissing] = useState('');
+  const [email, setEmail] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async () => {
+    if (rating === 0) return;
+    setLoading(true);
+    await supabase.from('feedback').insert({
+      mode,
+      rating,
+      useful_text: useful,
+      missing_text: missing,
+      email: email || null,
+    });
+    setLoading(false);
+    setSubmitted(true);
+  };
+
+  if (submitted) {
+    return (
+      <div style={s.feedbackCard}>
+        <p style={s.feedbackThanks}>Thank you. Your feedback helps make PM Buddy better for every founder.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={s.feedbackCard}>
+      <p style={s.feedbackTitle}>Was this report useful?</p>
+      <p style={s.feedbackSub}>Takes 60 seconds. Helps us improve for every founder after you.</p>
+      <div style={s.starRow}>
+        {[1, 2, 3, 4, 5].map(n => (
+          <button key={n} onClick={() => setRating(n)} style={{ ...s.star, color: n <= rating ? '#F59E0B' : '#D1D5DB' }}>
+            ★
+          </button>
+        ))}
+        <span style={s.starLabel}>{rating > 0 ? ['', 'Not useful at all', 'Somewhat useful', 'Useful but incomplete', 'Very useful', 'Exactly what I needed'][rating] : 'How useful was this report?'}</span>
+      </div>
+      <textarea
+        style={s.feedbackInput}
+        placeholder="What was most useful?"
+        value={useful}
+        onChange={e => setUseful(e.target.value)}
+        rows={2}
+      />
+      <textarea
+        style={s.feedbackInput}
+        placeholder="What was missing or could be better?"
+        value={missing}
+        onChange={e => setMissing(e.target.value)}
+        rows={2}
+      />
+      <input
+        style={s.feedbackInputSingle}
+        placeholder="Your email (optional) - get notified about new features"
+        value={email}
+        onChange={e => setEmail(e.target.value)}
+      />
+      <button
+        style={{ ...s.feedbackBtn, opacity: rating === 0 ? 0.5 : 1 }}
+        onClick={handleSubmit}
+        disabled={rating === 0 || loading}
+      >
+        {loading ? 'Sending...' : 'Send feedback'}
+      </button>
+    </div>
+  );
+}
