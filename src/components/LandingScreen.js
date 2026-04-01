@@ -1,13 +1,9 @@
-import React, { useState } from 'react';
-import { modeConfig } from '../data/questions';
-import { LogoIcon, ZapIcon, RocketIcon, ArrowRightIcon } from '../lib/icons';
+import React from 'react';
 import { Analytics } from '../lib/analytics';
 
-const modeIcons = { hackathon: ZapIcon, startup: RocketIcon };
+const BURGUNDY = '#550000';
 
-export default function LandingScreen({ onSelectMode }) {
-  const [hovered, setHovered] = useState(null);
-  const modes = Object.values(modeConfig);
+export default function LandingScreen({ onSelectMode, onLogin, onSignup }) {
 
   const handleSelect = (modeId) => {
     Analytics.modeSelected(modeId);
@@ -16,158 +12,196 @@ export default function LandingScreen({ onSelectMode }) {
 
   return (
     <div style={s.page}>
-      <div style={s.wrap}>
 
-        {/* Logo */}
-        <div style={s.logoRow}>
-          <LogoIcon size={40} />
-          <span style={s.logoText}>PM Buddy</span>
-        </div>
-
-        {/* Hero */}
-        <div style={s.hero}>
+      {/* HERO */}
+      <div style={s.hero}>
+        <div style={s.heroInner}>
+          <div style={s.heroTag}>Free product validation tool</div>
           <h1 style={s.headline}>
-            Stop building on assumptions.
+            Stop building on<br />
+            <span style={{ color: BURGUNDY }}>assumptions.</span>
           </h1>
-          <p style={s.sub}>
-            Answer focused questions about your idea and get an honest validation report, action plan, and execution framework — in minutes.
+          <p style={s.heroSub}>
+            PM Buddy asks the hard questions founders avoid. Get an honest validation report, a 90-day roadmap, and an execution plan — in minutes. Free to use. No fluff.
           </p>
+          <div style={s.heroBtns}>
+            <button style={s.primaryBtn} onClick={onSignup}>Sign up to get started</button>
+            <button style={s.ghostBtn} onClick={onLogin}>Log in</button>
+          </div>
+          <p style={s.heroNote}>Already used PM Buddy? <button style={s.inlineLink} onClick={() => handleSelect('hackathon')}>Continue without account</button></p>
         </div>
+      </div>
 
-        {/* Mode cards */}
-        <div style={s.modeLabel}>Select your path</div>
-        <div style={s.cards}>
-          {modes.map((mode) => {
-            const Icon = modeIcons[mode.id];
-            const isHovered = hovered === mode.id;
-            return (
-              <button
-                key={mode.id}
-                style={{
-                  ...s.card,
-                  borderColor: isHovered ? mode.accent : '#E5E7EB',
-                  boxShadow: isHovered
-                    ? `0 8px 30px ${mode.accent}18, 0 2px 8px rgba(0,0,0,0.06)`
-                    : '0 2px 8px rgba(0,0,0,0.06)',
-                  transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
-                }}
-                onClick={() => handleSelect(mode.id)}
-                onMouseEnter={() => setHovered(mode.id)}
-                onMouseLeave={() => setHovered(null)}
-              >
-                {/* Icon */}
-                <div style={{
-                  ...s.iconBox,
-                  background: isHovered ? mode.accent + '10' : '#F3F4F6',
-                  color: isHovered ? mode.accent : '#6B7280',
-                }}>
-                  <Icon size={22} />
-                </div>
-
-                {/* Text */}
-                <div style={s.cardText}>
-                  <div style={s.cardTop}>
-                    <span style={s.cardTitle}>{mode.label}</span>
-                    <span style={{ ...s.cardMeta, color: isHovered ? mode.accent : '#9CA3AF' }}>
-                      {mode.time} · {mode.questions} questions
-                    </span>
-                  </div>
-                  <p style={s.cardTagline}>{mode.tagline}</p>
-                  <p style={s.cardDesc}>{mode.description}</p>
-                </div>
-
-                {/* Arrow */}
-                <div style={{ color: isHovered ? mode.accent : '#D1D5DB', transition: 'color 0.2s', flexShrink: 0 }}>
-                  <ArrowRightIcon size={18} />
-                </div>
-              </button>
-            );
-          })}
+      {/* STATS */}
+      <div style={s.statsBar}>
+        <div style={s.statsInner}>
+          {[
+            { num: '92+', label: 'Founders validated' },
+            { num: '2', label: 'Validation modes' },
+            { num: '100%', label: 'Free to start' },
+            { num: '90', label: 'Day roadmap included' },
+          ].map((stat, i) => (
+            <div key={i} style={s.statItem}>
+              <span style={s.statNum}>{stat.num}</span>
+              <span style={s.statLabel}>{stat.label}</span>
+            </div>
+          ))}
         </div>
+      </div>
 
-        {/* Trust line */}
-        <div style={s.trust}>
-          <span style={s.trustDot} />
-          <span>Free to use</span>
-          <span style={s.divider} />
-          <span>No sign-up required</span>
-          <span style={s.divider} />
-          <span>Built on research from 21,000 startups</span>
-          <span style={s.trustDot} />
-        </div>
-
-        {/* Why section */}
-        <div style={s.why}>
-          <h2 style={s.whyTitle}>Built for builders who want to get it right</h2>
-          <div style={s.whyGrid}>
+      {/* HOW IT WORKS */}
+      <div style={s.section}>
+        <div style={s.sectionInner}>
+          <p style={s.sectionTag}>How it works</p>
+          <h2 style={s.sectionTitle}>From idea to execution plan in 4 steps</h2>
+          <div style={s.stepsGrid}>
             {[
-              { num: '01', title: 'Honest, not encouraging', body: 'PM Buddy asks hard questions and flags risks others miss. It does not tell you what you want to hear.' },
-              { num: '02', title: 'Grounded in real data', body: 'Every recommendation draws from 21,000 startup founder profiles, African startup case studies, and proven PM frameworks.' },
-              { num: '03', title: 'Built for emerging markets', body: 'Nigerian regulators, African market dynamics, realistic budgets, and local examples throughout. Not generic Silicon Valley advice.' },
-              { num: '04', title: 'Execution, not just validation', body: 'You leave with a sprint plan or 90-day roadmap you can act on immediately, not a score you forget tomorrow.' },
-            ].map(item => (
-              <div key={item.num} style={s.whyItem}>
-                <span style={s.whyNum}>{item.num}</span>
+              { num: '01', title: 'Choose your mode', body: 'Hackathon or Startup. Each mode asks questions built for your specific situation and timeline.' },
+              { num: '02', title: 'Answer honestly', body: 'No right answers. PM Buddy reads what you actually say and responds directly to your specific situation.' },
+              { num: '03', title: 'Get your report', body: 'Strengths, risks, next steps, tools, roadmap, pitch structure, and African proof points all in one place.' },
+              { num: '04', title: 'Save and track', body: 'Create an account to save your project, return to it anytime, and track your progress as you build.' },
+            ].map((step, i) => (
+              <div key={i} style={s.stepCard}>
+                <span style={s.stepNum}>{step.num}</span>
+                <p style={s.stepTitle}>{step.title}</p>
+                <p style={s.stepBody}>{step.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* WHAT YOU GET */}
+      <div style={{ ...s.section, background: '#FAFAFA' }}>
+        <div style={s.sectionInner}>
+          <p style={s.sectionTag}>What you get</p>
+          <h2 style={s.sectionTitle}>A full validation report built from your answers</h2>
+          <div style={s.featuresGrid}>
+            {[
+              { title: 'Validation score', body: 'A score out of 100 with a clear verdict on the strength of your idea.' },
+              { title: 'Strengths and risks', body: 'Specific strengths in your thinking and risks flagged directly from what you said.' },
+              { title: 'Next steps in order', body: 'The most important actions ranked by priority, not generic startup advice.' },
+              { title: '90-day roadmap', body: 'A phased execution plan from validation to first paying customers.' },
+              { title: 'Tools matched to you', body: 'Build, payment, analytics, and operations tools matched to your team and budget.' },
+              { title: 'African proof points', body: 'Real startups from Nigeria and Africa that started where you are and what they learned.' },
+            ].map((f, i) => (
+              <div key={i} style={s.featureCard}>
+                <div style={s.featureDot} />
                 <div>
-                  <p style={s.whyItemTitle}>{item.title}</p>
-                  <p style={s.whyItemBody}>{item.body}</p>
+                  <p style={s.featureTitle}>{f.title}</p>
+                  <p style={s.featureBody}>{f.body}</p>
                 </div>
               </div>
             ))}
           </div>
         </div>
-
-        <p style={s.footer}>PM Buddy · Built for builders everywhere · Free forever</p>
-
       </div>
+
+      {/* WHO IT IS FOR */}
+      <div style={s.section}>
+        <div style={s.sectionInner}>
+          <p style={s.sectionTag}>Who it is for</p>
+          <h2 style={s.sectionTitle}>Built for builders in emerging markets</h2>
+          <div style={s.audienceGrid}>
+            {[
+              { title: 'Hackathon teams', body: 'Validate your idea before you write a single line of code. Build what judges and users actually want.' },
+              { title: 'Early stage founders', body: 'Get honest feedback on your assumptions before you spend 6 months building the wrong thing.' },
+              { title: 'Solo builders', body: 'Think through your idea properly without a co-founder or advisor to challenge you.' },
+              { title: 'Community builders', body: 'Share PM Buddy with your community to help members validate ideas before demo days and pitch competitions.' },
+            ].map((a, i) => (
+              <div key={i} style={s.audienceCard}>
+                <p style={s.audienceTitle}>{a.title}</p>
+                <p style={s.audienceBody}>{a.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div style={s.cta}>
+        <div style={s.ctaInner}>
+          <h2 style={s.ctaTitle}>Ready to validate your idea?</h2>
+          <p style={s.ctaSub}>Free to use. Takes 10 minutes. Gives you clarity that takes founders months to find on their own.</p>
+          <div style={s.ctaBtns}>
+            <button style={s.primaryBtn} onClick={onSignup}>Create a free account</button>
+            <button style={{ ...s.ghostBtn, borderColor: 'rgba(255,255,255,0.3)', color: '#FFFFFF' }} onClick={() => handleSelect('startup')}>Try without account</button>
+          </div>
+        </div>
+      </div>
+
+      {/* FOOTER */}
+      <div style={s.footer}>
+        <div style={s.footerInner}>
+          <div style={s.footerLeft}>
+            <span style={s.footerLogo}>PM Buddy</span>
+            <p style={s.footerTagline}>Helping founders validate ideas and build with clarity.</p>
+          </div>
+          <div style={s.footerRight}>
+            <p style={s.footerCredit}>Built by <span style={{ color: BURGUNDY, fontWeight: 700 }}>DDK</span> · Abuja, Nigeria</p>
+            <p style={s.footerSub}>Free forever for founders who need it most.</p>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }
 
 const s = {
-  page: { minHeight: '100vh', background: '#FFFFFF', padding: '48px 20px 64px' },
-  wrap: { maxWidth: 680, margin: '0 auto' },
+  page: { minHeight: '100vh', background: '#FFFFFF', fontFamily: 'inherit' },
 
-  logoRow: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 48 },
-  logoText: { fontSize: 20, fontWeight: 800, color: '#0A0A0A', letterSpacing: '-0.3px' },
+  hero: { background: '#0A0A0A', padding: '80px 20px 80px' },
+  heroInner: { maxWidth: 700, margin: '0 auto' },
+  heroTag: { display: 'inline-block', background: BURGUNDY, color: '#FFFFFF', fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 100, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 24 },
+  headline: { fontSize: 'clamp(36px, 6vw, 58px)', fontWeight: 800, color: '#FFFFFF', lineHeight: 1.1, marginBottom: 20, letterSpacing: '-1px' },
+  heroSub: { fontSize: 17, color: '#9CA3AF', lineHeight: 1.75, maxWidth: 540, marginBottom: 32 },
+  heroBtns: { display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 },
+  primaryBtn: { padding: '14px 28px', background: BURGUNDY, color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
+  ghostBtn: { padding: '14px 28px', background: 'transparent', color: '#9CA3AF', border: '1px solid #374151', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  heroNote: { fontSize: 13, color: '#6B7280' },
+  inlineLink: { background: 'none', border: 'none', color: '#9CA3AF', fontWeight: 600, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', textDecoration: 'underline' },
 
-  hero: { marginBottom: 48 },
-  headline: { fontSize: 'clamp(28px, 5vw, 42px)', fontWeight: 800, color: '#0A0A0A', lineHeight: 1.15, marginBottom: 16, letterSpacing: '-0.5px' },
-  sub: { fontSize: 17, color: '#6B7280', lineHeight: 1.75, maxWidth: 520 },
+  statsBar: { background: BURGUNDY, padding: '28px 20px' },
+  statsInner: { maxWidth: 700, margin: '0 auto', display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap', gap: 20 },
+  statItem: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 },
+  statNum: { fontSize: 32, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-1px' },
+  statLabel: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 600, textAlign: 'center' },
 
-  modeLabel: { fontSize: 12, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 },
+  section: { padding: '72px 20px' },
+  sectionInner: { maxWidth: 700, margin: '0 auto' },
+  sectionTag: { fontSize: 11, fontWeight: 700, color: BURGUNDY, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 },
+  sectionTitle: { fontSize: 'clamp(22px, 4vw, 32px)', fontWeight: 800, color: '#0A0A0A', marginBottom: 40, letterSpacing: '-0.5px', lineHeight: 1.2 },
 
-  cards: { display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 },
-  card: {
-    display: 'flex', alignItems: 'flex-start', gap: 16,
-    background: '#FFFFFF', border: '1.5px solid #E5E7EB',
-    borderRadius: 16, padding: '20px 18px',
-    cursor: 'pointer', textAlign: 'left',
-    transition: 'all 0.2s ease', width: '100%',
-  },
-  iconBox: {
-    width: 44, height: 44, borderRadius: 12,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    flexShrink: 0, transition: 'all 0.2s ease',
-  },
-  cardText: { flex: 1, minWidth: 0 },
-  cardTop: { display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 4, flexWrap: 'wrap' },
-  cardTitle: { fontSize: 16, fontWeight: 800, color: '#0A0A0A', letterSpacing: '-0.2px' },
-  cardMeta: { fontSize: 12, fontWeight: 600, transition: 'color 0.2s', whiteSpace: 'nowrap' },
-  cardTagline: { fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 4 },
-  cardDesc: { fontSize: 13, color: '#6B7280', lineHeight: 1.6 },
+  stepsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 },
+  stepCard: { padding: '24px', background: '#FAFAFA', borderRadius: 16, border: '1px solid #F3F4F6' },
+  stepNum: { fontSize: 11, fontWeight: 800, color: BURGUNDY, letterSpacing: '0.08em', display: 'block', marginBottom: 12 },
+  stepTitle: { fontSize: 15, fontWeight: 800, color: '#0A0A0A', marginBottom: 8 },
+  stepBody: { fontSize: 13, color: '#6B7280', lineHeight: 1.65 },
 
-  trust: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap', fontSize: 13, color: '#9CA3AF', marginBottom: 56 },
-  trustDot: { display: 'none' },
-  divider: { display: 'block', width: 1, height: 14, background: '#E5E7EB' },
+  featuresGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 },
+  featureCard: { display: 'flex', gap: 14, alignItems: 'flex-start', padding: '20px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #E5E7EB' },
+  featureDot: { width: 8, height: 8, borderRadius: '50%', background: BURGUNDY, flexShrink: 0, marginTop: 5 },
+  featureTitle: { fontSize: 14, fontWeight: 700, color: '#0A0A0A', marginBottom: 4 },
+  featureBody: { fontSize: 13, color: '#6B7280', lineHeight: 1.6 },
 
-  why: { borderTop: '1px solid #F3F4F6', paddingTop: 48, marginBottom: 48 },
-  whyTitle: { fontSize: 22, fontWeight: 800, color: '#0A0A0A', marginBottom: 28, letterSpacing: '-0.3px' },
-  whyGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 24 },
-  whyItem: { display: 'flex', gap: 14, alignItems: 'flex-start' },
-  whyNum: { fontSize: 11, fontWeight: 800, color: '#E5E7EB', letterSpacing: '0.05em', paddingTop: 3, flexShrink: 0 },
-  whyItemTitle: { fontSize: 14, fontWeight: 700, color: '#0A0A0A', marginBottom: 4 },
-  whyItemBody: { fontSize: 13, color: '#6B7280', lineHeight: 1.65 },
+  audienceGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 },
+  audienceCard: { padding: '22px', background: '#FFFFFF', borderRadius: 14, border: `2px solid #F3F4F6`, transition: 'border-color 0.2s' },
+  audienceTitle: { fontSize: 15, fontWeight: 800, color: '#0A0A0A', marginBottom: 8 },
+  audienceBody: { fontSize: 13, color: '#6B7280', lineHeight: 1.65 },
 
-  footer: { fontSize: 13, color: '#D1D5DB', textAlign: 'center' },
+  cta: { background: '#0A0A0A', padding: '80px 20px' },
+  ctaInner: { maxWidth: 600, margin: '0 auto', textAlign: 'center' },
+  ctaTitle: { fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800, color: '#FFFFFF', marginBottom: 16, letterSpacing: '-0.5px' },
+  ctaSub: { fontSize: 16, color: '#9CA3AF', lineHeight: 1.7, marginBottom: 32 },
+  ctaBtns: { display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' },
+
+  footer: { background: '#FAFAFA', borderTop: '1px solid #F3F4F6', padding: '40px 20px' },
+  footerInner: { maxWidth: 700, margin: '0 auto', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 24 },
+  footerLeft: {},
+  footerLogo: { fontSize: 18, fontWeight: 800, color: '#0A0A0A', letterSpacing: '-0.3px', display: 'block', marginBottom: 8 },
+  footerTagline: { fontSize: 13, color: '#9CA3AF' },
+  footerRight: { textAlign: 'right' },
+  footerCredit: { fontSize: 14, color: '#374151', marginBottom: 4 },
+  footerSub: { fontSize: 12, color: '#9CA3AF' },
 };
