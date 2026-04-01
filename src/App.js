@@ -107,8 +107,20 @@ export default function App() {
         </div>
       </nav>
 
-      {screen === S.LAND && <LandingScreen onSelectMode={selectMode} />}
-      {screen === S.QA && mode && <QuestionWizard mode={mode} onComplete={complete} onBack={() => setScreen(S.LAND)} />}
+      {screen === S.LAND && (
+        <LandingScreen
+          onSelectMode={selectMode}
+          onLogin={() => setScreen(S.AUTH)}
+          onSignup={() => setScreen(S.AUTH)}
+        />
+      )}
+      {screen === S.QA && mode && (
+        <QuestionWizard
+          mode={mode}
+          onComplete={complete}
+          onBack={() => setScreen(S.LAND)}
+        />
+      )}
       {screen === S.RESULTS && analysis && (
         <ResultsDashboard
           mode={mode}
