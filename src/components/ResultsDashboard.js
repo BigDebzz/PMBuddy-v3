@@ -34,6 +34,7 @@ export default function ResultsDashboard({ mode, answers, analysis, onReset, onE
 
   const runDeepAnalysis = async () => {
     setDeepLoading(true);
+    setDeepAnalysis(null);
     const result = await deepAnalyze(mode, answers);
     setDeepAnalysis(result);
     setDeepLoading(false);
@@ -91,15 +92,15 @@ export default function ResultsDashboard({ mode, answers, analysis, onReset, onE
           </div>
         )}
 
-        <div style={{ ...s.scoreBanner, borderTop: `3px solid ${B}` }}>
+        <div style={{ ...s.scoreBanner, borderTop: `3px solid ${analysis.color}` }}>
           <div style={s.scoreLeft}>
-            <span style={{ ...s.scoreNum, color: B }}>{analysis.score}</span>
+            <span style={{ ...s.scoreNum, color: analysis.color }}>{analysis.score}</span>
             <span style={s.scoreTag}>out of 100</span>
           </div>
           <div style={s.scoreMid}>
-            <span style={{ ...s.scoreVerdict, color: BL }}>{analysis.verdict}</span>
+            <span style={{ ...s.scoreVerdict, color: analysis.color }}>{analysis.verdict}</span>
             <div style={s.barTrack}>
-              <div style={{ ...s.barFill, width: `${analysis.score}%`, background: B }} />
+              <div style={{ ...s.barFill, width: `${analysis.score}%`, background: analysis.color }} />
             </div>
           </div>
           <div style={s.scoreRight}>
@@ -118,7 +119,7 @@ export default function ResultsDashboard({ mode, answers, analysis, onReset, onE
 
         <div key={tab} className="fade-in">
           {tab === 'Report' && <ReportTab analysis={analysis} />}
-          {tab === 'AI Analysis' && <AIAnalysisTab deepAnalysis={deepAnalysis} deepLoading={deepLoading} />}
+          {tab === 'AI Analysis' && <AIAnalysisTab deepAnalysis={deepAnalysis} deepLoading={deepLoading} onRetry={runDeepAnalysis} />}
           {tab === 'Pitch Structure' && <PitchTab analysis={analysis} />}
           {tab === 'Roadmap' && <RoadmapTab analysis={analysis} />}
           {tab === 'Tools to Use' && <ToolsTab analysis={analysis} />}
@@ -133,7 +134,7 @@ export default function ResultsDashboard({ mode, answers, analysis, onReset, onE
   );
 }
 
-function AIAnalysisTab({ deepAnalysis, deepLoading }) {
+function AIAnalysisTab({ deepAnalysis, deepLoading, onRetry }) {
   if (deepLoading) {
     return (
       <div style={s.aiLoading}>
@@ -143,9 +144,18 @@ function AIAnalysisTab({ deepAnalysis, deepLoading }) {
       </div>
     );
   }
+
   if (!deepAnalysis) {
-    return <p style={s.empty}>Something went wrong generating the AI analysis. Please try again.</p>;
+    return (
+      <div style={{ textAlign: 'center', padding: '48px 20px' }}>
+        <p style={{ fontSize: 15, color: '#374151', marginBottom: 16 }}>Something went wrong generating the AI analysis.</p>
+        <button style={{ padding: '11px 24px', background: B, color: WH, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }} onClick={onRetry}>
+          Try again
+        </button>
+      </div>
+    );
   }
+
   return (
     <div>
       <SectionHead title="AI Powered Deep Analysis" sub="Gemini has read every word of your answers and responded directly to your specific situation. Not a template." />
@@ -206,8 +216,8 @@ function ReportTab({ analysis }) {
         <div style={s.section}>
           <p style={s.colLabel}>What is working in your thinking</p>
           {analysis.insights.map((item, i) => (
-            <div key={i} style={{ ...s.insightCard, borderLeftColor: B }}>
-              <span style={{ ...s.badge, background: B + '10', color: B }}>
+            <div key={i} style={{ ...s.insightCard, borderLeftColor: item.type === 'strength' ? '#15803D' : item.type === 'neutral' ? '#2563EB' : '#D97706' }}>
+              <span style={{ ...s.badge, background: item.type === 'strength' ? '#F0FDF4' : item.type === 'neutral' ? '#EFF6FF' : '#FFFBEB', color: item.type === 'strength' ? '#15803D' : item.type === 'neutral' ? '#2563EB' : '#D97706' }}>
                 {item.type === 'strength' ? 'Strength' : item.type === 'neutral' ? 'Note' : 'Watch'}
               </span>
               <p style={s.insightText}>{item.text}</p>
@@ -219,8 +229,8 @@ function ReportTab({ analysis }) {
         <div style={s.section}>
           <p style={s.colLabel}>What needs to change</p>
           {analysis.challenges.map((item, i) => (
-            <div key={i} style={{ ...s.challengeCard, borderLeftColor: item.level === 'high' ? B : '#6B7280' }}>
-              <span style={{ ...s.badge, background: item.level === 'high' ? B + '10' : '#F3F4F6', color: item.level === 'high' ? B : '#6B7280' }}>
+            <div key={i} style={{ ...s.challengeCard, borderLeftColor: item.level === 'high' ? '#DC2626' : item.level === 'medium' ? '#D97706' : '#9CA3AF' }}>
+              <span style={{ ...s.badge, background: item.level === 'high' ? '#FEF2F2' : item.level === 'medium' ? '#FFFBEB' : '#F9FAFB', color: item.level === 'high' ? '#DC2626' : item.level === 'medium' ? '#D97706' : '#6B7280' }}>
                 {item.level === 'high' ? 'Fix this now' : item.level === 'medium' ? 'Address soon' : 'Keep in mind'}
               </span>
               <p style={s.challengeTitle}>{item.text}</p>
@@ -356,7 +366,7 @@ function ProofTab({ analysis }) {
           <div style={s.proofTop}>
             <span style={s.proofName}>{p.name}</span>
             {p.country && <span style={s.proofCountry}>{p.country}</span>}
-            <span style={{ ...s.badge, background: B + '10', color: B, marginLeft: 'auto' }}>
+            <span style={{ ...s.badge, background: p.stage === 'success' ? '#F0FDF4' : '#FEF2F2', color: p.stage === 'success' ? '#15803D' : '#DC2626', marginLeft: 'auto' }}>
               {p.stage === 'success' ? 'Succeeded' : 'Struggled'}
             </span>
           </div>
@@ -447,8 +457,8 @@ const s = {
   barTrack: { height: 6, background: '#F3F4F6', borderRadius: 3, overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: 3, transition: 'width 0.8s ease' },
   scoreRight: { display: 'flex', flexDirection: 'column', gap: 4 },
-  countStrength: { fontSize: 13, color: B, fontWeight: 600 },
-  countRisk: { fontSize: 13, color: BL, fontWeight: 600 },
+  countStrength: { fontSize: 13, color: '#15803D', fontWeight: 600 },
+  countRisk: { fontSize: 13, color: '#DC2626', fontWeight: 600 },
   tabBar: { display: 'flex', borderBottom: '1.5px solid #F3F4F6', marginBottom: 24, overflowX: 'auto' },
   tabBtn: { padding: '10px 16px', background: 'none', border: 'none', borderBottom: '2px solid transparent', marginBottom: -1.5, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s', fontFamily: 'inherit' },
   section: { marginBottom: 28 },
