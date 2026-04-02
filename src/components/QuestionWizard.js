@@ -13,7 +13,9 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
   const [error, setError] = useState('');
   const [tooltip, setTooltip] = useState(false);
   const [fading, setFading] = useState(false);
+  const [listening, setListening] = useState(false);
   const inputRef = useRef(null);
+  const recognitionRef = useRef(null);
 
   const q = questions[idx];
   const progress = ((idx + 1) / questions.length) * 100;
@@ -25,7 +27,48 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
     setTimeout(() => inputRef.current && inputRef.current.focus(), 80);
   }, [idx]);
 
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) recognitionRef.current.stop();
+    };
+  }, []);
+
   const change = (val) => { setAnswers(p => ({ ...p, [q.id]: val })); setError(''); };
+
+  const startVoice = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Voice input is not supported in this browser. Please use Chrome.');
+      return;
+    }
+    if (listening) {
+      recognitionRef.current.stop();
+      setListening(false);
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-NG';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognitionRef.current = recognition;
+
+    const existing = answers[q.id] || '';
+
+    recognition.onstart = () => setListening(true);
+    recognition.onend = () => setListening(false);
+    recognition.onerror = () => setListening(false);
+
+    recognition.onresult = (event) => {
+      let transcript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      const combined = existing ? existing + ' ' + transcript : transcript;
+      change(combined.trim());
+    };
+
+    recognition.start();
+  };
 
   const selectAndAdvance = (val) => {
     const updated = { ...answers, [q.id]: val };
@@ -56,7 +99,6 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
     <div style={s.page}>
       <div style={s.wrap}>
 
-        {/* Top nav */}
         <div style={s.nav}>
           <button style={s.backBtn} onClick={back}>
             <ChevronLeftIcon size={16} />
@@ -69,12 +111,10 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
           <span style={s.counter}>{idx + 1} / {questions.length}</span>
         </div>
 
-        {/* Progress */}
         <div style={s.progressTrack}>
           <div style={{ ...s.progressBar, width: `${progress}%`, background: accent }} />
         </div>
 
-        {/* Card */}
         <div style={{
           ...s.card,
           opacity: fading ? 0 : 1,
@@ -82,7 +122,6 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
           transition: 'opacity 0.16s ease, transform 0.16s ease',
         }}>
 
-          {/* Header */}
           <div style={s.cardTop}>
             <span style={{ ...s.stagePill, background: accent + '10', color: accent }}>
               {config.label}
@@ -93,18 +132,15 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
             </button>
           </div>
 
-          {/* Tooltip */}
           {tooltip && (
             <div style={{ ...s.tooltipBox, borderColor: accent + '25', background: accent + '06' }}>
               <p style={{ ...s.tooltipText, color: accent === '#2563EB' ? '#1D4ED8' : accent }}>{q.tooltip}</p>
             </div>
           )}
 
-          {/* Question */}
           <h2 style={s.question}>{q.question}</h2>
           <p style={s.subtext}>{q.subtext}</p>
 
-          {/* Best practice */}
           {q.bestPractice && (
             <div style={s.bpBox}>
               <span style={s.bpLabel}>Real world example</span>
@@ -112,7 +148,6 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
             </div>
           )}
 
-          {/* Hint */}
           {q.hint && (
             <div style={s.hintBox}>
               <AlertIcon size={14} color="#D97706" style={{ flexShrink: 0, marginTop: 2 }} />
@@ -120,33 +155,57 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
             </div>
           )}
 
-          {/* Inputs */}
           <div style={s.inputWrap}>
 
             {q.type === 'text' && (
-              <input
-                ref={inputRef}
-                style={s.textInput}
-                type="text"
-                placeholder={q.placeholder}
-                value={answers[q.id] || ''}
-                onChange={e => change(e.target.value)}
-                onFocus={e => { e.target.style.borderColor = accent; e.target.style.boxShadow = `0 0 0 3px ${accent}14`; }}
-                onBlur={e => { e.target.style.borderColor = '#E5E7EB'; e.target.style.boxShadow = 'none'; }}
-                onKeyDown={e => e.key === 'Enter' && next()}
-              />
+              <div style={s.voiceInputWrap}>
+                <input
+                  ref={inputRef}
+                  style={s.textInput}
+                  type="text"
+                  placeholder={q.placeholder}
+                  value={answers[q.id] || ''}
+                  onChange={e => change(e.target.value)}
+                  onFocus={e => { e.target.style.borderColor = accent; e.target.style.boxShadow = `0 0 0 3px ${accent}14`; }}
+                  onBlur={e => { e.target.style.borderColor = '#E5E7EB'; e.target.style.boxShadow = 'none'; }}
+                  onKeyDown={e => e.key === 'Enter' && next()}
+                />
+                <button
+                  style={{ ...s.micBtn, background: listening ? '#DC2626' : accent }}
+                  onClick={startVoice}
+                  title={listening ? 'Stop recording' : 'Speak your answer'}
+                >
+                  {listening ? <StopIcon /> : <MicIcon />}
+                </button>
+              </div>
             )}
 
             {q.type === 'textarea' && (
-              <textarea
-                ref={inputRef}
-                style={{ ...s.textInput, minHeight: 128, resize: 'vertical', lineHeight: 1.65 }}
-                placeholder={q.placeholder}
-                value={answers[q.id] || ''}
-                onChange={e => change(e.target.value)}
-                onFocus={e => { e.target.style.borderColor = accent; e.target.style.boxShadow = `0 0 0 3px ${accent}14`; }}
-                onBlur={e => { e.target.style.borderColor = '#E5E7EB'; e.target.style.boxShadow = 'none'; }}
-              />
+              <div style={s.voiceInputWrap}>
+                <textarea
+                  ref={inputRef}
+                  style={{ ...s.textInput, minHeight: 128, resize: 'vertical', lineHeight: 1.65 }}
+                  placeholder={q.placeholder}
+                  value={answers[q.id] || ''}
+                  onChange={e => change(e.target.value)}
+                  onFocus={e => { e.target.style.borderColor = accent; e.target.style.boxShadow = `0 0 0 3px ${accent}14`; }}
+                  onBlur={e => { e.target.style.borderColor = '#E5E7EB'; e.target.style.boxShadow = 'none'; }}
+                />
+                <button
+                  style={{ ...s.micBtn, background: listening ? '#DC2626' : accent, alignSelf: 'flex-end' }}
+                  onClick={startVoice}
+                  title={listening ? 'Stop recording' : 'Speak your answer'}
+                >
+                  {listening ? <StopIcon /> : <MicIcon />}
+                </button>
+              </div>
+            )}
+
+            {listening && (
+              <div style={s.listeningBadge}>
+                <span style={s.listeningDot} />
+                Listening... speak now. Click the button again to stop.
+              </div>
             )}
 
             {q.type === 'select' && (
@@ -187,7 +246,6 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
 
           </div>
 
-          {/* Error */}
           {error && (
             <div style={s.errorRow}>
               <AlertIcon size={14} color="#DC2626" />
@@ -195,7 +253,6 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
             </div>
           )}
 
-          {/* Continue button for text/textarea */}
           {q.type !== 'select' && (
             <button
               style={{ ...s.continueBtn, background: accent }}
@@ -212,7 +269,6 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
           )}
         </div>
 
-        {/* Dots */}
         <div style={s.dots}>
           {questions.map((_, i) => (
             <div key={i} style={{
@@ -226,6 +282,25 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
 
       </div>
     </div>
+  );
+}
+
+function MicIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+      <line x1="12" y1="19" x2="12" y2="23"/>
+      <line x1="8" y1="23" x2="16" y2="23"/>
+    </svg>
+  );
+}
+
+function StopIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <rect x="4" y="4" width="16" height="16" rx="2"/>
+    </svg>
   );
 }
 
@@ -266,12 +341,31 @@ const s = {
   hintText: { fontSize: 13, color: '#92400E', lineHeight: 1.6 },
 
   inputWrap: { marginBottom: 6 },
+  voiceInputWrap: { display: 'flex', gap: 10, alignItems: 'flex-start' },
   textInput: {
-    width: '100%', padding: '12px 14px',
+    flex: 1, padding: '12px 14px',
     border: '1.5px solid #E5E7EB', borderRadius: 10,
     fontSize: 15, color: '#111827', background: '#FFFFFF',
     transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
     fontFamily: 'inherit',
+  },
+  micBtn: {
+    flexShrink: 0, width: 44, height: 44, border: 'none',
+    borderRadius: 10, color: '#FFFFFF', cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    transition: 'background 0.15s ease',
+  },
+  listeningBadge: {
+    display: 'flex', alignItems: 'center', gap: 8,
+    fontSize: 12, color: '#DC2626', fontWeight: 600,
+    marginTop: 8, padding: '6px 10px',
+    background: '#FEF2F2', borderRadius: 8,
+    border: '1px solid #FECACA',
+  },
+  listeningDot: {
+    width: 8, height: 8, borderRadius: '50%',
+    background: '#DC2626', flexShrink: 0,
+    animation: 'pulse 1s infinite',
   },
 
   options: { display: 'flex', flexDirection: 'column', gap: 8 },
