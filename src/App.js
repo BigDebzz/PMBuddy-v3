@@ -109,13 +109,15 @@ export default function App() {
         </div>
       </nav>
 
-      {screen === S.LAND && (
-        <LandingScreen
-          onSelectMode={selectMode}
-          onLogin={() => setScreen(S.AUTH)}
-          onSignup={() => setScreen(S.AUTH)}
-        />
-      )}
+     {screen === S.LAND && (
+  <LandingScreen
+    onSelectMode={selectMode}
+    onLogin={() => setScreen(S.AUTH)}
+    onSignup={() => setScreen(S.AUTH)}
+    onDashboard={() => setScreen(S.DASHBOARD)}
+    user={user}
+  />
+)}
       {screen === S.QA && mode && (
         <QuestionWizard
           mode={mode}
