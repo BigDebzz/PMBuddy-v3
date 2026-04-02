@@ -93,21 +93,21 @@ export default function App() {
 
   return (
     <div>
-      {screen !== S.LAND && (
-        <nav style={nav.bar}>
-          <button style={nav.logo} onClick={reset}>
-            <span style={nav.logoText}>PM Buddy</span>
-          </button>
-          <div style={nav.right}>
-            {user ? (
-              <button style={nav.dashBtn} onClick={() => setScreen(S.DASHBOARD)}>My Projects</button>
-            ) : (
-              <button style={nav.loginBtn} onClick={() => setScreen(S.AUTH)}>Log in</button>
-            )}
+      <nav style={nav.bar}>
+        <button style={nav.logo} onClick={reset}>
+          <span style={nav.logoText}>PM Buddy</span>
+        </button>
+        <div style={nav.right}>
+          {user ? (
+            <button style={nav.dashBtn} onClick={() => setScreen(S.DASHBOARD)}>My Projects</button>
+          ) : (
+            <button style={nav.loginBtn} onClick={() => setScreen(S.AUTH)}>Log in</button>
+          )}
+          {screen !== S.LAND && (
             <button style={nav.newBtn} onClick={reset}>New project</button>
-          </div>
-        </nav>
-      )}
+          )}
+        </div>
+      </nav>
 
       {screen === S.LAND && (
         <LandingScreen
