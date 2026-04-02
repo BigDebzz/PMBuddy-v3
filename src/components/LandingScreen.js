@@ -30,13 +30,21 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
               PM Buddy asks the hard questions founders avoid. Answer honestly and get a report that tells you what is working, what is broken, and exactly what to do next.
             </p>
             <div style={s.heroBtns}>
-              <button style={s.primaryBtn} onClick={onSignup}>Get started for free</button>
-              <button style={s.outlineBtn} onClick={onLogin}>Log in</button>
-            </div>
-            <p style={s.heroSkip}>
-              No account?{' '}
-              <button style={s.skipLink} onClick={() => handleSelect('startup')}>Try without signing up</button>
-            </p>
+  {user ? (
+    <button style={s.primaryBtn} onClick={onDashboard}>Go to my projects</button>
+  ) : (
+    <>
+      <button style={s.primaryBtn} onClick={onSignup}>Get started for free</button>
+      <button style={s.outlineBtn} onClick={onLogin}>Log in</button>
+    </>
+  )}
+</div>
+{!user && (
+  <p style={s.heroSkip}>
+    No account?{' '}
+    <button style={s.skipLink} onClick={() => handleSelect('startup')}>Try without signing up</button>
+  </p>
+)}
           </div>
         </div>
       </div>
