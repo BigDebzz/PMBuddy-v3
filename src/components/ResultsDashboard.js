@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { deepAnalyze } from '../lib/gemini';
 import { modeConfig } from '../data/questions';
 import { Analytics } from '../lib/analytics';
 
 const modeAccents = { hackathon: '#7C3AED', startup: '#2563EB' };
 
 const TABS = {
-  hackathon: ['Report', 'Pitch Structure', 'Tools to Use', 'Proof Points'],
-  startup: ['Report', 'Roadmap', 'Tools to Use', 'Methodology', 'Proof Points'],
+  hackathon: ['Report', 'AI Analysis', 'Pitch Structure', 'Tools to Use', 'Proof Points'],
+  startup: ['Report', 'AI Analysis', 'Roadmap', 'Tools to Use', 'Methodology', 'Proof Points'],
 };
 
 export default function ResultsDashboard({ mode, answers, analysis, onReset, onEdit, onSave, user, projectId }) {
@@ -16,11 +17,26 @@ export default function ResultsDashboard({ mode, answers, analysis, onReset, onE
   const [saved, setSaved] = useState(!!projectId);
   const [title, setTitle] = useState('');
   const [showTitleInput, setShowTitleInput] = useState(false);
+  const [deepAnalysis, setDeepAnalysis] = useState(null);
+  const [deepLoading, setDeepLoading] = useState(false);
   const config = modeConfig[mode];
   const accent = modeAccents[mode];
   const tabs = TABS[mode];
 
-  const handleTab = (t) => { setTab(t); Analytics.reportTabViewed(t, mode); };
+  const handleTab = (t) => {
+    setTab(t);
+    Analytics.reportTabViewed(t, mode);
+    if (t === 'AI Analysis' && !deepAnalysis && !deepLoading) {
+      runDeepAnalysis();
+    }
+  };
+
+  const runDeepAnalysis = async () => {
+    setDeepLoading(true);
+    const result = await deepAnalyze(mode, answers);
+    setDeepAnalysis(result);
+    setDeepLoading(false);
+  };
 
   const handleSave = async () => {
     if (!user) { onSave(); return; }
@@ -94,13 +110,14 @@ export default function ResultsDashboard({ mode, answers, analysis, onReset, onE
         <div style={s.tabBar}>
           {tabs.map(t => (
             <button key={t} style={{ ...s.tabBtn, color: tab === t ? accent : '#6B7280', borderBottomColor: tab === t ? accent : 'transparent', fontWeight: tab === t ? 700 : 500 }} onClick={() => handleTab(t)}>
-              {t}
+              {t === 'AI Analysis' ? '✦ AI Analysis' : t}
             </button>
           ))}
         </div>
 
         <div key={tab} className="fade-in">
           {tab === 'Report' && <ReportTab analysis={analysis} accent={accent} />}
+          {tab === 'AI Analysis' && <AIAnalysisTab deepAnalysis={deepAnalysis} deepLoading={deepLoading} accent={accent} />}
           {tab === 'Pitch Structure' && <PitchTab analysis={analysis} accent={accent} />}
           {tab === 'Roadmap' && <RoadmapTab analysis={analysis} accent={accent} />}
           {tab === 'Tools to Use' && <ToolsTab analysis={analysis} accent={accent} />}
@@ -111,6 +128,76 @@ export default function ResultsDashboard({ mode, answers, analysis, onReset, onE
         <FeedbackForm mode={mode} />
 
       </div>
+    </div>
+  );
+}
+
+function AIAnalysisTab({ deepAnalysis, deepLoading, accent }) {
+  if (deepLoading) {
+    return (
+      <div style={s.aiLoading}>
+        <div style={s.aiSpinner} />
+        <p style={s.aiLoadingText}>Reading your answers and generating a personalised analysis...</p>
+        <p style={s.aiLoadingSubtext}>This takes about 10 seconds</p>
+      </div>
+    );
+  }
+
+  if (!deepAnalysis) {
+    return <p style={s.empty}>Something went wrong generating the AI analysis. Please try again.</p>;
+  }
+
+  return (
+    <div>
+      <SectionHead
+        title="AI Powered Deep Analysis"
+        sub="Gemini has read every word of your answers and responded directly to your specific situation. Not a template."
+      />
+
+      {deepAnalysis.founderMessage && (
+        <div style={s.founderMsg}>
+          <p style={s.founderMsgLabel}>A message for you</p>
+          <p style={s.founderMsgText}>{deepAnalysis.founderMessage}</p>
+        </div>
+      )}
+
+      {deepAnalysis.topPriority && (
+        <div style={s.topPriority}>
+          <p style={s.topPriorityLabel}>Your single most important next action</p>
+          <p style={s.topPriorityText}>{deepAnalysis.topPriority}</p>
+        </div>
+      )}
+
+      {deepAnalysis.deepInsights?.length > 0 && (
+        <div style={s.section}>
+          <p style={s.colLabel}>What Gemini found in your answers</p>
+          {deepAnalysis.deepInsights.map((item, i) => (
+            <div key={i} style={{ ...s.insightCard, borderLeftColor: item.type === 'strength' ? '#15803D' : item.type === 'neutral' ? '#2563EB' : '#D97706' }}>
+              <span style={{ ...s.badge, background: item.type === 'strength' ? '#F0FDF4' : item.type === 'neutral' ? '#EFF6FF' : '#FFFBEB', color: item.type === 'strength' ? '#15803D' : item.type === 'neutral' ? '#2563EB' : '#D97706' }}>
+                {item.type === 'strength' ? 'Strength' : item.type === 'neutral' ? 'Note' : 'Watch'}
+              </span>
+              <p style={s.insightText}>{item.text}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {deepAnalysis.deepChallenges?.length > 0 && (
+        <div style={s.section}>
+          <p style={s.colLabel}>Challenges specific to your situation</p>
+          {deepAnalysis.deepChallenges.map((item, i) => (
+            <div key={i} style={{ ...s.challengeCard, borderLeftColor: item.level === 'high' ? '#DC2626' : item.level === 'medium' ? '#D97706' : '#9CA3AF' }}>
+              <span style={{ ...s.badge, background: item.level === 'high' ? '#FEF2F2' : item.level === 'medium' ? '#FFFBEB' : '#F9FAFB', color: item.level === 'high' ? '#DC2626' : item.level === 'medium' ? '#D97706' : '#6B7280' }}>
+                {item.level === 'high' ? 'Fix this now' : item.level === 'medium' ? 'Address soon' : 'Keep in mind'}
+              </span>
+              <p style={s.challengeTitle}>{item.text}</p>
+              <div style={s.responseBox}>
+                <p style={s.responseText}>{item.response}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -433,4 +520,14 @@ const s = {
   feedbackInput: { width: '100%', border: '1px solid #E5E7EB', borderRadius: 8, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', marginBottom: 12, resize: 'vertical', boxSizing: 'border-box', color: '#111827', outline: 'none' },
   feedbackInputSingle: { width: '100%', border: '1px solid #E5E7EB', borderRadius: 8, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', marginBottom: 20, boxSizing: 'border-box', color: '#111827', outline: 'none' },
   feedbackBtn: { background: '#0A0A0A', color: '#FFFFFF', border: 'none', borderRadius: 8, padding: '12px 28px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
+  aiLoading: { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '64px 20px', gap: 16 },
+  aiSpinner: { width: 36, height: 36, border: '3px solid #F3F4F6', borderTop: '3px solid #2563EB', borderRadius: '50%', animation: 'spin 0.8s linear infinite' },
+  aiLoadingText: { fontSize: 15, fontWeight: 600, color: '#374151', textAlign: 'center' },
+  aiLoadingSubtext: { fontSize: 13, color: '#9CA3AF', textAlign: 'center' },
+  founderMsg: { background: '#0A0A0A', borderRadius: 14, padding: '20px 22px', marginBottom: 20 },
+  founderMsgLabel: { fontSize: 11, fontWeight: 700, color: '#550000', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 },
+  founderMsgText: { fontSize: 15, color: '#FFFFFF', lineHeight: 1.75, fontStyle: 'italic' },
+  topPriority: { background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 14, padding: '20px 22px', marginBottom: 24 },
+  topPriorityLabel: { fontSize: 11, fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 },
+  topPriorityText: { fontSize: 15, fontWeight: 700, color: '#0A0A0A', lineHeight: 1.65 },
 };
