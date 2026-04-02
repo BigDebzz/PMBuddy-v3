@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { deepAnalyze } from '../lib/gemini';
 import { modeConfig } from '../data/questions';
