@@ -71,3 +71,6 @@ input, textarea { font-family: var(--font); outline: none; }
 @media (max-width: 640px) {
   h1 { font-size: clamp(24px, 7vw, 36px) !important; }
 }
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
