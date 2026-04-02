@@ -6,8 +6,11 @@ import AuthScreen from './components/AuthScreen';
 import Dashboard from './components/Dashboard';
 import { analyze } from './data/analysis';
 import { supabase } from './lib/supabase';
-import { LogoIcon } from './lib/icons';
 import { Analytics } from './lib/analytics';
+
+const B = '#550000';
+const BL = '#0A0A0A';
+const WH = '#FFFFFF';
 
 const S = { LAND: 'land', QA: 'qa', RESULTS: 'results', AUTH: 'auth', DASHBOARD: 'dashboard' };
 
@@ -90,22 +93,21 @@ export default function App() {
 
   return (
     <div>
-      <nav style={nav.bar}>
-        <button style={nav.logo} onClick={reset}>
-          <LogoIcon size={32} />
-          <span style={nav.title}>PM Buddy</span>
-        </button>
-        <div style={nav.right}>
-          {user ? (
-            <button style={nav.dashBtn} onClick={() => setScreen(S.DASHBOARD)}>My Projects</button>
-          ) : (
-            <button style={nav.loginBtn} onClick={() => setScreen(S.AUTH)}>Log in</button>
-          )}
-          {screen !== S.LAND && (
+      {screen !== S.LAND && (
+        <nav style={nav.bar}>
+          <button style={nav.logo} onClick={reset}>
+            <span style={nav.logoText}>PM Buddy</span>
+          </button>
+          <div style={nav.right}>
+            {user ? (
+              <button style={nav.dashBtn} onClick={() => setScreen(S.DASHBOARD)}>My Projects</button>
+            ) : (
+              <button style={nav.loginBtn} onClick={() => setScreen(S.AUTH)}>Log in</button>
+            )}
             <button style={nav.newBtn} onClick={reset}>New project</button>
-          )}
-        </div>
-      </nav>
+          </div>
+        </nav>
+      )}
 
       {screen === S.LAND && (
         <LandingScreen
@@ -152,11 +154,11 @@ export default function App() {
 }
 
 const nav = {
-  bar: { position: 'sticky', top: 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px', height: 56, background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #F3F4F6' },
+  bar: { position: 'sticky', top: 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px', height: 56, background: BL, borderBottom: `1px solid ${B}` },
   logo: { display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0 },
-  title: { fontSize: 17, fontWeight: 800, color: '#0A0A0A', letterSpacing: '-0.3px' },
+  logoText: { fontSize: 17, fontWeight: 800, color: WH, letterSpacing: '-0.3px' },
   right: { display: 'flex', gap: 8, alignItems: 'center' },
-  dashBtn: { padding: '7px 14px', background: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer', fontFamily: 'inherit' },
-  loginBtn: { padding: '7px 14px', background: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer', fontFamily: 'inherit' },
-  newBtn: { padding: '7px 14px', background: '#0A0A0A', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  dashBtn: { padding: '7px 14px', background: 'transparent', border: `1px solid ${B}`, borderRadius: 8, fontSize: 13, fontWeight: 600, color: WH, cursor: 'pointer', fontFamily: 'inherit' },
+  loginBtn: { padding: '7px 14px', background: 'transparent', border: `1px solid ${B}`, borderRadius: 8, fontSize: 13, fontWeight: 600, color: WH, cursor: 'pointer', fontFamily: 'inherit' },
+  newBtn: { padding: '7px 14px', background: B, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
 };
