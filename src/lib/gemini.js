@@ -1,10 +1,6 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GEMINI_KEY);
+const API_KEY = process.env.REACT_APP_GEMINI_KEY;
 
 export async function deepAnalyze(mode, answers) {
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
   const questionLabels = mode === 'hackathon' ? {
     hack_theme: 'Thematic area',
     hack_team: 'Team composition',
@@ -33,7 +29,7 @@ export async function deepAnalyze(mode, answers) {
   };
 
   const formattedAnswers = Object.entries(answers)
-    .filter(([key, val]) => val && val.toString().trim().length > 0)
+    .filter(([, val]) => val && val.toString().trim().length > 0)
     .map(([key, val]) => `${questionLabels[key] || key}: ${val}`)
     .join('\n\n');
 
@@ -69,18 +65,38 @@ Rules:
 - Reference their actual answers directly. Use their words back to them.
 - If they mentioned a specific market, person, or problem, address it specifically.
 - Do not use dashes anywhere in your response. Use full sentences.
-- No generic advice like talk to customers unless their answers show they have not done this.
+- No generic advice unless their answers show they have not done this.
 - Be direct and honest. Do not sugarcoat real problems.
 - Keep each insight and challenge to 2 sentences maximum.
 - The founderMessage should feel personal, not like a template.`;
 
   try {
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.7, maxOutputTokens: 2000 }
+        })
+      }
+    );
+
+    if (!response.ok) {
+      const err = await response.json();
+      console.error('Gemini API error:', err);
+      return null;
+    }
+
+    const data = await response.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) return null;
+
     const clean = text.replace(/```json|```/g, '').trim();
     return JSON.parse(clean);
   } catch (err) {
-    console.error('Gemini error:', err);
+    console.error('Gemini fetch error:', err);
     return null;
   }
 }
