@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const genAI = new GoogleGenerativeAI('AIzaSyDFQFyp1-ZkhC4Qmp4SUNfUTPO9mbdUX70');
+const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GEMINI_KEY);
 
 export async function deepAnalyze(mode, answers) {
   const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
@@ -62,14 +62,14 @@ Respond in this exact JSON format with no markdown, no code blocks, just raw JSO
     }
   ],
   "topPriority": "The single most important thing this founder needs to do right now, written directly to them",
-  "founderMessage": "A 2-3 sentence honest message to this specific founder about their idea. Reference what they actually said. Be encouraging but honest."
+  "founderMessage": "A 2 to 3 sentence honest message to this specific founder about their idea. Reference what they actually said. Be encouraging but honest."
 }
 
 Rules:
 - Reference their actual answers directly. Use their words back to them.
 - If they mentioned a specific market, person, or problem, address it specifically.
 - Do not use dashes anywhere in your response. Use full sentences.
-- No generic advice like "talk to customers" unless their answers show they have not done this.
+- No generic advice like talk to customers unless their answers show they have not done this.
 - Be direct and honest. Do not sugarcoat real problems.
 - Keep each insight and challenge to 2 sentences maximum.
 - The founderMessage should feel personal, not like a template.`;
