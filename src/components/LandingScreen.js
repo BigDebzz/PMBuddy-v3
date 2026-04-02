@@ -5,7 +5,7 @@ const B = '#550000';
 const BL = '#0A0A0A';
 const WH = '#FFFFFF';
 
-export default function LandingScreen({ onSelectMode, onLogin, onSignup }) {
+export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashboard, user }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => { setTimeout(() => setVisible(true), 80); }, []);
