@@ -16,6 +16,7 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
   const [listening, setListening] = useState(false);
   const inputRef = useRef(null);
   const recognitionRef = useRef(null);
+  const accumulatedRef = useRef('');
 
   const q = questions[idx];
   const progress = ((idx + 1) / questions.length) * 100;
@@ -24,16 +25,24 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
   useEffect(() => {
     setTooltip(false);
     setError('');
+    stopVoice();
     setTimeout(() => inputRef.current && inputRef.current.focus(), 80);
   }, [idx]);
 
   useEffect(() => {
-    return () => {
-      if (recognitionRef.current) recognitionRef.current.stop();
-    };
+    return () => stopVoice();
   }, []);
 
   const change = (val) => { setAnswers(p => ({ ...p, [q.id]: val })); setError(''); };
+
+  const stopVoice = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.onend = null;
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+    setListening(false);
+  };
 
   const startVoice = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -41,30 +50,41 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
       alert('Voice input is not supported in this browser. Please use Chrome.');
       return;
     }
+
     if (listening) {
-      recognitionRef.current.stop();
-      setListening(false);
+      stopVoice();
       return;
     }
+
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-NG';
-    recognition.continuous = true;
-    recognition.interimResults = true;
+    recognition.continuous = false;
+    recognition.interimResults = false;
     recognitionRef.current = recognition;
 
-    const existing = answers[q.id] || '';
+    const base = answers[q.id] || '';
+    accumulatedRef.current = base;
 
     recognition.onstart = () => setListening(true);
-    recognition.onend = () => setListening(false);
-    recognition.onerror = () => setListening(false);
 
     recognition.onresult = (event) => {
-      let transcript = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript;
-      }
-      const combined = existing ? existing + ' ' + transcript : transcript;
-      change(combined.trim());
+      const transcript = event.results[0][0].transcript;
+      const combined = accumulatedRef.current
+        ? accumulatedRef.current.trim() + ' ' + transcript.trim()
+        : transcript.trim();
+      accumulatedRef.current = combined;
+      change(combined);
+    };
+
+    recognition.onend = () => {
+      setListening(false);
+      recognitionRef.current = null;
+    };
+
+    recognition.onerror = (e) => {
+      console.error('Voice error:', e.error);
+      setListening(false);
+      recognitionRef.current = null;
     };
 
     recognition.start();
@@ -134,7 +154,7 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
 
           {tooltip && (
             <div style={{ ...s.tooltipBox, borderColor: accent + '25', background: accent + '06' }}>
-              <p style={{ ...s.tooltipText, color: accent === '#2563EB' ? '#1D4ED8' : accent }}>{q.tooltip}</p>
+              <p style={{ ...s.tooltipText, color: accent }}>{q.tooltip}</p>
             </div>
           )}
 
@@ -158,54 +178,53 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
           <div style={s.inputWrap}>
 
             {q.type === 'text' && (
-              <div style={s.voiceInputWrap}>
-                <input
-                  ref={inputRef}
-                  style={s.textInput}
-                  type="text"
-                  placeholder={q.placeholder}
-                  value={answers[q.id] || ''}
-                  onChange={e => change(e.target.value)}
-                  onFocus={e => { e.target.style.borderColor = accent; e.target.style.boxShadow = `0 0 0 3px ${accent}14`; }}
-                  onBlur={e => { e.target.style.borderColor = '#E5E7EB'; e.target.style.boxShadow = 'none'; }}
-                  onKeyDown={e => e.key === 'Enter' && next()}
-                />
-                <button
-                  style={{ ...s.micBtn, background: listening ? '#DC2626' : accent }}
-                  onClick={startVoice}
-                  title={listening ? 'Stop recording' : 'Speak your answer'}
-                >
-                  {listening ? <StopIcon /> : <MicIcon />}
-                </button>
-              </div>
+              <>
+                <div style={s.voiceInputWrap}>
+                  <input
+                    ref={inputRef}
+                    style={s.textInput}
+                    type="text"
+                    placeholder={q.placeholder}
+                    value={answers[q.id] || ''}
+                    onChange={e => change(e.target.value)}
+                    onFocus={e => { e.target.style.borderColor = accent; e.target.style.boxShadow = `0 0 0 3px ${accent}14`; }}
+                    onBlur={e => { e.target.style.borderColor = '#E5E7EB'; e.target.style.boxShadow = 'none'; }}
+                    onKeyDown={e => e.key === 'Enter' && next()}
+                  />
+                  <button
+                    style={{ ...s.micBtn, background: listening ? '#DC2626' : accent }}
+                    onClick={startVoice}
+                    title={listening ? 'Stop recording' : 'Speak your answer'}
+                  >
+                    {listening ? <StopIcon /> : <MicIcon />}
+                  </button>
+                </div>
+                {listening && <div style={s.listeningBadge}><span style={s.listeningDot} />Listening... speak now then click stop when done.</div>}
+              </>
             )}
 
             {q.type === 'textarea' && (
-              <div style={s.voiceInputWrap}>
-                <textarea
-                  ref={inputRef}
-                  style={{ ...s.textInput, minHeight: 128, resize: 'vertical', lineHeight: 1.65 }}
-                  placeholder={q.placeholder}
-                  value={answers[q.id] || ''}
-                  onChange={e => change(e.target.value)}
-                  onFocus={e => { e.target.style.borderColor = accent; e.target.style.boxShadow = `0 0 0 3px ${accent}14`; }}
-                  onBlur={e => { e.target.style.borderColor = '#E5E7EB'; e.target.style.boxShadow = 'none'; }}
-                />
-                <button
-                  style={{ ...s.micBtn, background: listening ? '#DC2626' : accent, alignSelf: 'flex-end' }}
-                  onClick={startVoice}
-                  title={listening ? 'Stop recording' : 'Speak your answer'}
-                >
-                  {listening ? <StopIcon /> : <MicIcon />}
-                </button>
-              </div>
-            )}
-
-            {listening && (
-              <div style={s.listeningBadge}>
-                <span style={s.listeningDot} />
-                Listening... speak now. Click the button again to stop.
-              </div>
+              <>
+                <div style={s.voiceInputWrap}>
+                  <textarea
+                    ref={inputRef}
+                    style={{ ...s.textInput, minHeight: 128, resize: 'vertical', lineHeight: 1.65 }}
+                    placeholder={q.placeholder}
+                    value={answers[q.id] || ''}
+                    onChange={e => change(e.target.value)}
+                    onFocus={e => { e.target.style.borderColor = accent; e.target.style.boxShadow = `0 0 0 3px ${accent}14`; }}
+                    onBlur={e => { e.target.style.borderColor = '#E5E7EB'; e.target.style.boxShadow = 'none'; }}
+                  />
+                  <button
+                    style={{ ...s.micBtn, background: listening ? '#DC2626' : accent, alignSelf: 'flex-end' }}
+                    onClick={startVoice}
+                    title={listening ? 'Stop recording' : 'Speak your answer'}
+                  >
+                    {listening ? <StopIcon /> : <MicIcon />}
+                  </button>
+                </div>
+                {listening && <div style={s.listeningBadge}><span style={s.listeningDot} />Listening... speak now then click stop when done.</div>}
+              </>
             )}
 
             {q.type === 'select' && (
@@ -307,39 +326,30 @@ function StopIcon() {
 const s = {
   page: { minHeight: '100vh', background: '#FAFAFA', padding: '28px 20px 48px' },
   wrap: { maxWidth: 580, margin: '0 auto' },
-
   nav: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
   backBtn: { display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: '#6B7280', fontSize: 14, fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'inherit' },
   modePill: { display: 'flex', alignItems: 'center', gap: 6, background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: 100, padding: '5px 12px', fontSize: 12, fontWeight: 700, color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' },
   modeDot: { width: 6, height: 6, borderRadius: '50%' },
   counter: { fontSize: 12, color: '#9CA3AF', fontWeight: 600 },
-
   progressTrack: { height: 3, background: '#F3F4F6', borderRadius: 2, marginBottom: 24, overflow: 'hidden' },
   progressBar: { height: '100%', borderRadius: 2, transition: 'width 0.4s cubic-bezier(0.4,0,0.2,1)' },
-
   card: {
     background: '#FFFFFF', border: '1px solid #E5E7EB',
     borderRadius: 18, padding: 'clamp(22px, 5vw, 32px)',
     boxShadow: '0 4px 16px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04)',
   },
-
   cardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   stagePill: { fontSize: 11, fontWeight: 800, padding: '4px 10px', borderRadius: 100, letterSpacing: '0.05em', textTransform: 'uppercase' },
   helpBtn: { display: 'flex', alignItems: 'center', gap: 5, background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 100, padding: '5px 12px', fontSize: 12, fontWeight: 600, color: '#6B7280', cursor: 'pointer', fontFamily: 'inherit' },
-
   tooltipBox: { border: '1px solid', borderRadius: 10, padding: '12px 14px', marginBottom: 16 },
   tooltipText: { fontSize: 14, lineHeight: 1.65, fontWeight: 500 },
-
   question: { fontSize: 'clamp(18px, 3.5vw, 22px)', fontWeight: 800, color: '#0A0A0A', lineHeight: 1.25, marginBottom: 8, letterSpacing: '-0.3px' },
   subtext: { fontSize: 14, color: '#6B7280', lineHeight: 1.7, marginBottom: 20 },
-
   bpBox: { background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '12px 14px', marginBottom: 16 },
   bpLabel: { display: 'block', fontSize: 10, fontWeight: 800, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 },
   bpText: { fontSize: 13, color: '#92400E', lineHeight: 1.65 },
-
   hintBox: { display: 'flex', gap: 8, background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 10, padding: '10px 12px', marginBottom: 16, alignItems: 'flex-start' },
   hintText: { fontSize: 13, color: '#92400E', lineHeight: 1.6 },
-
   inputWrap: { marginBottom: 6 },
   voiceInputWrap: { display: 'flex', gap: 10, alignItems: 'flex-start' },
   textInput: {
@@ -367,7 +377,6 @@ const s = {
     background: '#DC2626', flexShrink: 0,
     animation: 'pulse 1s infinite',
   },
-
   options: { display: 'flex', flexDirection: 'column', gap: 8 },
   option: {
     display: 'flex', alignItems: 'center', gap: 12,
@@ -384,10 +393,8 @@ const s = {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     transition: 'all 0.14s ease',
   },
-
   errorRow: { display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 },
   errorText: { fontSize: 13, color: '#DC2626', fontWeight: 500 },
-
   continueBtn: {
     width: '100%', padding: '13px 20px', border: 'none',
     borderRadius: 10, color: '#FFFFFF', fontSize: 15,
@@ -400,6 +407,5 @@ const s = {
     marginTop: 10, background: 'none', border: 'none',
     fontSize: 13, color: '#9CA3AF', cursor: 'pointer', fontFamily: 'inherit',
   },
-
   dots: { display: 'flex', gap: 5, justifyContent: 'center', marginTop: 20, alignItems: 'center' },
 };
