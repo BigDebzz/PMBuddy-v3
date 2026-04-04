@@ -16,7 +16,6 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
   const [listening, setListening] = useState(false);
   const inputRef = useRef(null);
   const recognitionRef = useRef(null);
-  const accumulatedRef = useRef('');
 
   const q = questions[idx];
   const progress = ((idx + 1) / questions.length) * 100;
@@ -29,16 +28,16 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
     setTimeout(() => inputRef.current && inputRef.current.focus(), 80);
   }, [idx]);
 
-  useEffect(() => {
-    return () => stopVoice();
-  }, []);
+  useEffect(() => { return () => stopVoice(); }, []);
 
   const change = (val) => { setAnswers(p => ({ ...p, [q.id]: val })); setError(''); };
 
   const stopVoice = () => {
     if (recognitionRef.current) {
       recognitionRef.current.onend = null;
-      recognitionRef.current.stop();
+      recognitionRef.current.onerror = null;
+      recognitionRef.current.onresult = null;
+      recognitionRef.current.abort();
       recognitionRef.current = null;
     }
     setListening(false);
@@ -50,30 +49,25 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
       alert('Voice input is not supported in this browser. Please use Chrome.');
       return;
     }
-
-    if (listening) {
-      stopVoice();
-      return;
-    }
+    if (listening) { stopVoice(); return; }
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-NG';
     recognition.continuous = false;
     recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
     recognitionRef.current = recognition;
-
-    const base = answers[q.id] || '';
-    accumulatedRef.current = base;
 
     recognition.onstart = () => setListening(true);
 
     recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      const combined = accumulatedRef.current
-        ? accumulatedRef.current.trim() + ' ' + transcript.trim()
-        : transcript.trim();
-      accumulatedRef.current = combined;
-      change(combined);
+      const transcript = event.results[0][0].transcript.trim();
+      setAnswers(prev => {
+        const existing = (prev[q.id] || '').trim();
+        const combined = existing ? existing + ' ' + transcript : transcript;
+        return { ...prev, [q.id]: combined };
+      });
+      setError('');
     };
 
     recognition.onend = () => {
@@ -82,7 +76,9 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
     };
 
     recognition.onerror = (e) => {
-      console.error('Voice error:', e.error);
+      if (e.error !== 'no-speech' && e.error !== 'aborted') {
+        console.error('Voice error:', e.error);
+      }
       setListening(false);
       recognitionRef.current = null;
     };
@@ -199,7 +195,12 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
                     {listening ? <StopIcon /> : <MicIcon />}
                   </button>
                 </div>
-                {listening && <div style={s.listeningBadge}><span style={s.listeningDot} />Listening... speak now then click stop when done.</div>}
+                {listening && (
+                  <div style={s.listeningBadge}>
+                    <span style={s.listeningDot} />
+                    Listening... speak then pause. Click stop when done.
+                  </div>
+                )}
               </>
             )}
 
@@ -223,7 +224,12 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
                     {listening ? <StopIcon /> : <MicIcon />}
                   </button>
                 </div>
-                {listening && <div style={s.listeningBadge}><span style={s.listeningDot} />Listening... speak now then click stop when done.</div>}
+                {listening && (
+                  <div style={s.listeningBadge}>
+                    <span style={s.listeningDot} />
+                    Listening... speak then pause. Click stop when done.
+                  </div>
+                )}
               </>
             )}
 
