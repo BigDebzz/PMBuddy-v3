@@ -8,10 +8,6 @@ import { analyze } from './data/analysis';
 import { supabase } from './lib/supabase';
 import { Analytics } from './lib/analytics';
 
-const B = '#550000';
-const BL = '#0A0A0A';
-const WH = '#FFFFFF';
-
 const S = { LAND: 'land', QA: 'qa', RESULTS: 'results', AUTH: 'auth', DASHBOARD: 'dashboard' };
 
 export default function App() {
@@ -109,15 +105,15 @@ export default function App() {
         </div>
       </nav>
 
-     {screen === S.LAND && (
-  <LandingScreen
-    onSelectMode={selectMode}
-    onLogin={() => setScreen(S.AUTH)}
-    onSignup={() => setScreen(S.AUTH)}
-    onDashboard={() => setScreen(S.DASHBOARD)}
-    user={user}
-  />
-)}
+      {screen === S.LAND && (
+        <LandingScreen
+          onSelectMode={selectMode}
+          onLogin={() => setScreen(S.AUTH)}
+          onSignup={() => setScreen(S.AUTH)}
+          onDashboard={() => setScreen(S.DASHBOARD)}
+          user={user}
+        />
+      )}
       {screen === S.QA && mode && (
         <QuestionWizard
           mode={mode}
@@ -156,11 +152,11 @@ export default function App() {
 }
 
 const nav = {
-  bar: { position: 'sticky', top: 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px', height: 56, background: BL, borderBottom: `1px solid ${B}` },
+  bar: { position: 'sticky', top: 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 48px', height: 56, background: '#FFFFFF', borderBottom: '1px solid #E5E7EB' },
   logo: { display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0 },
-  logoText: { fontSize: 17, fontWeight: 800, color: WH, letterSpacing: '-0.3px' },
+  logoText: { fontSize: 17, fontWeight: 800, color: '#0A0A0A', letterSpacing: '-0.3px' },
   right: { display: 'flex', gap: 8, alignItems: 'center' },
-  dashBtn: { padding: '7px 14px', background: 'transparent', border: `1px solid ${B}`, borderRadius: 8, fontSize: 13, fontWeight: 600, color: WH, cursor: 'pointer', fontFamily: 'inherit' },
-  loginBtn: { padding: '7px 14px', background: 'transparent', border: `1px solid ${B}`, borderRadius: 8, fontSize: 13, fontWeight: 600, color: WH, cursor: 'pointer', fontFamily: 'inherit' },
-  newBtn: { padding: '7px 14px', background: B, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  dashBtn: { padding: '7px 14px', background: '#EFF6FF', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#0284C7', cursor: 'pointer', fontFamily: 'inherit' },
+  loginBtn: { padding: '7px 14px', background: '#EFF6FF', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#0284C7', cursor: 'pointer', fontFamily: 'inherit' },
+  newBtn: { padding: '7px 14px', background: '#0284C7', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
 };
