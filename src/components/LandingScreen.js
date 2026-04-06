@@ -261,7 +261,7 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
 const s = {
   page: { minHeight: '100vh', background: WH, fontFamily: "'DM Sans', system-ui, sans-serif" },
 
-  hero: { padding: '80px 48px', maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 64, flexWrap: 'wrap' },
+  hero: { padding: '60px 48px 40px', maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 64, flexWrap: 'wrap' },
   heroLeft: { flex: 1, minWidth: 300, maxWidth: 520 },
   heroRight: { flex: '0 0 auto' },
   headline: { fontSize: 'clamp(28px, 3.5vw, 44px)', fontWeight: 800, color: BL, lineHeight: 1.1, letterSpacing: '-1px', marginBottom: 20 },
