@@ -37,13 +37,13 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
   const handleSelect = (modeId) => { Analytics.modeSelected(modeId); onSelectMode(modeId); };
 
   const whoCards = [
-    { label: 'Startup founders', outcome: 'Ship without falling apart', body: 'You are building fast and things keep slipping. PM Buddy keeps your team aligned, your timeline real and your risks visible before they become problems.' },
-    { label: 'Solo builders', outcome: 'Build like a team of ten', body: 'No co-founder. No PM. No problem. PM Buddy gives you the structure and thinking that turns a solo effort into a professional project.' },
-    { label: 'Non-technical founders', outcome: 'Lead your team with confidence', body: 'You do not need to understand code to run a project well. PM Buddy puts you in control without the jargon.' },
-    { label: 'Corporate teams', outcome: 'Get everyone on the same page', body: 'Multiple people, multiple opinions, one goal. PM Buddy gives your team clarity on who owns what, what is due and how to communicate.' },
+    { label: 'Startup Founders', outcome: 'Ship Without Falling Apart', body: 'You are building fast and things keep slipping. PM Buddy keeps your team aligned, your timeline real and your risks visible before they become problems.' },
+    { label: 'Solo Builders', outcome: 'Build Like a Team of Ten', body: 'No co-founder. No PM. No problem. PM Buddy gives you the structure and thinking that turns a solo effort into a professional project.' },
+    { label: 'Non-Technical Founders', outcome: 'Lead Your Team With Confidence', body: 'You do not need to understand code to run a project well. PM Buddy puts you in control without the jargon.' },
+    { label: 'Corporate Teams', outcome: 'Get Everyone on the Same Page', body: 'Multiple people, multiple opinions, one goal. PM Buddy gives your team clarity on who owns what, what is due and how to communicate.' },
   ];
 
-  const milestones = ['Customer interviews', 'MVP wireframes', 'First user test', 'Investor demo'];
+  const milestones = ['Customer Interviews', 'MVP Wireframes', 'First User Test', 'Investor Demo'];
   const activeMilestone = tick % milestones.length;
 
   return (
@@ -53,27 +53,27 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
         <div style={s.heroLeft}>
           <div style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(20px)', transition: 'all 0.6s ease' }}>
             <h1 style={s.headline}>
-              Think, plan and execute<br />
-              <span style={s.accent}>like a professional PM.</span><br />
-              Without being one.
+              Think, Plan and Execute<br />
+              <span style={s.accent}>Like a Professional PM.</span><br />
+              Without Being One.
             </h1>
             <p style={s.heroSub}>
               Most projects fail not because of bad ideas but because nobody is running them properly. PM Buddy is the thinking partner every builder needs.
             </p>
             <div style={s.heroBtns}>
               {user ? (
-                <button style={s.primaryBtn} onClick={onDashboard}>Go to my projects</button>
+                <button style={s.primaryBtn} onClick={onDashboard}>Go to My Projects</button>
               ) : (
                 <>
-                  <button style={s.primaryBtn} onClick={onSignup}>Start your first project</button>
-                  <button style={s.ghostBtn} onClick={onLogin}>Log in</button>
+                  <button style={s.primaryBtn} onClick={onSignup}>Start Your First Project</button>
+                  <button style={s.ghostBtn} onClick={onLogin}>Log In</button>
                 </>
               )}
             </div>
             {!user && (
               <p style={s.heroNote}>
                 Not sure if your idea is worth building?{' '}
-                <button style={s.textLink} onClick={() => handleSelect('startup')}>Validate it first for free</button>
+                <button style={s.textLink} onClick={() => handleSelect('startup')}>Validate It First for Free</button>
               </p>
             )}
           </div>
@@ -83,14 +83,14 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
           <div style={s.projectCard}>
             <div style={s.cardHeader}>
               <div>
-                <p style={s.cardTag}>Active project</p>
+                <p style={s.cardTag}>Active Project</p>
                 <p style={s.cardName}>Fintech MVP — Lagos</p>
               </div>
-              <span style={s.onTrack}>On track</span>
+              <span style={s.onTrack}>On Track</span>
             </div>
             <div style={s.progressSection}>
               <div style={s.progressRow}>
-                <span style={s.progressLbl}>Overall progress</span>
+                <span style={s.progressLbl}>Overall Progress</span>
                 <span style={s.progressPct}>64%</span>
               </div>
               <div style={s.progressTrack}>
@@ -108,8 +108,8 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
               </div>
             ))}
             <div style={s.riskBanner}>
-              <span style={s.riskLbl}>Risks tracked</span>
-              <span style={s.riskVal}>3 medium · 1 high</span>
+              <span style={s.riskLbl}>Risks Tracked</span>
+              <span style={s.riskVal}>3 Medium · 1 High</span>
             </div>
           </div>
         </div>
@@ -118,14 +118,14 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
       <div style={s.section}>
         <div style={s.inner}>
           <Reveal>
-            <h2 style={s.h2}>Great ideas die from poor execution.</h2>
+            <h2 style={s.h2}>Great Ideas Die From Poor Execution.</h2>
             <p style={s.lead}>You know what you want to build. But without someone managing how it gets built, things fall apart.</p>
           </Reveal>
           <div style={s.threeGrid}>
             {[
-              { title: 'No one is in charge', body: 'Tasks get dropped because nobody owns them. Decisions happen twice because nobody documented the first one.' },
-              { title: 'The plan keeps changing', body: 'New ideas keep getting added. The original goal gets buried and three months in you are building something nobody planned.' },
-              { title: 'Nothing is documented', body: 'Everything lives in a WhatsApp chat. When something goes wrong there is no record of what was agreed.' },
+              { title: 'No One Is in Charge', body: 'Tasks get dropped because nobody owns them. Decisions happen twice because nobody documented the first one.' },
+              { title: 'The Plan Keeps Changing', body: 'New ideas keep getting added. The original goal gets buried and three months in you are building something nobody planned.' },
+              { title: 'Nothing Is Documented', body: 'Everything lives in a WhatsApp chat. When something goes wrong there is no record of what was agreed.' },
             ].map((p, i) => (
               <Reveal key={i} delay={i * 0.12}>
                 <div style={s.problemCard}>
@@ -142,14 +142,14 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
       <div style={{ ...s.section, background: BLUE }}>
         <div style={s.inner}>
           <Reveal>
-            <h2 style={{ ...s.h2, color: WH }}>PM Buddy thinks like a PM so you do not have to.</h2>
+            <h2 style={{ ...s.h2, color: WH }}>PM Buddy Thinks Like a PM So You Do Not Have To.</h2>
             <p style={{ ...s.lead, color: 'rgba(255,255,255,0.8)' }}>You focus on building. PM Buddy handles the structure that keeps your project on track.</p>
           </Reveal>
           <div style={s.threeGrid}>
             {[
-              { title: 'Structure from day one', body: 'Clear goal, realistic timeline and defined roles. No more starting blind.' },
-              { title: 'Stay focused', body: 'Say no to scope creep. Say yes to the things that actually move your project forward.' },
-              { title: 'Always ready to share', body: 'Your project plan and risk log are always up to date and shareable in one click.' },
+              { title: 'Structure From Day One', body: 'Clear goal, realistic timeline and defined roles. No more starting blind.' },
+              { title: 'Stay Focused', body: 'Say no to scope creep. Say yes to the things that actually move your project forward.' },
+              { title: 'Always Ready to Share', body: 'Your project plan and risk log are always up to date and shareable in one click.' },
             ].map((c, i) => (
               <Reveal key={i} delay={i * 0.12}>
                 <div style={s.solutionCard}>
@@ -165,7 +165,7 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
       <div style={s.section}>
         <div style={s.inner}>
           <Reveal>
-            <h2 style={s.h2}>Built for every kind of builder.</h2>
+            <h2 style={s.h2}>Built for Every Kind of Builder.</h2>
           </Reveal>
           <div style={s.whoLayout}>
             <div style={s.whoTabs}>
@@ -179,7 +179,7 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
               <p style={s.whoOutcome}>{whoCards[activeWho].outcome}</p>
               <p style={s.whoBody}>{whoCards[activeWho].body}</p>
               <button style={s.primaryBtn} onClick={user ? onDashboard : onSignup}>
-                {user ? 'Go to my projects' : 'Get started'}
+                {user ? 'Go to My Projects' : 'Get Started'}
               </button>
             </div>
           </div>
@@ -189,14 +189,14 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
       <div style={{ ...s.section, background: GREY }}>
         <div style={s.inner}>
           <Reveal>
-            <h2 style={s.h2}>Up and running in minutes.</h2>
+            <h2 style={s.h2}>Up and Running in Minutes.</h2>
           </Reveal>
           <div style={s.fourGrid}>
             {[
-              { num: '01', title: 'Tell PM Buddy what you are building', body: 'Describe your project, your goal and your team. PM Buddy sets up the structure automatically.' },
-              { num: '02', title: 'Get your full project toolkit', body: 'Team roles, risk tracker, milestone plan and communication guide generated instantly.' },
-              { num: '03', title: 'Build while PM Buddy watches your back', body: 'Track progress, manage risks and stay on schedule. Flags problems before they derail you.' },
-              { num: '04', title: 'Get expert help when you need it', body: 'Book a real PM consultant directly from your dashboard when your project needs it.' },
+              { num: '01', title: 'Tell PM Buddy What You Are Building', body: 'Describe your project, your goal and your team. PM Buddy sets up the structure automatically.' },
+              { num: '02', title: 'Get Your Full Project Toolkit', body: 'Team roles, risk tracker, milestone plan and communication guide generated instantly.' },
+              { num: '03', title: 'Build While PM Buddy Watches Your Back', body: 'Track progress, manage risks and stay on schedule. Flags problems before they derail you.' },
+              { num: '04', title: 'Get Expert Help When You Need It', body: 'Book a real PM consultant directly from your dashboard when your project needs it.' },
             ].map((step, i) => (
               <Reveal key={i} delay={i * 0.1}>
                 <div style={s.stepCard}>
@@ -215,17 +215,17 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
           <Reveal>
             <div style={s.validBanner}>
               <div style={s.validLeft}>
-                <h3 style={s.validTitle}>Not sure if your idea is worth building?</h3>
+                <h3 style={s.validTitle}>Not Sure if Your Idea Is Worth Building?</h3>
                 <p style={s.validBody}>Answer honest questions and get a report that tells you what is strong and what to fix. 10 minutes.</p>
                 <div style={s.validBtns}>
-                  <button style={s.primaryBtn} onClick={() => handleSelect('startup')}>Validate a startup idea</button>
-                  <button style={s.outlineBtn} onClick={() => handleSelect('hackathon')}>Validate a hackathon idea</button>
+                  <button style={s.primaryBtn} onClick={() => handleSelect('startup')}>Validate a Startup Idea</button>
+                  <button style={s.outlineBtn} onClick={() => handleSelect('hackathon')}>Validate a Hackathon Idea</button>
                 </div>
               </div>
               <div style={s.validBadge}>
                 <span style={s.validTop}>Always</span>
                 <span style={s.validFree}>Free</span>
-                <span style={s.validBot}>No account needed</span>
+                <span style={s.validBot}>No Account Needed</span>
               </div>
             </div>
           </Reveal>
@@ -235,10 +235,10 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
       <div style={s.finalCta}>
         <Reveal>
           <div style={s.finalInner}>
-            <h2 style={s.finalH2}>Start running your project like a professional.</h2>
+            <h2 style={s.finalH2}>Start Running Your Project Like a Professional.</h2>
             <p style={s.finalSub}>The thinking, structure and tools of a project manager without the cost of hiring one.</p>
             <button style={s.finalBtn} onClick={user ? onDashboard : onSignup}>
-              {user ? 'Go to my projects' : 'Create your account'}
+              {user ? 'Go to My Projects' : 'Create Your Account'}
             </button>
           </div>
         </Reveal>
@@ -248,7 +248,7 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
         <div style={s.footerInner}>
           <div>
             <p style={s.footerLogo}>PM Buddy</p>
-            <p style={s.footerTagline}>PM Buddy helps you think, plan and execute like a professional PM without being one.</p>
+            <p style={s.footerTagline}>PM Buddy Helps You Think, Plan and Execute Like a Professional PM Without Being One.</p>
           </div>
           <p style={s.footerCredit}>Built by <strong style={{ color: '#E5E7EB' }}>Deborah Akpokighe</strong></p>
         </div>
