@@ -30,7 +30,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
             <div style={s.meta}>
               <span style={s.industryBadge}>{data.industry}</span>
               <span style={s.methodBadge}>{data.methodology}</span>
-              <span style={{ ...s.statusBadge, background: data.status === 'active' ? '#F0FDF4', color: '#15803D' }}>
+              <span style={{ ...s.statusBadge, background: data.status === 'active' ? '#F0FDF4' : '#FEF2F2', color: data.status === 'active' ? '#15803D' : '#DC2626' }}>
                 {data.status === 'active' ? 'Active' : 'Completed'}
               </span>
             </div>
