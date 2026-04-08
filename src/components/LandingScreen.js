@@ -27,6 +27,16 @@ function Reveal({ children, delay = 0 }) {
   );
 }
 
+function line(visible, delay) {
+  return {
+    display: 'block',
+    opacity: visible ? 1 : 0,
+    transform: visible ? 'translateY(0)' : 'translateY(22px)',
+    transition: `opacity 0.7s ease ${delay}s, transform 0.7s ease ${delay}s`,
+    willChange: 'opacity, transform',
+  };
+}
+
 export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashboard, user }) {
   const [visible, setVisible] = useState(false);
   const [activeWho, setActiveWho] = useState(0);
@@ -53,36 +63,42 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
       {/* HERO */}
       <div style={s.hero}>
         <div style={s.heroLeft}>
-          <div style={{ opacity: visible ? 1 : 0, transform: visible ? 'none' : 'translateY(16px)', transition: 'all 0.7s ease' }}>
-            <p style={s.heroEyebrow}>Project Management</p>
-            <h1 style={s.heroH1}>
-              Think, Plan and Execute<br />
-<span style={s.heroAccent}>Like a Professional PM</span><br />
-Without Being One.
-            </h1>
-            <p style={s.heroSub}>
-              Most projects fail not because of bad ideas but because nobody is running them properly. PM Buddy is the thinking partner every builder needs.
-            </p>
-            <div style={s.heroCtas}>
-              {user ? (
-                <button style={s.ctaPrimary} onClick={onDashboard}>Go to my projects</button>
-              ) : (
-                <>
-                  <button style={s.ctaPrimary} onClick={onSignup}>Start your first project</button>
-                  <button style={s.ctaGhost} onClick={onLogin}>Log in</button>
-                </>
-              )}
-            </div>
-            {!user && (
-              <p style={s.heroNote}>
-                Not sure if your idea is worth building?{' '}
-                <button style={s.inlineLink} onClick={() => handleSelect('startup')}>Validate it first, it is free</button>
-              </p>
+
+          <p style={{ ...s.heroEyebrow, ...line(visible, 0) }}>
+            Project Management
+          </p>
+
+          <h1 style={s.heroH1}>
+            <span style={line(visible, 0.15)}>Think, Plan and Execute</span>
+            <span style={{ ...line(visible, 0.35), color: BLUE }}>Like a Professional PM</span>
+            <span style={line(visible, 0.55)}>Without Being One.</span>
+          </h1>
+
+          <p style={{ ...s.heroSub, ...line(visible, 0.75) }}>
+            Most projects fail not because of bad ideas but because nobody is running them properly. PM Buddy is the thinking partner every builder needs.
+          </p>
+
+          <div style={{ ...s.heroCtas, ...line(visible, 0.9) }}>
+            {user ? (
+              <button style={s.ctaPrimary} onClick={onDashboard}>Go to my projects</button>
+            ) : (
+              <>
+                <button style={s.ctaPrimary} onClick={onSignup}>Start your first project</button>
+                <button style={s.ctaGhost} onClick={onLogin}>Log in</button>
+              </>
             )}
           </div>
+
+          {!user && (
+            <p style={{ ...s.heroNote, ...line(visible, 1.05) }}>
+              Not sure if your idea is worth building?{' '}
+              <button style={s.inlineLink} onClick={() => handleSelect('startup')}>Validate it first, it is free</button>
+            </p>
+          )}
+
         </div>
 
-        <div style={{ opacity: visible ? 1 : 0, transition: 'opacity 0.7s ease 0.3s', flexShrink: 0 }}>
+        <div style={{ opacity: visible ? 1 : 0, transition: 'opacity 0.9s ease 0.4s', flexShrink: 0 }}>
           <div style={s.projectCard}>
             <div style={s.pcTop}>
               <div>
@@ -232,7 +248,7 @@ Without Being One.
               { num: '03', title: 'Build while PM Buddy watches your back', body: 'Track progress, manage risks and stay on schedule.' },
               { num: '04', title: 'Get expert help when you need it', body: 'Book a real PM consultant directly from your dashboard.' },
             ].map((step, i) => (
-              <Reveal key={i} delay={i * 0.1}>
+              <Reveal key={i} delay={i * 0.12}>
                 <div style={s.stepItem}>
                   <p style={s.stepNum}>{step.num}</p>
                   <p style={s.stepTitle}>{step.title}</p>
@@ -310,8 +326,7 @@ const s = {
   hero: { maxWidth: 1100, margin: '0 auto', padding: '80px 48px 72px', display: 'flex', alignItems: 'center', gap: 72, flexWrap: 'wrap' },
   heroLeft: { flex: 1, minWidth: 300, maxWidth: 520 },
   heroEyebrow: { fontSize: 11, fontWeight: 500, color: BLUE, textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 20 },
-  heroH1: { fontSize: 'clamp(30px, 4vw, 48px)', fontWeight: 500, color: BL, lineHeight: 1.12, letterSpacing: '-0.5px', marginBottom: 22 },
-  heroAccent: { color: BLUE, fontWeight: 500 },
+  heroH1: { fontSize: 'clamp(30px, 4vw, 48px)', fontWeight: 500, color: BL, lineHeight: 1.15, letterSpacing: '-0.5px', marginBottom: 22 },
   heroSub: { fontSize: 16, color: MUTED, lineHeight: 1.8, marginBottom: 32, maxWidth: 440 },
   heroCtas: { display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 14 },
   heroNote: { fontSize: 13, color: '#9CA3AF' },
@@ -363,7 +378,7 @@ const s = {
 
   whoLayout: { display: 'flex', gap: 48, flexWrap: 'wrap' },
   whoTabs: { display: 'flex', flexDirection: 'column', gap: 0, flex: '0 0 220px' },
-  whoTab: { padding: '12px 16px', background: 'none', border: 'none', borderLeft: '2px solid transparent', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'all 0.15s ease' },
+  whoTab: { padding: '12px 16px', background: 'none', border: 'none', borderLeft: '2px solid transparent', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'all 0.2s ease' },
   whoDetail: { flex: 1, minWidth: 280 },
   whoOutcome: { fontSize: 20, fontWeight: 500, color: BLUE, letterSpacing: '-0.3px', marginBottom: 14 },
   whoBody: { fontSize: 15, color: MUTED, lineHeight: 1.8, marginBottom: 28 },
