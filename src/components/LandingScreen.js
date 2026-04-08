@@ -57,8 +57,8 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
             <p style={s.heroEyebrow}>Project Management</p>
             <h1 style={s.heroH1}>
               Think, Plan and Execute<br />
-              <span style={s.heroAccent}>Like a Professional PM.</span><br />
-              Without Being One.
+<span style={s.heroAccent}>Like a Professional PM</span><br />
+Without Being One.
             </h1>
             <p style={s.heroSub}>
               Most projects fail not because of bad ideas but because nobody is running them properly. PM Buddy is the thinking partner every builder needs.
