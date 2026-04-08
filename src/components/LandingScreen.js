@@ -18,14 +18,10 @@ function useInView(threshold = 0.1) {
   return [ref, inView];
 }
 
-function Reveal({ children, delay = 0, y = 16 }) {
+function Reveal({ children, delay = 0 }) {
   const [ref, inView] = useInView();
   return (
-    <div ref={ref} style={{
-      opacity: inView ? 1 : 0,
-      transform: inView ? 'translateY(0)' : `translateY(${y}px)`,
-      transition: `opacity 0.7s ease ${delay}s, transform 0.7s ease ${delay}s`
-    }}>
+    <div ref={ref} style={{ opacity: inView ? 1 : 0, transform: inView ? 'translateY(0)' : 'translateY(16px)', transition: `opacity 0.7s ease ${delay}s, transform 0.7s ease ${delay}s` }}>
       {children}
     </div>
   );
@@ -37,10 +33,7 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
   const [tick, setTick] = useState(0);
 
   useEffect(() => { setTimeout(() => setVisible(true), 80); }, []);
-  useEffect(() => {
-    const t = setInterval(() => setTick(p => p + 1), 2000);
-    return () => clearInterval(t);
-  }, []);
+  useEffect(() => { const t = setInterval(() => setTick(p => p + 1), 2000); return () => clearInterval(t); }, []);
 
   const handleSelect = (modeId) => { Analytics.modeSelected(modeId); onSelectMode(modeId); };
 
@@ -63,9 +56,9 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
           <div style={{ opacity: visible ? 1 : 0, transform: visible ? 'none' : 'translateY(16px)', transition: 'all 0.7s ease' }}>
             <p style={s.heroEyebrow}>Project Management</p>
             <h1 style={s.heroH1}>
-              Think, plan and execute<br />
-              <em style={s.heroEm}>like a professional PM.</em><br />
-              Without being one.
+              Think, Plan and Execute<br />
+              <span style={s.heroAccent}>Like a Professional PM.</span><br />
+              Without Being One.
             </h1>
             <p style={s.heroSub}>
               Most projects fail not because of bad ideas but because nobody is running them properly. PM Buddy is the thinking partner every builder needs.
@@ -133,8 +126,8 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
           <Reveal>
             <div style={s.twoCol}>
               <div style={s.twoColLeft}>
-                <p style={s.eyebrow}>The problem</p>
-                <h2 style={s.h2}>Great ideas die from poor execution.</h2>
+                <p style={s.eyebrow}>The Problem</p>
+                <h2 style={s.h2}>Great Ideas Die From Poor Execution.</h2>
               </div>
               <div style={s.twoColRight}>
                 <p style={s.bodyText}>You know what you want to build. But without someone managing how it gets built, things fall apart. Deadlines slip. Scope grows. The team loses direction.</p>
@@ -167,8 +160,8 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
           <Reveal>
             <div style={s.twoCol}>
               <div style={s.twoColLeft}>
-                <p style={{ ...s.eyebrow, color: BLUE }}>The solution</p>
-                <h2 style={{ ...s.h2, color: WH }}>PM Buddy thinks like a PM so you do not have to.</h2>
+                <p style={{ ...s.eyebrow, color: BLUE }}>The Solution</p>
+                <h2 style={{ ...s.h2, color: WH }}>PM Buddy Thinks Like a PM So You Do Not Have To.</h2>
               </div>
               <div style={s.twoColRight}>
                 <p style={{ ...s.bodyText, color: '#9CA3AF' }}>You focus on building. PM Buddy handles the structure, the risks, the documentation and the communication that keeps your project on track from start to finish.</p>
@@ -197,8 +190,8 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
       <div style={s.section}>
         <div style={s.sectionInner}>
           <Reveal>
-            <p style={s.eyebrow}>Who it is for</p>
-            <h2 style={{ ...s.h2, marginBottom: 40 }}>Built for every kind of builder.</h2>
+            <p style={s.eyebrow}>Who It Is For</p>
+            <h2 style={{ ...s.h2, marginBottom: 40 }}>Built for Every Kind of Builder.</h2>
           </Reveal>
           <div style={s.whoLayout}>
             <div style={s.whoTabs}>
@@ -229,8 +222,8 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
       <div style={s.section}>
         <div style={s.sectionInner}>
           <Reveal>
-            <p style={s.eyebrow}>How it works</p>
-            <h2 style={{ ...s.h2, marginBottom: 48 }}>Up and running in minutes.</h2>
+            <p style={s.eyebrow}>How It Works</p>
+            <h2 style={{ ...s.h2, marginBottom: 48 }}>Up and Running in Minutes.</h2>
           </Reveal>
           <div style={s.stepsGrid}>
             {[
@@ -259,8 +252,8 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
           <Reveal>
             <div style={s.validRow}>
               <div style={s.validLeft}>
-                <p style={s.eyebrow}>Not sure where to start?</p>
-                <h3 style={s.validH3}>Validate your idea before you commit to building it.</h3>
+                <p style={s.eyebrow}>Not Sure Where to Start?</p>
+                <h3 style={s.validH3}>Validate Your Idea Before You Commit to Building It.</h3>
                 <p style={s.bodyText}>Answer honest questions about your idea and get a report that tells you what is strong, what is missing and what to do next. Takes 10 minutes.</p>
                 <div style={s.validBtns}>
                   <button style={s.ctaPrimary} onClick={() => handleSelect('startup')}>Validate a startup idea</button>
@@ -283,15 +276,13 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
       <div style={s.finalCta}>
         <div style={s.sectionInner}>
           <Reveal>
-            <div style={s.finalCtaInner}>
-              <h2 style={s.finalH2}>Start running your project like a professional.</h2>
-              <p style={{ ...s.bodyText, color: 'rgba(255,255,255,0.65)', maxWidth: 480, marginBottom: 36 }}>
-                The thinking, structure and tools of a project manager without the cost of hiring one.
-              </p>
-              <button style={s.ctaWhite} onClick={user ? onDashboard : onSignup}>
-                {user ? 'Go to my projects' : 'Create your account'}
-              </button>
-            </div>
+            <h2 style={s.finalH2}>Start Running Your Project Like a Professional.</h2>
+            <p style={{ ...s.bodyText, color: 'rgba(255,255,255,0.65)', maxWidth: 480, marginBottom: 36 }}>
+              The thinking, structure and tools of a project manager without the cost of hiring one.
+            </p>
+            <button style={s.ctaWhite} onClick={user ? onDashboard : onSignup}>
+              {user ? 'Go to my projects' : 'Create your account'}
+            </button>
           </Reveal>
         </div>
       </div>
@@ -319,14 +310,14 @@ const s = {
   hero: { maxWidth: 1100, margin: '0 auto', padding: '80px 48px 72px', display: 'flex', alignItems: 'center', gap: 72, flexWrap: 'wrap' },
   heroLeft: { flex: 1, minWidth: 300, maxWidth: 520 },
   heroEyebrow: { fontSize: 11, fontWeight: 500, color: BLUE, textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 20 },
-  heroH1: { fontSize: 'clamp(30px, 4vw, 48px)', fontWeight: 400, color: BL, lineHeight: 1.12, letterSpacing: '-0.5px', marginBottom: 22, fontStyle: 'normal' },
-  heroEm: { fontStyle: 'italic', color: BLUE, fontWeight: 400 },
+  heroH1: { fontSize: 'clamp(30px, 4vw, 48px)', fontWeight: 500, color: BL, lineHeight: 1.12, letterSpacing: '-0.5px', marginBottom: 22 },
+  heroAccent: { color: BLUE, fontWeight: 500 },
   heroSub: { fontSize: 16, color: MUTED, lineHeight: 1.8, marginBottom: 32, maxWidth: 440 },
   heroCtas: { display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 14 },
   heroNote: { fontSize: 13, color: '#9CA3AF' },
   inlineLink: { background: 'none', border: 'none', color: BLUE, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', padding: 0, textDecoration: 'underline', textUnderlineOffset: 3 },
 
-  ctaPrimary: { padding: '11px 24px', background: BL, color: WH, border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.01em' },
+  ctaPrimary: { padding: '11px 24px', background: BL, color: WH, border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
   ctaGhost: { padding: '11px 24px', background: 'transparent', color: BL, border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
   ctaOutline: { padding: '11px 24px', background: 'transparent', color: BLUE, border: `1px solid ${BLUE}`, borderRadius: 6, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
   ctaWhite: { padding: '12px 28px', background: WH, color: BL, border: 'none', borderRadius: 6, fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
@@ -352,11 +343,11 @@ const s = {
   section: { padding: '80px 48px' },
   sectionInner: { maxWidth: 1060, margin: '0 auto' },
   eyebrow: { fontSize: 11, fontWeight: 500, color: BLUE, textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 14 },
-  h2: { fontSize: 'clamp(24px, 3.5vw, 40px)', fontWeight: 400, color: BL, letterSpacing: '-0.5px', lineHeight: 1.15, marginBottom: 20 },
+  h2: { fontSize: 'clamp(24px, 3.5vw, 40px)', fontWeight: 500, color: BL, letterSpacing: '-0.5px', lineHeight: 1.15, marginBottom: 20 },
   bodyText: { fontSize: 15, color: MUTED, lineHeight: 1.8, marginBottom: 28 },
 
   twoCol: { display: 'flex', gap: 64, flexWrap: 'wrap' },
-  twoColLeft: { flex: '0 0 280px', minWidth: 220 },
+  twoColLeft: { flex: '0 0 260px', minWidth: 200 },
   twoColRight: { flex: 1, minWidth: 280 },
 
   problemList: { display: 'flex', flexDirection: 'column', gap: 24 },
@@ -366,15 +357,15 @@ const s = {
   problemBody: { fontSize: 14, color: MUTED, lineHeight: 1.65 },
 
   solutionGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 32 },
-  solutionItem: { borderTop: `1px solid #2A2A2A`, paddingTop: 16 },
+  solutionItem: { borderTop: '1px solid #2A2A2A', paddingTop: 16 },
   solutionTitle: { fontSize: 14, fontWeight: 600, color: WH, marginBottom: 6 },
   solutionBody: { fontSize: 13, color: '#6B7280', lineHeight: 1.65 },
 
   whoLayout: { display: 'flex', gap: 48, flexWrap: 'wrap' },
   whoTabs: { display: 'flex', flexDirection: 'column', gap: 0, flex: '0 0 220px' },
-  whoTab: { padding: '12px 16px', background: 'none', border: 'none', borderLeft: '2px solid transparent', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'all 0.15s ease', color: MUTED },
+  whoTab: { padding: '12px 16px', background: 'none', border: 'none', borderLeft: '2px solid transparent', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'all 0.15s ease' },
   whoDetail: { flex: 1, minWidth: 280 },
-  whoOutcome: { fontSize: 22, fontWeight: 400, color: BLUE, letterSpacing: '-0.3px', marginBottom: 14, fontStyle: 'italic' },
+  whoOutcome: { fontSize: 20, fontWeight: 500, color: BLUE, letterSpacing: '-0.3px', marginBottom: 14 },
   whoBody: { fontSize: 15, color: MUTED, lineHeight: 1.8, marginBottom: 28 },
 
   stepsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 40 },
@@ -385,7 +376,7 @@ const s = {
 
   validRow: { display: 'flex', alignItems: 'flex-start', gap: 64, flexWrap: 'wrap' },
   validLeft: { flex: 1, minWidth: 280 },
-  validH3: { fontSize: 'clamp(20px, 3vw, 30px)', fontWeight: 400, color: BL, marginBottom: 14, letterSpacing: '-0.3px', lineHeight: 1.2 },
+  validH3: { fontSize: 'clamp(20px, 3vw, 30px)', fontWeight: 500, color: BL, marginBottom: 14, letterSpacing: '-0.3px', lineHeight: 1.2 },
   validBtns: { display: 'flex', gap: 12, flexWrap: 'wrap' },
   validBadge: { flex: '0 0 auto', background: '#EFF6FF', borderRadius: 12, padding: '28px 36px', textAlign: 'center', border: `1px solid ${BLUE}20` },
   validBadgeWord: { display: 'block', fontSize: 10, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 4 },
@@ -393,8 +384,7 @@ const s = {
   validBadgeSub: { display: 'block', fontSize: 11, color: '#9CA3AF' },
 
   finalCta: { background: BL, padding: '96px 48px' },
-  finalCtaInner: {},
-  finalH2: { fontSize: 'clamp(26px, 4vw, 44px)', fontWeight: 400, color: WH, marginBottom: 14, letterSpacing: '-0.5px', lineHeight: 1.1 },
+  finalH2: { fontSize: 'clamp(26px, 4vw, 44px)', fontWeight: 500, color: WH, marginBottom: 14, letterSpacing: '-0.5px', lineHeight: 1.1 },
 
   footer: { background: '#0A0A0A', padding: '40px 48px', borderTop: '1px solid #1A1A1A' },
   footerInner: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 16 },
