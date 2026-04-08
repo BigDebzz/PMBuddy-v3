@@ -1,3 +1,9 @@
+export const config = {
+  api: {
+    bodyParser: true,
+  },
+};
+
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
     return response.status(405).json({ error: 'Method not allowed' });
@@ -9,7 +15,12 @@ export default async function handler(request, response) {
   }
 
   try {
-    const { prompt } = request.body;
+    let body = request.body;
+    if (typeof body === 'string') {
+      body = JSON.parse(body);
+    }
+
+    const { prompt } = body || {};
     if (!prompt) {
       return response.status(400).json({ error: 'No prompt provided' });
     }
