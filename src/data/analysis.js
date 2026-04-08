@@ -25,7 +25,6 @@ function analyzeHackathon(a) {
   let score = 0;
   const insights = [];
   const challenges = [];
-  const nextSteps = [];
 
   // Theme
   if (a.hack_theme) score += 10;
