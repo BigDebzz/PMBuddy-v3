@@ -87,10 +87,13 @@ export default function App() {
           {user ? (
             <button style={nav.dashBtn} onClick={() => setScreen(S.DASHBOARD)}>My Projects</button>
           ) : (
-            <button style={nav.loginBtn} onClick={() => setScreen(S.AUTH)}>Log In</button>
+            <>
+              <button style={nav.loginBtn} onClick={() => setScreen(S.AUTH)}>Log In</button>
+              <button style={nav.signupBtn} onClick={() => setScreen(S.AUTH)}>Get Started</button>
+            </>
           )}
-          {screen !== S.LAND && (
-            <button style={nav.newBtn} onClick={reset}>Home</button>
+          {screen !== S.LAND && user && (
+            <button style={nav.loginBtn} onClick={reset}>Home</button>
           )}
         </div>
       </nav>
@@ -121,11 +124,11 @@ export default function App() {
 }
 
 const nav = {
-  bar: { position: 'sticky', top: 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 48px', height: 56, background: '#FFFFFF', borderBottom: '1px solid #E5E7EB' },
-  logo: { display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0 },
-  logoText: { fontSize: 17, fontWeight: 800, color: '#0A0A0A', letterSpacing: '-0.3px' },
+  bar: { position: 'sticky', top: 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 48px', height: 52, background: '#FFFFFF', borderBottom: '1px solid #E5E7EB' },
+  logo: { display: 'flex', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: 0 },
+  logoText: { fontSize: 15, fontWeight: 600, color: '#0A0A0A', letterSpacing: '-0.2px' },
   right: { display: 'flex', gap: 8, alignItems: 'center' },
-  dashBtn: { padding: '7px 14px', background: '#EFF6FF', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#0284C7', cursor: 'pointer', fontFamily: 'inherit' },
-  loginBtn: { padding: '7px 14px', background: '#EFF6FF', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#0284C7', cursor: 'pointer', fontFamily: 'inherit' },
-  newBtn: { padding: '7px 14px', background: '#0284C7', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  dashBtn: { padding: '6px 14px', background: 'none', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 13, fontWeight: 500, color: '#0A0A0A', cursor: 'pointer', fontFamily: 'inherit' },
+  loginBtn: { padding: '6px 14px', background: 'none', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 500, color: '#6B7280', cursor: 'pointer', fontFamily: 'inherit' },
+  signupBtn: { padding: '6px 14px', background: '#0A0A0A', color: '#FFFFFF', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
 };
