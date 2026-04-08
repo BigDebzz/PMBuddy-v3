@@ -21,7 +21,7 @@ export default async function handler(request, response) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.5, maxOutputTokens: 2000 }
+          generationConfig: { temperature: 0.5, maxOutputTokens: 3000 }
         })
       }
     );
@@ -32,14 +32,9 @@ export default async function handler(request, response) {
     }
 
     const data = await geminiResponse.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) return response.status(500).json({ error: 'No response from Gemini' });
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    return response.status(200).json({ result: text });
 
-    const clean = text.replace(/```json|```/g, '').trim();
-    const lastBrace = clean.lastIndexOf('}');
-    const fixed = lastBrace !== -1 ? clean.substring(0, lastBrace + 1) : clean;
-
-    return response.status(200).json({ result: fixed });
   } catch (err) {
     console.error('Gemini handler error:', err);
     return response.status(500).json({ error: err.message });
