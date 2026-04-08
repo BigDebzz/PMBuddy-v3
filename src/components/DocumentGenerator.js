@@ -170,7 +170,6 @@ export default function DocumentGenerator({ data, methodology }) {
 }
 
 async function generatePMContent(data, methodology) {
-  const API_KEY = process.env.REACT_APP_GEMINI_KEY;
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Not set';
   const risks = (data.risks || []);
   const team = (data.team || []);
@@ -216,26 +215,19 @@ Sections to write:
 
 Write each section with substance. A reader should come away with a clear understanding of the project.`;
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.4, maxOutputTokens: 2000 }
-      })
-    }
-  );
+  const response = await fetch('/api/gemini', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt })
+  });
 
   if (!response.ok) throw new Error('Gemini API error');
   const result = await response.json();
-  const text = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const text = result.result || '';
   return text.replace(/```html|```/g, '').trim();
 }
 
 async function generateBenefitsContent(data, benefits) {
-  const API_KEY = process.env.REACT_APP_GEMINI_KEY;
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Not set';
   const scope = data.scope || {};
 
@@ -274,21 +266,15 @@ Sections to write:
 
 Write with conviction. This document should make a compelling case for the project.`;
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.5, maxOutputTokens: 2000 }
-      })
-    }
-  );
+  const response = await fetch('/api/gemini', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt })
+  });
 
   if (!response.ok) throw new Error('Gemini API error');
   const result = await response.json();
-  const text = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const text = result.result || '';
   return text.replace(/```html|```/g, '').trim();
 }
 
