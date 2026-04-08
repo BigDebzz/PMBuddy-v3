@@ -27,46 +27,44 @@ Here are the founder's answers:
 
 ${formattedAnswers}
 
-Provide a deep, personalised analysis. Read every answer carefully and respond directly to what this specific founder said. Do not give generic startup advice.
+Provide a deep personalised analysis. Read every answer carefully and respond directly to what this specific founder said. Do not give generic advice.
 
-Respond in this exact JSON format with no markdown, no code blocks, just raw JSON:
+Respond in this exact JSON format with no markdown no code blocks just raw JSON:
 
 {
   "deepInsights": [
     {
       "type": "strength",
-      "text": "specific insight referencing their exact answer"
+      "text": "specific insight referencing their exact answer in 1 sentence"
     }
   ],
   "deepChallenges": [
     {
       "level": "high",
-      "text": "specific challenge title",
-      "response": "specific actionable advice referencing their exact situation"
+      "text": "specific challenge title in 5 words or less",
+      "response": "specific actionable advice in 1 to 2 sentences"
     }
   ],
-  "topPriority": "The single most important thing this founder needs to do right now, written directly to them",
-  "founderMessage": "A 2 to 3 sentence honest message to this specific founder about their idea. Reference what they actually said. Be encouraging but honest."
+  "topPriority": "The single most important thing this founder needs to do right now in 1 sentence",
+  "founderMessage": "A 2 sentence honest message to this founder referencing what they actually said"
 }
 
 Rules:
-- Reference their actual answers directly. Use their words back to them.
-- If they mentioned a specific market, person, or problem, address it specifically.
-- Do not use dashes anywhere in your response. Use full sentences.
-- No generic advice unless their answers show they have not done this.
-- Be direct and honest. Do not sugarcoat real problems.
-- Keep each insight and challenge to 2 sentences maximum.
-- The founderMessage should feel personal, not like a template.`;
+- Maximum 3 insights and 3 challenges
+- Each insight and challenge must be 1 to 2 sentences maximum
+- Reference their actual answers directly
+- Do not use dashes anywhere. Use full sentences only
+- Keep the entire response under 800 tokens`;
 
   try {
     const response = await fetch(
-`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-generationConfig: { temperature: 0.7, maxOutputTokens: 2000 }
+          generationConfig: { temperature: 0.5, maxOutputTokens: 2000 }
         })
       }
     );
@@ -82,7 +80,9 @@ generationConfig: { temperature: 0.7, maxOutputTokens: 2000 }
     if (!text) return null;
 
     const clean = text.replace(/```json|```/g, '').trim();
-    return JSON.parse(clean);
+    const lastBrace = clean.lastIndexOf('}');
+    const fixed = lastBrace !== -1 ? clean.substring(0, lastBrace + 1) : clean;
+    return JSON.parse(fixed);
   } catch (err) {
     console.error('Gemini fetch error:', err);
     return null;
