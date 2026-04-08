@@ -1,5 +1,3 @@
-const API_KEY = process.env.REACT_APP_GEMINI_KEY;
-
 export async function deepAnalyze(mode, answers) {
   const questionLabels = mode === 'hackathon' ? {
     hack_theme: 'Area of focus',
@@ -57,17 +55,11 @@ Rules:
 - Keep the entire response under 800 tokens`;
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.5, maxOutputTokens: 2000 }
-        })
-      }
-    );
+    const response = await fetch('/api/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
 
     if (!response.ok) {
       const err = await response.json();
@@ -76,13 +68,9 @@ Rules:
     }
 
     const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) return null;
+    if (!data.result) return null;
 
-    const clean = text.replace(/```json|```/g, '').trim();
-    const lastBrace = clean.lastIndexOf('}');
-    const fixed = lastBrace !== -1 ? clean.substring(0, lastBrace + 1) : clean;
-    return JSON.parse(fixed);
+    return JSON.parse(data.result);
   } catch (err) {
     console.error('Gemini fetch error:', err);
     return null;
