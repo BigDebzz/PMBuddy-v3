@@ -16,6 +16,7 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
   const [listening, setListening] = useState(false);
   const inputRef = useRef(null);
   const recognitionRef = useRef(null);
+  const baseTextRef = useRef('');
 
   const q = questions[idx];
   const progress = ((idx + 1) / questions.length) * 100;
@@ -53,24 +54,45 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-NG';
-    recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.continuous = true;
+    recognition.interimResults = true;
     recognition.maxAlternatives = 1;
     recognitionRef.current = recognition;
+
+    const existingText = (answers[q.id] || '').trim();
+    baseTextRef.current = existingText;
 
     recognition.onstart = () => setListening(true);
 
     recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript.trim();
-      setAnswers(prev => {
-        const existing = (prev[q.id] || '').trim();
-        const combined = existing ? existing + ' ' + transcript : transcript;
-        return { ...prev, [q.id]: combined };
-      });
+      let interim = '';
+      let final = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          final += transcript;
+        } else {
+          interim += transcript;
+        }
+      }
+
+      if (final) {
+        baseTextRef.current = baseTextRef.current
+          ? baseTextRef.current + ' ' + final.trim()
+          : final.trim();
+      }
+
+      const display = baseTextRef.current
+        ? interim ? baseTextRef.current + ' ' + interim : baseTextRef.current
+        : interim;
+
+      setAnswers(prev => ({ ...prev, [q.id]: display }));
       setError('');
     };
 
     recognition.onend = () => {
+      setAnswers(prev => ({ ...prev, [q.id]: baseTextRef.current }));
       setListening(false);
       recognitionRef.current = null;
     };
@@ -182,7 +204,7 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
                     type="text"
                     placeholder={q.placeholder}
                     value={answers[q.id] || ''}
-                    onChange={e => change(e.target.value)}
+                    onChange={e => { baseTextRef.current = e.target.value; change(e.target.value); }}
                     onFocus={e => { e.target.style.borderColor = accent; e.target.style.boxShadow = `0 0 0 3px ${accent}14`; }}
                     onBlur={e => { e.target.style.borderColor = '#E5E7EB'; e.target.style.boxShadow = 'none'; }}
                     onKeyDown={e => e.key === 'Enter' && next()}
@@ -198,7 +220,7 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
                 {listening && (
                   <div style={s.listeningBadge}>
                     <span style={s.listeningDot} />
-                    Listening... speak then pause. Click stop when done.
+                    Listening... speak naturally. Click stop when done.
                   </div>
                 )}
               </>
@@ -212,7 +234,7 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
                     style={{ ...s.textInput, minHeight: 128, resize: 'vertical', lineHeight: 1.65 }}
                     placeholder={q.placeholder}
                     value={answers[q.id] || ''}
-                    onChange={e => change(e.target.value)}
+                    onChange={e => { baseTextRef.current = e.target.value; change(e.target.value); }}
                     onFocus={e => { e.target.style.borderColor = accent; e.target.style.boxShadow = `0 0 0 3px ${accent}14`; }}
                     onBlur={e => { e.target.style.borderColor = '#E5E7EB'; e.target.style.boxShadow = 'none'; }}
                   />
@@ -227,7 +249,7 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
                 {listening && (
                   <div style={s.listeningBadge}>
                     <span style={s.listeningDot} />
-                    Listening... speak then pause. Click stop when done.
+                    Listening... speak naturally. Click stop when done.
                   </div>
                 )}
               </>
