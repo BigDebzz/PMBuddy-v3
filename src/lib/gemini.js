@@ -2,30 +2,18 @@ const API_KEY = process.env.REACT_APP_GEMINI_KEY;
 
 export async function deepAnalyze(mode, answers) {
   const questionLabels = mode === 'hackathon' ? {
-    hack_theme: 'Thematic area',
-    hack_team: 'Team composition',
-    hack_timeline: 'Timeline',
-    hack_q1: 'Problem statement',
-    hack_q2: 'Real person experiencing this problem',
-    hack_q3: 'Why this matters now',
-    hack_q4: 'How people currently deal with this',
-    hack_q5: 'What makes their approach different',
-    hack_q6: 'Real world viability beyond the hackathon',
-    hack_q7: 'User flow description',
-    hack_q8: 'How they will know it is working in 90 days',
+    hack_theme: 'Area of focus',
+    hack_q1: 'Problem and who has it',
+    hack_q2: 'What they are building and how it solves the problem',
+    hack_q3: 'How much time they have',
+    hack_q4: 'Team composition',
+    hack_q5: 'Real world viability beyond the hackathon',
   } : {
-    startup_q1: 'Problem and current solutions',
-    startup_q2: 'Target customer',
-    startup_q3: 'Customer conversations',
-    startup_q4: 'Why someone would switch',
-    startup_q5: 'How first 10 users will find them',
-    startup_q6: 'Real competitive advantage',
-    startup_q7: 'Revenue model',
+    startup_q1: 'Problem and who has it',
+    startup_q2: 'Customer conversations and what they learned',
+    startup_q3: 'What they are building and how they will make money',
     startup_team: 'Team composition',
-    startup_timeline: 'Timeline to first user',
-    startup_q8: 'Biggest assumption that could make this fail',
-    startup_q9: 'Will people still need this in 6 months',
-    startup_q10: 'Most likely reason this startup will fail',
+    startup_q4: 'Biggest risk or assumption that could make this fail',
   };
 
   const formattedAnswers = Object.entries(answers)
