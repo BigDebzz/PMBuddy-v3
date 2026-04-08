@@ -4,7 +4,7 @@ import { deepAnalyze } from '../lib/gemini';
 import { modeConfig } from '../data/questions';
 import { Analytics } from '../lib/analytics';
 
-const B = '#550000';
+const B = '#0284C7';
 const BL = '#0A0A0A';
 const WH = '#FFFFFF';
 
@@ -179,7 +179,7 @@ function AIAnalysisTab({ deepAnalysis, deepLoading, onRetry }) {
           <p style={s.colLabel}>What Gemini found in your answers</p>
           {deepAnalysis.deepInsights.map((item, i) => (
             <div key={i} style={{ ...s.insightCard, borderLeftColor: B }}>
-              <span style={{ ...s.badge, background: B + '10', color: B }}>
+              <span style={{ ...s.badge, background: B + '18', color: B }}>
                 {item.type === 'strength' ? 'Strength' : item.type === 'neutral' ? 'Note' : 'Watch'}
               </span>
               <p style={s.insightText}>{item.text}</p>
@@ -192,8 +192,8 @@ function AIAnalysisTab({ deepAnalysis, deepLoading, onRetry }) {
         <div style={s.section}>
           <p style={s.colLabel}>Challenges specific to your situation</p>
           {deepAnalysis.deepChallenges.map((item, i) => (
-            <div key={i} style={{ ...s.challengeCard, borderLeftColor: item.level === 'high' ? B : '#6B7280' }}>
-              <span style={{ ...s.badge, background: item.level === 'high' ? B + '10' : '#F3F4F6', color: item.level === 'high' ? B : '#6B7280' }}>
+            <div key={i} style={{ ...s.challengeCard, borderLeftColor: item.level === 'high' ? '#DC2626' : B }}>
+              <span style={{ ...s.badge, background: item.level === 'high' ? '#FEF2F2' : '#EFF6FF', color: item.level === 'high' ? '#DC2626' : B }}>
                 {item.level === 'high' ? 'Fix this now' : item.level === 'medium' ? 'Address soon' : 'Keep in mind'}
               </span>
               <p style={s.challengeTitle}>{item.text}</p>
@@ -216,8 +216,8 @@ function ReportTab({ analysis }) {
         <div style={s.section}>
           <p style={s.colLabel}>What is working in your thinking</p>
           {analysis.insights.map((item, i) => (
-            <div key={i} style={{ ...s.insightCard, borderLeftColor: item.type === 'strength' ? '#15803D' : item.type === 'neutral' ? '#2563EB' : '#D97706' }}>
-              <span style={{ ...s.badge, background: item.type === 'strength' ? '#F0FDF4' : item.type === 'neutral' ? '#EFF6FF' : '#FFFBEB', color: item.type === 'strength' ? '#15803D' : item.type === 'neutral' ? '#2563EB' : '#D97706' }}>
+            <div key={i} style={{ ...s.insightCard, borderLeftColor: item.type === 'strength' ? '#15803D' : item.type === 'neutral' ? B : '#D97706' }}>
+              <span style={{ ...s.badge, background: item.type === 'strength' ? '#F0FDF4' : item.type === 'neutral' ? '#EFF6FF' : '#FFFBEB', color: item.type === 'strength' ? '#15803D' : item.type === 'neutral' ? B : '#D97706' }}>
                 {item.type === 'strength' ? 'Strength' : item.type === 'neutral' ? 'Note' : 'Watch'}
               </span>
               <p style={s.insightText}>{item.text}</p>
@@ -266,7 +266,7 @@ function PitchTab({ analysis }) {
       {analysis.pitchStructure.map((step, i) => (
         <div key={i} style={{ ...s.phaseCard, borderLeftColor: B }}>
           <div style={s.phaseTop}>
-            <span style={{ ...s.phaseBadge, background: B + '10', color: B }}>{step.step}</span>
+            <span style={{ ...s.phaseBadge, background: '#EFF6FF', color: B }}>{step.step}</span>
             <span style={s.duration}>{step.duration}</span>
           </div>
           <p style={s.pitchContent}>{step.content}</p>
@@ -292,7 +292,7 @@ function RoadmapTab({ analysis }) {
       {analysis.roadmap.map((phase, i) => (
         <div key={i} style={{ ...s.phaseCard, borderLeftColor: B }}>
           <div style={s.phaseTop}>
-            <span style={{ ...s.phaseBadge, background: B + '10', color: B }}>{phase.phase}</span>
+            <span style={{ ...s.phaseBadge, background: '#EFF6FF', color: B }}>{phase.phase}</span>
             <h4 style={s.phaseTitle}>{phase.title}</h4>
             <span style={s.duration}>{phase.duration}</span>
           </div>
@@ -445,7 +445,7 @@ const s = {
   headerBtns: { display: 'flex', gap: 8, flexWrap: 'wrap' },
   btn: { padding: '8px 16px', background: WH, border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 13, fontWeight: 600, color: BL, cursor: 'pointer', fontFamily: 'inherit' },
   saveBtn: { padding: '8px 16px', background: B, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
-  savedBtn: { padding: '8px 16px', background: B + '10', color: B, border: `1px solid ${B}40`, borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'default', fontFamily: 'inherit' },
+  savedBtn: { padding: '8px 16px', background: '#EFF6FF', color: B, border: '1px solid #BFDBFE', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'default', fontFamily: 'inherit' },
   titleInputRow: { display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' },
   titleInput: { flex: 1, border: '1px solid #E5E7EB', borderRadius: 8, padding: '9px 14px', fontSize: 14, fontFamily: 'inherit', color: BL, outline: 'none', minWidth: 200 },
   scoreBanner: { background: WH, border: '1px solid #E5E7EB', borderRadius: 16, padding: '20px 22px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' },
@@ -487,14 +487,14 @@ const s = {
   taskItem: { display: 'flex', gap: 10, fontSize: 14, color: '#374151', lineHeight: 1.6, alignItems: 'flex-start' },
   taskDot: { width: 6, height: 6, borderRadius: '50%', flexShrink: 0, marginTop: 7, background: B },
   pitchContent: { fontSize: 14, color: '#374151', lineHeight: 1.7, marginBottom: 10 },
-  tipBox: { background: B + '06', border: `1px solid ${B}20`, borderRadius: 8, padding: '10px 12px' },
+  tipBox: { background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8, padding: '10px 12px' },
   tipText: { fontSize: 13, color: B, lineHeight: 1.6 },
   practiceBox: { background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 12, padding: '14px 16px', marginTop: 16 },
   practiceText: { fontSize: 14, color: '#374151', lineHeight: 1.7 },
   toolCard: { background: WH, border: '1px solid #E5E7EB', borderRadius: 12, padding: '16px', marginBottom: 10, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' },
   toolTop: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 },
   toolName: { fontSize: 15, fontWeight: 700, color: BL },
-  freeBadge: { fontSize: 11, fontWeight: 700, background: B + '10', color: B, padding: '2px 8px', borderRadius: 100 },
+  freeBadge: { fontSize: 11, fontWeight: 700, background: '#EFF6FF', color: B, padding: '2px 8px', borderRadius: 100 },
   toolUse: { fontSize: 14, color: '#374151', lineHeight: 1.65, marginBottom: 4 },
   toolLink: { fontSize: 12, color: B, fontWeight: 600 },
   methodCard: { background: WH, border: '1px solid #E5E7EB', borderRadius: 14, padding: '22px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' },
@@ -502,7 +502,7 @@ const s = {
   methodText: { fontSize: 14, color: '#374151', lineHeight: 1.7, marginBottom: 10 },
   chipRow: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 14 },
   chipLabel: { fontSize: 12, color: '#9CA3AF', fontWeight: 600 },
-  chip: { padding: '4px 12px', borderRadius: 100, border: `1.5px solid ${B}40`, fontSize: 12, fontWeight: 600, color: B },
+  chip: { padding: '4px 12px', borderRadius: 100, border: '1.5px solid #BFDBFE', fontSize: 12, fontWeight: 600, color: B },
   proofCard: { background: WH, border: '1px solid #E5E7EB', borderRadius: 12, padding: '18px', marginBottom: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.04)' },
   proofTop: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' },
   proofName: { fontSize: 17, fontWeight: 800, color: BL, letterSpacing: '-0.3px' },
@@ -526,8 +526,8 @@ const s = {
   aiLoadingSubtext: { fontSize: 13, color: '#9CA3AF', textAlign: 'center' },
   founderMsg: { background: BL, borderRadius: 14, padding: '20px 22px', marginBottom: 20 },
   founderMsgLabel: { fontSize: 11, fontWeight: 700, color: B, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 },
-  founderMsgText: { fontSize: 15, color: WH, lineHeight: 1.75, fontStyle: 'italic' },
-  topPriority: { background: B + '08', border: `1px solid ${B}30`, borderRadius: 14, padding: '20px 22px', marginBottom: 24 },
+  founderMsgText: { fontSize: 15, color: WH, lineHeight: 1.75 },
+  topPriority: { background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 14, padding: '20px 22px', marginBottom: 24 },
   topPriorityLabel: { fontSize: 11, fontWeight: 700, color: B, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 },
   topPriorityText: { fontSize: 15, fontWeight: 700, color: BL, lineHeight: 1.65 },
 };
