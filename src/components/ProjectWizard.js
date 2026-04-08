@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 
 const BLUE = '#0284C7';
@@ -19,6 +19,153 @@ const STEPS = [
   { num: 5, label: 'Review' },
 ];
 
+function useSpeech(onUpdate) {
+  const recognitionRef = useRef(null);
+  const baseTextRef = useRef('');
+  const [listening, setListening] = useState(false);
+
+  const stop = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.onend = null;
+      recognitionRef.current.onerror = null;
+      recognitionRef.current.onresult = null;
+      recognitionRef.current.abort();
+      recognitionRef.current = null;
+    }
+    setListening(false);
+  };
+
+  const start = (currentValue) => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) { alert('Voice input is not supported in this browser. Please use Chrome.'); return; }
+    if (listening) { stop(); return; }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-NG';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+    recognitionRef.current = recognition;
+    baseTextRef.current = (currentValue || '').trim();
+
+    recognition.onstart = () => setListening(true);
+
+    recognition.onresult = (event) => {
+      let interim = '';
+      let final = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const t = event.results[i][0].transcript;
+        if (event.results[i].isFinal) { final += t; } else { interim += t; }
+      }
+      if (final) {
+        baseTextRef.current = baseTextRef.current ? baseTextRef.current + ' ' + final.trim() : final.trim();
+      }
+      const display = baseTextRef.current
+        ? interim ? baseTextRef.current + ' ' + interim : baseTextRef.current
+        : interim;
+      onUpdate(display);
+    };
+
+    recognition.onend = () => {
+      onUpdate(baseTextRef.current);
+      setListening(false);
+      recognitionRef.current = null;
+    };
+
+    recognition.onerror = (e) => {
+      if (e.error !== 'no-speech' && e.error !== 'aborted') console.error('Voice error:', e.error);
+      setListening(false);
+      recognitionRef.current = null;
+    };
+
+    recognition.start();
+  };
+
+  return { listening, start, stop, baseTextRef };
+}
+
+function VoiceTextarea({ value, onChange, placeholder, rows = 3, style }) {
+  const { listening, start, baseTextRef } = useSpeech((val) => onChange(val));
+
+  const handleChange = (e) => {
+    baseTextRef.current = e.target.value;
+    onChange(e.target.value);
+  };
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+        <textarea
+          style={{ ...vs.textarea, ...style }}
+          placeholder={placeholder}
+          value={value}
+          onChange={handleChange}
+          rows={rows}
+        />
+        <button
+          type="button"
+          style={{ ...vs.micBtn, background: listening ? '#DC2626' : BLUE, flexShrink: 0 }}
+          onClick={() => start(value)}
+          title={listening ? 'Stop recording' : 'Speak your answer'}
+        >
+          {listening ? <StopIcon /> : <MicIcon />}
+        </button>
+      </div>
+      {listening && (
+        <div style={vs.badge}>
+          <span style={vs.dot} />
+          Listening... speak naturally. Click stop when done.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VoiceInput({ value, onChange, placeholder, style }) {
+  const { listening, start, baseTextRef } = useSpeech((val) => onChange(val));
+
+  const handleChange = (e) => {
+    baseTextRef.current = e.target.value;
+    onChange(e.target.value);
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <input
+          style={{ ...vs.input, ...style }}
+          placeholder={placeholder}
+          value={value}
+          onChange={handleChange}
+        />
+        <button
+          type="button"
+          style={{ ...vs.micBtnSm, background: listening ? '#DC2626' : BLUE, flexShrink: 0 }}
+          onClick={() => start(value)}
+          title={listening ? 'Stop recording' : 'Speak your answer'}
+        >
+          {listening ? <StopIcon /> : <MicIcon />}
+        </button>
+      </div>
+      {listening && (
+        <div style={{ ...vs.badge, marginTop: 6 }}>
+          <span style={vs.dot} />
+          Listening... speak naturally. Click stop when done.
+        </div>
+      )}
+    </div>
+  );
+}
+
+const vs = {
+  textarea: { width: '100%', border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', resize: 'vertical', lineHeight: 1.65, background: WH },
+  input: { flex: 1, border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', background: WH, width: '100%' },
+  micBtn: { width: 44, height: 80, border: 'none', borderRadius: 10, color: WH, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.15s' },
+  micBtnSm: { width: 44, height: 44, border: 'none', borderRadius: 10, color: WH, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.15s' },
+  badge: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#DC2626', fontWeight: 600, padding: '6px 10px', background: '#FEF2F2', borderRadius: 8, border: '1px solid #FECACA', marginBottom: 8 },
+  dot: { width: 8, height: 8, borderRadius: '50%', background: '#DC2626', flexShrink: 0 },
+};
+
 export default function ProjectWizard({ user, onComplete, onBack }) {
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
@@ -35,7 +182,6 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
   });
 
   const update = (key, val) => setData(p => ({ ...p, [key]: val }));
-
   const next = () => setStep(s => Math.min(s + 1, 5));
   const back = () => { if (step === 1) { onBack(); return; } setStep(s => s - 1); };
 
@@ -112,13 +258,30 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
               <p style={s.stepSub}>Start with the basics. The clearer you are here the better PM Buddy can support you.</p>
 
               <label style={s.label}>Project Name</label>
-              <input style={s.input} placeholder="e.g. Fintech Savings App" value={data.name} onChange={e => update('name', e.target.value)} />
+              <VoiceInput
+                value={data.name}
+                onChange={val => update('name', val)}
+                placeholder="e.g. Fintech Savings App"
+                style={{ marginBottom: 20 }}
+              />
 
               <label style={s.label}>What Are You Building?</label>
-              <textarea style={s.textarea} placeholder="Describe what this project is about in 2 to 3 sentences." value={data.description} onChange={e => update('description', e.target.value)} rows={3} />
+              <VoiceTextarea
+                value={data.description}
+                onChange={val => update('description', val)}
+                placeholder="Describe what this project is about in 2 to 3 sentences."
+                rows={3}
+                style={{ marginBottom: 20 }}
+              />
 
               <label style={s.label}>What Does Success Look Like?</label>
-              <textarea style={s.textarea} placeholder="What outcome are you trying to achieve? Be specific." value={data.goal} onChange={e => update('goal', e.target.value)} rows={3} />
+              <VoiceTextarea
+                value={data.goal}
+                onChange={val => update('goal', val)}
+                placeholder="What outcome are you trying to achieve? Be specific."
+                rows={3}
+                style={{ marginBottom: 20 }}
+              />
 
               <label style={s.label}>Industry</label>
               <div style={s.industryGrid}>
@@ -194,9 +357,13 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
               <p style={s.stepSub}>Good project managers think about risks before they happen. Name your top three concerns right now.</p>
 
               {data.topRisks.map((r, i) => (
-                <div key={i}>
+                <div key={i} style={{ marginBottom: 16 }}>
                   <label style={s.label}>Risk {i + 1}</label>
-                  <input style={s.input} placeholder={getRiskPlaceholder(i, data.industry)} value={r} onChange={e => updateRisk(i, e.target.value)} />
+                  <VoiceInput
+                    value={r}
+                    onChange={val => updateRisk(i, val)}
+                    placeholder={getRiskPlaceholder(i, data.industry)}
+                  />
                 </div>
               ))}
 
@@ -264,13 +431,30 @@ function ReviewItem({ label, value }) {
 }
 
 function TimelineCheck({ start, end }) {
-  const startD = new Date(start);
-  const endD = new Date(end);
-  const days = Math.ceil((endD - startD) / (1000 * 60 * 60 * 24));
+  const days = Math.ceil((new Date(end) - new Date(start)) / 86400000);
   if (days < 0) return <div style={s.timelineWarn}>Your end date is before your start date. Please fix this.</div>;
   if (days < 14) return <div style={s.timelineWarn}>This is a very tight timeline of {days} days. Make sure your scope matches the time available.</div>;
   if (days < 30) return <div style={s.timelineOk}>This is an ambitious timeline of {days} days. Stay focused on your core deliverables.</div>;
   return <div style={s.timelineOk}>You have {days} days. This is a workable timeline if your scope is well defined.</div>;
+}
+
+function MicIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+      <line x1="12" y1="19" x2="12" y2="23"/>
+      <line x1="8" y1="23" x2="16" y2="23"/>
+    </svg>
+  );
+}
+
+function StopIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <rect x="4" y="4" width="16" height="16" rx="2"/>
+    </svg>
+  );
 }
 
 function deriveMethodology(data) {
@@ -361,7 +545,6 @@ const s = {
   stepSub: { fontSize: 14, color: '#6B7280', lineHeight: 1.7, marginBottom: 28 },
   label: { display: 'block', fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 8, letterSpacing: '0.02em' },
   input: { width: '100%', border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', marginBottom: 20, boxSizing: 'border-box', color: BL, outline: 'none', background: WH },
-  textarea: { width: '100%', border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', marginBottom: 20, boxSizing: 'border-box', color: BL, outline: 'none', resize: 'vertical', lineHeight: 1.65, background: WH },
   industryGrid: { display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
   industryBtn: { padding: '9px 16px', border: '1.5px solid', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s ease' },
   teamTypeGrid: { display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 8 },
