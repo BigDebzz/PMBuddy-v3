@@ -6,14 +6,14 @@ import AuthScreen from './components/AuthScreen';
 import Dashboard from './components/Dashboard';
 import ProjectWizard from './components/ProjectWizard';
 import ProjectWorkspace from './components/ProjectWorkspace';
-import { analyze } from './data/analysis';
+import CampaignWizard from './components/CampaignWizard';
 import { supabase } from './lib/supabase';
 import { Analytics } from './lib/analytics';
 
 const S = {
   LAND: 'land', QA: 'qa', RESULTS: 'results',
   AUTH: 'auth', DASHBOARD: 'dashboard',
-  PROJECT_NEW: 'project_new', PROJECT_OPEN: 'project_open',
+  PROJECT_NEW: 'project_new', PROJECT_OPEN: 'project_open', CAMPAIGN_NEW: 'campaign_new',
 };
 
 export default function App() {
@@ -111,7 +111,10 @@ export default function App() {
         <AuthScreen onAuth={(u) => { setUser(u); setScreen(S.DASHBOARD); }} onBack={() => setScreen(S.LAND)} />
       )}
       {screen === S.DASHBOARD && user && (
-        <Dashboard user={user} onOpenValidation={openValidation} onOpenProject={openProject} onNewValidation={reset} onNewProject={() => setScreen(S.PROJECT_NEW)} onLogout={logout} />
+        <Dashboard user={user} onOpenValidation={openValidation} onOpenProject={openProject} onNewValidation={reset} onNewProject={() => setScreen(S.PROJECT_NEW)} onNewCampaign={() => setScreen(S.CAMPAIGN_NEW)} onLogout={logout} />
+      )}
+      {screen === S.CAMPAIGN_NEW && user && (
+        <CampaignWizard user={user} onComplete={(p) => { setActiveProject(p); setScreen(S.PROJECT_OPEN); }} onBack={() => setScreen(S.DASHBOARD)} />
       )}
       {screen === S.PROJECT_NEW && user && (
         <ProjectWizard user={user} onComplete={(p) => { setActiveProject(p); setScreen(S.PROJECT_OPEN); }} onBack={() => setScreen(S.DASHBOARD)} />
