@@ -292,12 +292,12 @@ Keep the entire response under 600 tokens. Be specific and direct.`;
 
               <label style={s.label}>Campaign or Project Name</label>
               <div style={{ marginBottom: 20 }}>
-                <VoiceInput value={data.campaignName} onChange={onChangeCampaignName} placeholder="e.g. 3MTT x Coursera Learning Drive Q2" />
+                <VoiceInput value={data.campaignName} onChange={onChangeCampaignName} placeholder="e.g. Q2 Digital Skills Partnership Drive" />
               </div>
 
               <label style={s.label}>Your Organisation (Lead)</label>
               <div style={{ marginBottom: 20 }}>
-                <VoiceInput value={data.leadOrg} onChange={onChangeLeadOrg} placeholder="e.g. 3MTT Nigeria" />
+                <VoiceInput value={data.leadOrg} onChange={onChangeLeadOrg} placeholder="e.g. Your organisation or team name" />
               </div>
 
               <label style={s.label}>Partner Organisation (if any)</label>
@@ -307,7 +307,7 @@ Keep the entire response under 600 tokens. Be specific and direct.`;
 
               <label style={s.label}>Target Audience</label>
               <div style={{ marginBottom: 8 }}>
-                <VoiceInput value={data.targetAudience} onChange={onChangeTargetAudience} placeholder="e.g. 3MTT fellows in FCT cohort, approximately 500 people" />
+                <VoiceInput value={data.targetAudience} onChange={onChangeTargetAudience} placeholder="e.g. Young professionals in Lagos, approximately 300 people" />
               </div>
               <p style={s.fieldHint}>Be specific about who you are trying to reach and approximately how many people.</p>
             </div>
