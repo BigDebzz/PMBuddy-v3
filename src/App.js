@@ -27,11 +27,21 @@ export default function App() {
   const [activeProject, setActiveProject] = useState(null);
 
   useEffect(() => {
+    if (window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      if (session?.user) {
+        setUser(session.user);
+        setScreen(S.DASHBOARD);
+      }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      if (session?.user && window.location.hash) {
+        window.history.replaceState(null, '', window.location.pathname);
+        setScreen(S.DASHBOARD);
+      }
     });
     return () => subscription.unsubscribe();
   }, []);
