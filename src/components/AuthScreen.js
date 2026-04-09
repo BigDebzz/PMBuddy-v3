@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { LogoIcon } from '../lib/icons';
 
@@ -16,6 +16,16 @@ export default function AuthScreen({ onAuth, onBack }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) onAuth(session.user);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) onAuth(session.user);
+    });
+    return () => subscription.unsubscribe();
+  }, [onAuth]);
 
   const roles = [
     'Founder', 'Hackathon participant', 'Solo builder',
