@@ -4,3 +4,11 @@
   "framework": "create-react-app",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
+{
+  "crons": [
+    {
+      "path": "/api/check-milestones",
+      "schedule": "0 8 * * *"
+    }
+  ]
+}
