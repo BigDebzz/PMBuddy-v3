@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
 const BLUE = '#0284C7';
@@ -19,12 +19,13 @@ const STEPS = [
   { num: 5, label: 'Review' },
 ];
 
-function useSpeech(onUpdate) {
+function useSpeech() {
   const recognitionRef = useRef(null);
   const baseTextRef = useRef('');
+  const onUpdateRef = useRef(null);
   const [listening, setListening] = useState(false);
 
-  const stop = () => {
+  const stop = useCallback(() => {
     if (recognitionRef.current) {
       recognitionRef.current.onend = null;
       recognitionRef.current.onerror = null;
@@ -33,13 +34,14 @@ function useSpeech(onUpdate) {
       recognitionRef.current = null;
     }
     setListening(false);
-  };
+  }, []);
 
-  const start = (currentValue) => {
+  const start = useCallback((currentValue, onUpdate) => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) { alert('Voice input is not supported in this browser. Please use Chrome.'); return; }
-    if (listening) { stop(); return; }
+    if (recognitionRef.current) { stop(); return; }
 
+    onUpdateRef.current = onUpdate;
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-NG';
     recognition.continuous = true;
@@ -63,11 +65,11 @@ function useSpeech(onUpdate) {
       const display = baseTextRef.current
         ? interim ? baseTextRef.current + ' ' + interim : baseTextRef.current
         : interim;
-      onUpdate(display);
+      if (onUpdateRef.current) onUpdateRef.current(display);
     };
 
     recognition.onend = () => {
-      onUpdate(baseTextRef.current);
+      if (onUpdateRef.current) onUpdateRef.current(baseTextRef.current);
       setListening(false);
       recognitionRef.current = null;
     };
@@ -79,21 +81,25 @@ function useSpeech(onUpdate) {
     };
 
     recognition.start();
-  };
+  }, [stop]);
 
   return { listening, start, stop, baseTextRef };
 }
 
 function VoiceTextarea({ value, onChange, placeholder, rows = 3, style }) {
-  const { listening, start, baseTextRef } = useSpeech((val) => onChange(val));
+  const { listening, start, baseTextRef } = useSpeech();
 
   const handleChange = (e) => {
     baseTextRef.current = e.target.value;
     onChange(e.target.value);
   };
 
+  const handleMic = useCallback(() => {
+    start(value, onChange);
+  }, [start, value, onChange]);
+
   return (
-    <div style={{ position: 'relative' }}>
+    <div>
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
         <textarea
           style={{ ...vs.textarea, ...style }}
@@ -102,57 +108,36 @@ function VoiceTextarea({ value, onChange, placeholder, rows = 3, style }) {
           onChange={handleChange}
           rows={rows}
         />
-        <button
-          type="button"
-          style={{ ...vs.micBtn, background: listening ? '#DC2626' : BLUE, flexShrink: 0 }}
-          onClick={() => start(value)}
-          title={listening ? 'Stop recording' : 'Speak your answer'}
-        >
+        <button type="button" style={{ ...vs.micBtn, background: listening ? '#DC2626' : BLUE }} onClick={handleMic} title={listening ? 'Stop' : 'Speak'}>
           {listening ? <StopIcon /> : <MicIcon />}
         </button>
       </div>
-      {listening && (
-        <div style={vs.badge}>
-          <span style={vs.dot} />
-          Listening... speak naturally. Click stop when done.
-        </div>
-      )}
+      {listening && <div style={vs.badge}><span style={vs.dot} />Listening... speak naturally. Click stop when done.</div>}
     </div>
   );
 }
 
 function VoiceInput({ value, onChange, placeholder, style }) {
-  const { listening, start, baseTextRef } = useSpeech((val) => onChange(val));
+  const { listening, start, baseTextRef } = useSpeech();
 
   const handleChange = (e) => {
     baseTextRef.current = e.target.value;
     onChange(e.target.value);
   };
 
+  const handleMic = useCallback(() => {
+    start(value, onChange);
+  }, [start, value, onChange]);
+
   return (
     <div>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <input
-          style={{ ...vs.input, ...style }}
-          placeholder={placeholder}
-          value={value}
-          onChange={handleChange}
-        />
-        <button
-          type="button"
-          style={{ ...vs.micBtnSm, background: listening ? '#DC2626' : BLUE, flexShrink: 0 }}
-          onClick={() => start(value)}
-          title={listening ? 'Stop recording' : 'Speak your answer'}
-        >
+        <input style={{ ...vs.input, ...style }} placeholder={placeholder} value={value} onChange={handleChange} />
+        <button type="button" style={{ ...vs.micBtnSm, background: listening ? '#DC2626' : BLUE }} onClick={handleMic} title={listening ? 'Stop' : 'Speak'}>
           {listening ? <StopIcon /> : <MicIcon />}
         </button>
       </div>
-      {listening && (
-        <div style={{ ...vs.badge, marginTop: 6 }}>
-          <span style={vs.dot} />
-          Listening... speak naturally. Click stop when done.
-        </div>
-      )}
+      {listening && <div style={{ ...vs.badge, marginTop: 6 }}><span style={vs.dot} />Listening... speak naturally. Click stop when done.</div>}
     </div>
   );
 }
@@ -160,9 +145,9 @@ function VoiceInput({ value, onChange, placeholder, style }) {
 const vs = {
   textarea: { width: '100%', border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', resize: 'vertical', lineHeight: 1.65, background: WH },
   input: { flex: 1, border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', background: WH, width: '100%' },
-  micBtn: { width: 44, height: 80, border: 'none', borderRadius: 10, color: WH, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.15s' },
-  micBtnSm: { width: 44, height: 44, border: 'none', borderRadius: 10, color: WH, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.15s' },
-  badge: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#DC2626', fontWeight: 600, padding: '6px 10px', background: '#FEF2F2', borderRadius: 8, border: '1px solid #FECACA', marginBottom: 8 },
+  micBtn: { width: 44, height: 80, border: 'none', borderRadius: 10, color: WH, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.15s', flexShrink: 0 },
+  micBtnSm: { width: 44, height: 44, border: 'none', borderRadius: 10, color: WH, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.15s', flexShrink: 0 },
+  badge: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#DC2626', fontWeight: 600, padding: '6px 10px', background: '#FEF2F2', borderRadius: 8, border: '1px solid #FECACA', marginTop: 6 },
   dot: { width: 8, height: 8, borderRadius: '50%', background: '#DC2626', flexShrink: 0 },
 };
 
@@ -170,18 +155,12 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [data, setData] = useState({
-    name: '',
-    description: '',
-    goal: '',
-    industry: '',
-    teamType: 'solo',
-    teamMembers: [{ name: '', role: '' }],
-    startDate: '',
-    endDate: '',
-    topRisks: ['', '', ''],
+    name: '', description: '', goal: '', industry: '',
+    teamType: 'solo', teamMembers: [{ name: '', role: '' }],
+    startDate: '', endDate: '', topRisks: ['', '', ''],
   });
 
-  const update = (key, val) => setData(p => ({ ...p, [key]: val }));
+  const update = useCallback((key, val) => setData(p => ({ ...p, [key]: val })), []);
   const next = () => setStep(s => Math.min(s + 1, 5));
   const back = () => { if (step === 1) { onBack(); return; } setStep(s => s - 1); };
 
@@ -192,16 +171,21 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
     setData(p => ({ ...p, teamMembers: members }));
   };
   const removeMember = (i) => setData(p => ({ ...p, teamMembers: p.teamMembers.filter((_, idx) => idx !== i) }));
-
   const updateRisk = (i, val) => {
     const risks = [...data.topRisks];
     risks[i] = val;
     setData(p => ({ ...p, topRisks: risks }));
   };
 
+  const onChangeName = useCallback((val) => update('name', val), [update]);
+  const onChangeDesc = useCallback((val) => update('description', val), [update]);
+  const onChangeGoal = useCallback((val) => update('goal', val), [update]);
+  const onChangeRisk0 = useCallback((val) => { const r = [...data.topRisks]; r[0] = val; setData(p => ({ ...p, topRisks: r })); }, [data.topRisks]);
+  const onChangeRisk1 = useCallback((val) => { const r = [...data.topRisks]; r[1] = val; setData(p => ({ ...p, topRisks: r })); }, [data.topRisks]);
+  const onChangeRisk2 = useCallback((val) => { const r = [...data.topRisks]; r[2] = val; setData(p => ({ ...p, topRisks: r })); }, [data.topRisks]);
+
   const canProceed = () => {
     if (step === 1) return data.name.trim() && data.description.trim() && data.goal.trim() && data.industry;
-    if (step === 2) return data.teamType;
     if (step === 3) return data.startDate && data.endDate;
     return true;
   };
@@ -234,13 +218,8 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
   return (
     <div style={s.page}>
       <div style={s.wrap}>
-
         <button style={s.backBtn} onClick={back}>← Back</button>
-
-        <div style={s.progressTrack}>
-          <div style={{ ...s.progressFill, width: `${progress}%` }} />
-        </div>
-
+        <div style={s.progressTrack}><div style={{ ...s.progressFill, width: `${progress}%` }} /></div>
         <div style={s.steps}>
           {STEPS.map(st => (
             <div key={st.num} style={{ ...s.stepDot, background: step >= st.num ? BLUE : '#E5E7EB' }}>
@@ -250,45 +229,21 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
         </div>
 
         <div style={s.card}>
-
           {step === 1 && (
             <div>
               <p style={s.stepTag}>Step 1 of 5</p>
               <h2 style={s.stepTitle}>Tell Us About Your Project</h2>
               <p style={s.stepSub}>Start with the basics. The clearer you are here the better PM Buddy can support you.</p>
-
               <label style={s.label}>Project Name</label>
-              <VoiceInput
-                value={data.name}
-                onChange={val => update('name', val)}
-                placeholder="e.g. Fintech Savings App"
-                style={{ marginBottom: 20 }}
-              />
-
+              <div style={{ marginBottom: 20 }}><VoiceInput value={data.name} onChange={onChangeName} placeholder="e.g. Fintech Savings App" /></div>
               <label style={s.label}>What Are You Building?</label>
-              <VoiceTextarea
-                value={data.description}
-                onChange={val => update('description', val)}
-                placeholder="Describe what this project is about in 2 to 3 sentences."
-                rows={3}
-                style={{ marginBottom: 20 }}
-              />
-
+              <div style={{ marginBottom: 20 }}><VoiceTextarea value={data.description} onChange={onChangeDesc} placeholder="Describe what this project is about in 2 to 3 sentences." rows={3} /></div>
               <label style={s.label}>What Does Success Look Like?</label>
-              <VoiceTextarea
-                value={data.goal}
-                onChange={val => update('goal', val)}
-                placeholder="What outcome are you trying to achieve? Be specific."
-                rows={3}
-                style={{ marginBottom: 20 }}
-              />
-
+              <div style={{ marginBottom: 20 }}><VoiceTextarea value={data.goal} onChange={onChangeGoal} placeholder="What outcome are you trying to achieve? Be specific." rows={3} /></div>
               <label style={s.label}>Industry</label>
               <div style={s.industryGrid}>
                 {INDUSTRIES.map(ind => (
-                  <button key={ind} style={{ ...s.industryBtn, background: data.industry === ind ? BLUE : WH, color: data.industry === ind ? WH : BL, borderColor: data.industry === ind ? BLUE : '#E5E7EB' }} onClick={() => update('industry', ind)}>
-                    {ind}
-                  </button>
+                  <button key={ind} style={{ ...s.industryBtn, background: data.industry === ind ? BLUE : WH, color: data.industry === ind ? WH : BL, borderColor: data.industry === ind ? BLUE : '#E5E7EB' }} onClick={() => update('industry', ind)}>{ind}</button>
                 ))}
               </div>
             </div>
@@ -299,21 +254,15 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
               <p style={s.stepTag}>Step 2 of 5</p>
               <h2 style={s.stepTitle}>Who Is Working on This?</h2>
               <p style={s.stepSub}>Even if it is just you, defining roles prevents confusion later.</p>
-
               <label style={s.label}>Team Setup</label>
               <div style={s.teamTypeGrid}>
-                {[
-                  { val: 'solo', label: 'Just Me', desc: 'I am building this alone' },
-                  { val: 'small', label: 'Small Team', desc: '2 to 5 people' },
-                  { val: 'large', label: 'Larger Team', desc: '6 or more people' },
-                ].map(t => (
+                {[{ val: 'solo', label: 'Just Me', desc: 'I am building this alone' }, { val: 'small', label: 'Small Team', desc: '2 to 5 people' }, { val: 'large', label: 'Larger Team', desc: '6 or more people' }].map(t => (
                   <button key={t.val} style={{ ...s.teamTypeBtn, borderColor: data.teamType === t.val ? BLUE : '#E5E7EB', background: data.teamType === t.val ? '#EFF6FF' : WH }} onClick={() => update('teamType', t.val)}>
                     <p style={{ ...s.teamTypeName, color: data.teamType === t.val ? BLUE : BL }}>{t.label}</p>
                     <p style={s.teamTypeDesc}>{t.desc}</p>
                   </button>
                 ))}
               </div>
-
               {data.teamType !== 'solo' && (
                 <div style={{ marginTop: 24 }}>
                   <label style={s.label}>Team Members</label>
@@ -334,19 +283,12 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
             <div>
               <p style={s.stepTag}>Step 3 of 5</p>
               <h2 style={s.stepTitle}>When Does This Need to Happen?</h2>
-              <p style={s.stepSub}>Set realistic dates. PM Buddy will check if your timeline makes sense and flag if it looks too tight.</p>
-
+              <p style={s.stepSub}>Set realistic dates. PM Buddy will flag if your timeline looks too tight.</p>
               <label style={s.label}>Start Date</label>
               <input style={s.input} type="date" value={data.startDate} onChange={e => update('startDate', e.target.value)} />
-
               <label style={s.label}>Target End Date</label>
               <input style={s.input} type="date" value={data.endDate} onChange={e => update('endDate', e.target.value)} />
-
-              {data.startDate && data.endDate && (
-                <div style={s.timelineCheck}>
-                  <TimelineCheck start={data.startDate} end={data.endDate} />
-                </div>
-              )}
+              {data.startDate && data.endDate && <div style={s.timelineCheck}><TimelineCheck start={data.startDate} end={data.endDate} /></div>}
             </div>
           )}
 
@@ -355,21 +297,13 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
               <p style={s.stepTag}>Step 4 of 5</p>
               <h2 style={s.stepTitle}>What Could Go Wrong?</h2>
               <p style={s.stepSub}>Good project managers think about risks before they happen. Name your top three concerns right now.</p>
-
-              {data.topRisks.map((r, i) => (
-                <div key={i} style={{ marginBottom: 16 }}>
-                  <label style={s.label}>Risk {i + 1}</label>
-                  <VoiceInput
-                    value={r}
-                    onChange={val => updateRisk(i, val)}
-                    placeholder={getRiskPlaceholder(i, data.industry)}
-                  />
-                </div>
-              ))}
-
-              <div style={s.riskHint}>
-                <p style={s.riskHintText}>Not sure? Common risks for {data.industry || 'your industry'} include: {getCommonRisks(data.industry)}</p>
-              </div>
+              <label style={s.label}>Risk 1</label>
+              <div style={{ marginBottom: 16 }}><VoiceInput value={data.topRisks[0]} onChange={onChangeRisk0} placeholder={getRiskPlaceholder(0, data.industry)} /></div>
+              <label style={s.label}>Risk 2</label>
+              <div style={{ marginBottom: 16 }}><VoiceInput value={data.topRisks[1]} onChange={onChangeRisk1} placeholder={getRiskPlaceholder(1, data.industry)} /></div>
+              <label style={s.label}>Risk 3</label>
+              <div style={{ marginBottom: 16 }}><VoiceInput value={data.topRisks[2]} onChange={onChangeRisk2} placeholder={getRiskPlaceholder(2, data.industry)} /></div>
+              <div style={s.riskHint}><p style={s.riskHintText}>Common risks for {data.industry || 'your industry'}: {getCommonRisks(data.industry)}</p></div>
             </div>
           )}
 
@@ -378,7 +312,6 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
               <p style={s.stepTag}>Step 5 of 5</p>
               <h2 style={s.stepTitle}>Review Your Project</h2>
               <p style={s.stepSub}>Here is a summary of what PM Buddy will set up for you. Everything can be updated later.</p>
-
               <div style={s.reviewGrid}>
                 <ReviewItem label="Project Name" value={data.name} />
                 <ReviewItem label="Industry" value={data.industry} />
@@ -388,12 +321,10 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
                 <ReviewItem label="Risks Identified" value={`${data.topRisks.filter(r => r.trim()).length} risks`} />
                 <ReviewItem label="Approach" value={deriveMethodology(data)} />
               </div>
-
               <div style={s.methodologyCard}>
                 <p style={s.methodologyLabel}>Why This Approach</p>
                 <p style={s.methodologyText}>{getMethodologyReason(data)}</p>
               </div>
-
               {data.industry && (
                 <div style={s.complianceCard}>
                   <p style={s.complianceLabel}>Compliance Heads Up</p>
@@ -405,16 +336,11 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
 
           <div style={s.footer}>
             {step < 5 ? (
-              <button style={{ ...s.nextBtn, opacity: canProceed() ? 1 : 0.5 }} onClick={next} disabled={!canProceed()}>
-                Continue
-              </button>
+              <button style={{ ...s.nextBtn, opacity: canProceed() ? 1 : 0.5 }} onClick={next} disabled={!canProceed()}>Continue</button>
             ) : (
-              <button style={s.nextBtn} onClick={save} disabled={saving}>
-                {saving ? 'Setting Up Your Project...' : 'Launch My Project'}
-              </button>
+              <button style={s.nextBtn} onClick={save} disabled={saving}>{saving ? 'Setting Up Your Project...' : 'Launch My Project'}</button>
             )}
           </div>
-
         </div>
       </div>
     </div>
