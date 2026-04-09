@@ -171,11 +171,6 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
     setData(p => ({ ...p, teamMembers: members }));
   };
   const removeMember = (i) => setData(p => ({ ...p, teamMembers: p.teamMembers.filter((_, idx) => idx !== i) }));
-  const updateRisk = (i, val) => {
-    const risks = [...data.topRisks];
-    risks[i] = val;
-    setData(p => ({ ...p, topRisks: risks }));
-  };
 
   const onChangeName = useCallback((val) => update('name', val), [update]);
   const onChangeDesc = useCallback((val) => update('description', val), [update]);
