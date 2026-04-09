@@ -62,7 +62,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
               </div>
             </button>
             <button style={s.quickCard} onClick={onNewCampaign}>
-              <div style={{ ...s.quickIcon, background: '#EFF6FF', color: BLUE }}>⚡</div>
+              <div style={{ ...s.quickIcon, background: '#EFF6FF', color: BLUE }}>◈</div>
               <div>
                 <p style={s.quickTitle}>New Campaign</p>
                 <p style={s.quickBody}>Short-term partnerships, drives and workplace mini-projects.</p>
