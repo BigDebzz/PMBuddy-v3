@@ -6,7 +6,7 @@ const BL = '#0A0A0A';
 const WH = '#FFFFFF';
 const GREY = '#F8FAFC';
 
-export default function Dashboard({ user, onOpenValidation, onOpenProject, onNewValidation, onNewProject, onLogout }) {
+export default function Dashboard({ user, onOpenValidation, onOpenProject, onNewValidation, onNewProject, onNewCampaign, onLogout }) {
   const [validations, setValidations] = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -61,8 +61,15 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                 <p style={s.quickBody}>Set up a full PM project with risks, milestones and team roles.</p>
               </div>
             </button>
+            <button style={s.quickCard} onClick={onNewCampaign}>
+              <div style={{ ...s.quickIcon, background: '#EFF6FF', color: BLUE }}>⚡</div>
+              <div>
+                <p style={s.quickTitle}>New Campaign</p>
+                <p style={s.quickBody}>Short-term partnerships, drives and workplace mini-projects.</p>
+              </div>
+            </button>
             <button style={s.quickCard} onClick={onNewValidation}>
-              <div style={{ ...s.quickIcon, background: '#EFF6FF', color: BLUE }}>✦</div>
+              <div style={{ ...s.quickIcon, background: '#F0FDF4', color: '#15803D' }}>✦</div>
               <div>
                 <p style={s.quickTitle}>New Validation</p>
                 <p style={s.quickBody}>Check if your idea is worth building before you start.</p>
