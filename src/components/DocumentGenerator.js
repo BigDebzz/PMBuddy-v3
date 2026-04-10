@@ -22,7 +22,61 @@ export default function DocumentGenerator({ data, methodology, user }) {
     socialImpact: '', strategicAlignment: '', successMetrics: '',
     timeToValue: '', accountable: '',
   });
+  const [aiReport, setAiReport] = useState(null);
+  const [aiReportLoading, setAiReportLoading] = useState(false);
   const [showBenefitsForm, setShowBenefitsForm] = useState(false);
+
+  const runAiReport = async () => {
+    setAiReportLoading(true);
+    setAiReport(null);
+    const scope = data.scope || {};
+    const risks = (data.risks || []);
+    const milestones = (data.milestones || []);
+    const team = (data.team || []);
+
+    const prompt = `You are a senior project manager reviewing a project setup. Give an honest, specific health check.
+
+Project: ${data.name}
+Industry: ${data.industry}
+Methodology: ${methodology}
+Goal: ${scope.goal || 'Not set'}
+Description: ${data.description || 'Not set'}
+Team: ${team.length > 0 ? team.map(m => `${m.name} (${m.role})`).join(', ') : 'Solo'}
+Risks identified: ${risks.length} risks
+Milestones: ${milestones.length} milestones
+Timeline: ${data.timeline?.start || 'Not set'} to ${data.timeline?.end || 'Not set'}
+
+Respond in this exact JSON format, no markdown, no code blocks, raw JSON only:
+
+{
+  "score": 75,
+  "verdict": "Ready to document",
+  "strengths": ["specific strength 1", "specific strength 2"],
+  "gaps": ["specific gap 1", "specific gap 2"],
+  "recommendation": "The single most important thing to do before generating documents",
+  "readyToDocument": true
+}
+
+Score 0-100. verdict is one of: "Ready to document", "Almost ready", "Needs more work". Keep each item to one sentence. Be direct and specific to this project.`;
+
+    try {
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+      });
+      const result = await res.json();
+      if (result.result) {
+        const clean = result.result.replace(/```json|```/g, '').trim();
+        const lastBrace = clean.lastIndexOf('}');
+        const fixed = lastBrace !== -1 ? clean.substring(0, lastBrace + 1) : clean;
+        setAiReport(JSON.parse(fixed));
+      }
+    } catch (err) {
+      console.error('AI report error:', err);
+    }
+    setAiReportLoading(false);
+  };
 
   const fetchDocs = async () => {
     setLoadingDocs(true);
@@ -143,6 +197,77 @@ export default function DocumentGenerator({ data, methodology, user }) {
       <div style={s.sectionHeadWrap}>
         <h3 style={s.sectionHeadTitle}>Documents</h3>
         <p style={s.sectionHeadSub}>Generate, edit and save professional PM documents for your project.</p>
+      </div>
+
+      {/* AI PROJECT HEALTH CHECK */}
+      <div style={s.aiReportCard}>
+        <div style={s.aiReportTop}>
+          <div>
+            <p style={s.aiReportTitle}>AI Project Health Check</p>
+            <p style={s.aiReportSub}>Get an honest review of your project setup before generating documents.</p>
+          </div>
+          <button style={s.aiReportBtn} onClick={runAiReport} disabled={aiReportLoading}>
+            {aiReportLoading ? 'Reviewing...' : aiReport ? 'Run Again' : 'Run Health Check'}
+          </button>
+        </div>
+
+        {aiReportLoading && (
+          <div style={s.aiReportLoading}>
+            <div style={s.aiSpinner} />
+            <p style={s.aiReportLoadingText}>Reviewing your project setup...</p>
+          </div>
+        )}
+
+        {aiReport && !aiReportLoading && (
+          <div style={s.aiReportResult}>
+            <div style={s.aiScoreRow}>
+              <div style={s.aiScoreBlock}>
+                <span style={{ ...s.aiScore, color: aiReport.score >= 70 ? '#15803D' : aiReport.score >= 50 ? BLUE : '#D97706' }}>
+                  {aiReport.score}
+                </span>
+                <span style={s.aiScoreLabel}>/ 100</span>
+              </div>
+              <span style={{
+                ...s.aiVerdict,
+                background: aiReport.readyToDocument ? '#F0FDF4' : '#FFFBEB',
+                color: aiReport.readyToDocument ? '#15803D' : '#D97706',
+              }}>
+                {aiReport.verdict}
+              </span>
+            </div>
+
+            {aiReport.strengths?.length > 0 && (
+              <div style={s.aiSection}>
+                <p style={s.aiSectionLabel}>What is working</p>
+                {aiReport.strengths.map((s2, i) => (
+                  <div key={i} style={s.aiItem}>
+                    <div style={{ ...s.aiDot, background: '#15803D' }} />
+                    <p style={s.aiItemText}>{s2}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {aiReport.gaps?.length > 0 && (
+              <div style={s.aiSection}>
+                <p style={s.aiSectionLabel}>What needs attention</p>
+                {aiReport.gaps.map((g, i) => (
+                  <div key={i} style={s.aiItem}>
+                    <div style={{ ...s.aiDot, background: '#D97706' }} />
+                    <p style={s.aiItemText}>{g}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {aiReport.recommendation && (
+              <div style={s.aiRecommendation}>
+                <p style={s.aiRecLabel}>Top recommendation</p>
+                <p style={s.aiRecText}>{aiReport.recommendation}</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* SAVED DOCUMENTS */}
@@ -382,7 +507,29 @@ function buildStyledHTML(content, type, data) {
 }
 
 const s = {
-  sectionHeadWrap: { marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid #F3F4F6' },
+  sectionHeadWrap: { marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid #F3F4F6' },
+  aiReportCard: { border: '1px solid #E5E7EB', borderRadius: 12, padding: '20px', marginBottom: 20, background: WH },
+  aiReportTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: 4 },
+  aiReportTitle: { fontSize: 14, fontWeight: 600, color: BL, marginBottom: 4 },
+  aiReportSub: { fontSize: 13, color: '#6B7280' },
+  aiReportBtn: { padding: '8px 18px', background: BL, color: WH, border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 },
+  aiReportLoading: { display: 'flex', alignItems: 'center', gap: 10, padding: '16px 0' },
+  aiSpinner: { width: 20, height: 20, border: '2px solid #F3F4F6', borderTop: `2px solid ${BLUE}`, borderRadius: '50%', animation: 'spin 0.8s linear infinite', flexShrink: 0 },
+  aiReportLoadingText: { fontSize: 13, color: '#6B7280' },
+  aiReportResult: { marginTop: 16, paddingTop: 16, borderTop: '1px solid #F3F4F6' },
+  aiScoreRow: { display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 },
+  aiScoreBlock: { display: 'flex', alignItems: 'baseline', gap: 4 },
+  aiScore: { fontSize: 36, fontWeight: 600, letterSpacing: '-1px', lineHeight: 1 },
+  aiScoreLabel: { fontSize: 13, color: '#9CA3AF' },
+  aiVerdict: { fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 100 },
+  aiSection: { marginBottom: 14 },
+  aiSectionLabel: { fontSize: 11, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 },
+  aiItem: { display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 6 },
+  aiDot: { width: 6, height: 6, borderRadius: '50%', flexShrink: 0, marginTop: 6 },
+  aiItemText: { fontSize: 13, color: '#374151', lineHeight: 1.6 },
+  aiRecommendation: { background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8, padding: '12px 14px', marginTop: 4 },
+  aiRecLabel: { fontSize: 11, fontWeight: 600, color: BLUE, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 },
+  aiRecText: { fontSize: 13, color: '#1E40AF', lineHeight: 1.65 },
   sectionHeadTitle: { fontSize: 18, fontWeight: 700, color: BL, marginBottom: 4 },
   sectionHeadSub: { fontSize: 14, color: '#6B7280', lineHeight: 1.7 },
   savedSection: { marginBottom: 24, border: '1px solid #E5E7EB', borderRadius: 12, overflow: 'hidden' },
