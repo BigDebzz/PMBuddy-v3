@@ -108,6 +108,21 @@ Score 0-100. verdict is one of: "Ready to document", "Almost ready", "Needs more
       setPreview(content);
       setPreviewType(type);
       setEditContent(content);
+
+      // Auto-save
+      if (user) {
+        const userId = typeof user === 'string' ? user : user?.id;
+        const title = type === 'pm' ? 'Project Management Plan' : 'Benefits Management Document';
+        const { data: doc } = await supabase.from('documents').insert({
+          user_id: userId,
+          project_id: data.id,
+          project_name: data.name,
+          type,
+          title,
+          content,
+        }).select().single();
+        if (doc) { setCurrentDocId(doc.id); fetchDocs(); }
+      }
     } catch (err) {
       console.error('Document generation error:', err);
       if (err.name === 'AbortError') {
@@ -122,6 +137,7 @@ Score 0-100. verdict is one of: "Ready to document", "Almost ready", "Needs more
   const saveDocument = async () => {
     if (!preview || !user) return;
     setSaving(true);
+    const userId = typeof user === 'string' ? user : user?.id;
     const title = previewType === 'pm' ? 'Project Management Plan' : 'Benefits Management Document';
     if (currentDocId) {
       await supabase.from('documents').update({
@@ -130,7 +146,7 @@ Score 0-100. verdict is one of: "Ready to document", "Almost ready", "Needs more
       }).eq('id', currentDocId);
     } else {
       const { data: doc } = await supabase.from('documents').insert({
-        user_id: user.id,
+        user_id: userId,
         project_id: data.id,
         project_name: data.name,
         type: previewType,
