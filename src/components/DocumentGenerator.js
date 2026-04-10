@@ -370,7 +370,9 @@ Write with conviction.`;
   if (!response.ok) throw new Error('Gemini API error');
   const result = await response.json();
   return (result.result || '').replace(/```html|```/g, '').trim();
-}(content, type, data) {
+}
+
+function buildStyledHTML(content, type, data) {
   const isPM = type === 'pm';
   const accentColor = isPM ? '#0284C7' : '#7C3AED';
   const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
