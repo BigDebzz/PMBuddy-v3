@@ -329,7 +329,9 @@ Write each section with substance.`;
   if (!response.ok) throw new Error('Gemini API error');
   const result = await response.json();
   return (result.result || '').replace(/```html|```/g, '').trim();
-}(data, benefits) {
+}
+
+async function generateBenefitsContent(data, benefits) {
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Not set';
   const scope = data.scope || {};
 
