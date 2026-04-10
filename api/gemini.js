@@ -2,6 +2,42 @@ export const config = {
   api: { bodyParser: true },
 };
 
+async function callGemini(prompt, mode, retries = 3) {
+  const API_KEY = process.env.GEMINI_API_KEY;
+  const maxTokens = mode === 'document' ? 4000 : 2000;
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    const geminiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.4, maxOutputTokens: maxTokens }
+        })
+      }
+    );
+
+    if (geminiResponse.ok) {
+      const data = await geminiResponse.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      if (text) return { text, error: null };
+      return { text: null, error: 'No response from Gemini' };
+    }
+
+    if (geminiResponse.status === 503 && attempt < retries) {
+      await new Promise(r => setTimeout(r, 5000 * attempt));
+      continue;
+    }
+
+    const errBody = await geminiResponse.text();
+    return { text: null, error: `${geminiResponse.status}: ${errBody}` };
+  }
+
+  return { text: null, error: 'All retries failed. Gemini is currently overloaded. Please try again in a few minutes.' };
+}
+
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
     return response.status(405).json({ error: 'Method not allowed' });
@@ -23,32 +59,10 @@ export default async function handler(request, response) {
       return response.status(400).json({ error: 'No prompt provided' });
     }
 
-    const maxTokens = mode === 'document' ? 4000 : 2000;
+    const { text, error } = await callGemini(prompt, mode);
 
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.4, maxOutputTokens: maxTokens }
-        })
-      }
-    );
-
-    if (!geminiResponse.ok) {
-      const errBody = await geminiResponse.text();
-      console.error('Gemini error response:', errBody);
-      return response.status(geminiResponse.status).json({ error: errBody });
-    }
-
-    const data = await geminiResponse.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-    if (!text) {
-      console.error('Empty Gemini response:', JSON.stringify(data));
-      return response.status(500).json({ error: 'No response from Gemini', raw: data });
+    if (error) {
+      return response.status(503).json({ error });
     }
 
     if (mode === 'document') {
