@@ -3,6 +3,11 @@
   "outputDirectory": "build",
   "framework": "create-react-app",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "functions": {
+    "api/gemini.js": { "maxDuration": 30 },
+    "api/send-reminder.js": { "maxDuration": 15 },
+    "api/check-milestones.js": { "maxDuration": 30 }
+  },
   "crons": [
     {
       "path": "/api/check-milestones",
