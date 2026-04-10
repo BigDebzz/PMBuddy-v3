@@ -45,7 +45,7 @@ export default function DocumentGenerator({ data, methodology, user }) {
         ? await generatePMContent(data, methodology)
         : await generateBenefitsContent(data, benefits);
       if (!content || content.trim().length < 100) {
-        alert('Document generation timed out. Please try again — it usually works on the second attempt.');
+        alert('Document generation returned empty content. Please try again.');
         setGenerating(null);
         return;
       }
@@ -53,11 +53,11 @@ export default function DocumentGenerator({ data, methodology, user }) {
       setPreviewType(type);
       setEditContent(content);
     } catch (err) {
-      console.error(err);
+      console.error('Document generation error:', err);
       if (err.name === 'AbortError') {
         alert('This is taking longer than expected. Please check your internet connection and try again.');
       } else {
-        alert('Something went wrong generating the document. Please try again.');
+        alert(`Error: ${err.message || 'Unknown error'}. Please try again.`);
       }
     }
     setGenerating(null);
@@ -181,7 +181,7 @@ export default function DocumentGenerator({ data, methodology, user }) {
             {generating === 'pm' ? 'Writing document...' : 'Generate Document'}
           </button>
         </div>
-        {generating === 'pm' && <p style={s.generatingNote}>Gemini is writing your project management plan. This can take up to 30 seconds on mobile...</p>}
+        {generating === 'pm' && <p style={s.generatingNote}>PM Buddy is writing your masterpiece project management plan. This can take up to 1 min — nothing good comes easily 🤗</p>}
       </div>
 
       {/* BENEFITS DOCUMENT */}
@@ -222,7 +222,7 @@ export default function DocumentGenerator({ data, methodology, user }) {
             {generating === 'benefits' ? 'Writing document...' : 'Generate Document'}
           </button>
         </div>
-        {generating === 'benefits' && <p style={s.generatingNote}>Gemini is writing your benefits document. This can take up to 30 seconds on mobile...</p>}
+        {generating === 'benefits' && <p style={s.generatingNote}>PM Buddy is writing your masterpiece benefits document. This can take up to 1 min — nothing good comes easily 🤗</p>}
       </div>
 
       {/* PREVIEW */}
@@ -289,33 +289,17 @@ async function generatePMContent(data, methodology) {
   const scope = data.scope || {};
   const compliance = data.compliance || {};
 
-  const prompt = `You are a professional project manager writing a formal Project Management Plan document. Write this in clear, professional English. No jargon. Use full sentences and proper paragraphs. Do not use bullet points in prose sections. Be specific and detailed.
+  const prompt = `Write a Project Management Plan in HTML. Use h2 for headings, p for paragraphs. No html/head/body tags. Professional English. No bullet points in prose.
 
-Here is the project information:
-
-Project Name: ${data.name}
-Industry: ${data.industry}
-Approach: ${methodology}
+Project: ${data.name} | Industry: ${data.industry} | Approach: ${methodology}
 Description: ${data.description}
 Goal: ${scope.goal}
-Definition of Done: ${planning.definitionOfDone || 'Not specified'}
-Quality Standards: ${planning.qualityStandards || 'Not specified'}
-Start Date: ${formatDate(data.timeline?.start)}
-End Date: ${formatDate(data.timeline?.end)}
-Team Type: ${data.team_type}
-Team Members: ${team.length > 0 ? team.map(m => `${m.name} (${m.role})`).join(', ') : 'Solo project'}
-Resources: Tools: ${planning.tools || data.resources?.tools || 'Not specified'}, Budget: ${data.resources?.budget || 'Not specified'}
-Communication Plan: ${planning.communications || 'Not specified'}
-Update Frequency: ${planning.updateFrequency || 'Not specified'}
-Risks: ${risks.map(r => `${r.title} (${r.level})`).join(', ') || 'None identified'}
+Timeline: ${formatDate(data.timeline?.start)} to ${formatDate(data.timeline?.end)}
+Team: ${team.length > 0 ? team.map(m => `${m.name} (${m.role})`).join(', ') : 'Solo project'}
+Risks: ${risks.map(r => `${r.title} (${r.level})`).join(', ') || 'None'}
 Milestones: ${milestones.map(m => `${m.title} due ${formatDate(m.date)}`).join(', ')}
-Compliance Requirements: ${[...(compliance.flags || []), ...(compliance.internal || []), ...(compliance.external || [])].join(', ') || 'None specified'}
 
-Write the following sections in HTML format using h2 for section headings and p for paragraphs. Do not include html, head or body tags. Do not use markdown. Use proper HTML only.
-
-Sections: Executive Summary, Project Overview, Scope and Deliverables, Team and Responsibilities, Timeline and Milestones, Communication Plan, Risk Management, Compliance and Regulatory Considerations, Definition of Done.
-
-Write each section with substance.`;
+Write these sections: Executive Summary, Project Overview, Scope and Deliverables, Team and Responsibilities, Timeline and Milestones, Communication Plan, Risk Management, Definition of Done.`;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 90000);
@@ -326,7 +310,10 @@ Write each section with substance.`;
     signal: controller.signal,
   });
   clearTimeout(timeout);
-  if (!response.ok) throw new Error('Gemini API error');
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Gemini API error ${response.status}: ${errText}`);
+  }
   const result = await response.json();
   return (result.result || '').replace(/```html|```/g, '').trim();
 }
@@ -367,7 +354,10 @@ Write with conviction.`;
     signal: controller2.signal,
   });
   clearTimeout(timeout2);
-  if (!response.ok) throw new Error('Gemini API error');
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Gemini API error ${response.status}: ${errText}`);
+  }
   const result = await response.json();
   return (result.result || '').replace(/```html|```/g, '').trim();
 }
