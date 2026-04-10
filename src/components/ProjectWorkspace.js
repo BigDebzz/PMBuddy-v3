@@ -119,7 +119,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
           {tab === 'Planning' && <PlanningTab data={data} onSave={save} methodology={methodology} />}
           {tab === 'Risks and Compliance' && <RisksComplianceTab data={data} onSave={save} />}
 
-          {tab === 'Documents' && <DocumentsTab data={data} methodology={methodology} />}
+          {tab === 'Documents' && <DocumentsTab data={data} methodology={methodology} user={project.user_id} />}
           {tab === 'Reminders' && <RemindersPanel project={data} onUpdate={(updated) => { setData(updated); onUpdate(updated); }} />}
         </div>
 
@@ -736,8 +736,8 @@ function ProgressTab({ data, onSave, methodology }) {
   );
 }
 
-function DocumentsTab({ data, methodology }) {
-  return <DocumentGenerator data={data} methodology={methodology} />;
+function DocumentsTab({ data, methodology, user }) {
+  return <DocumentGenerator data={data} methodology={methodology} user={user} />;
 }
 
 function SectionHead({ title, sub }) {
