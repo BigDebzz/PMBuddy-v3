@@ -44,11 +44,21 @@ export default function DocumentGenerator({ data, methodology, user }) {
       const content = type === 'pm'
         ? await generatePMContent(data, methodology)
         : await generateBenefitsContent(data, benefits);
+      if (!content || content.trim().length < 100) {
+        alert('Document generation timed out. Please try again — it usually works on the second attempt.');
+        setGenerating(null);
+        return;
+      }
       setPreview(content);
       setPreviewType(type);
       setEditContent(content);
     } catch (err) {
       console.error(err);
+      if (err.name === 'AbortError') {
+        alert('This is taking longer than expected. Please check your internet connection and try again.');
+      } else {
+        alert('Something went wrong generating the document. Please try again.');
+      }
     }
     setGenerating(null);
   };
@@ -171,7 +181,7 @@ export default function DocumentGenerator({ data, methodology, user }) {
             {generating === 'pm' ? 'Writing document...' : 'Generate Document'}
           </button>
         </div>
-        {generating === 'pm' && <p style={s.generatingNote}>Gemini is writing your project management plan. This takes about 15 seconds...</p>}
+        {generating === 'pm' && <p style={s.generatingNote}>Gemini is writing your project management plan. This can take up to 30 seconds on mobile...</p>}
       </div>
 
       {/* BENEFITS DOCUMENT */}
@@ -212,7 +222,7 @@ export default function DocumentGenerator({ data, methodology, user }) {
             {generating === 'benefits' ? 'Writing document...' : 'Generate Document'}
           </button>
         </div>
-        {generating === 'benefits' && <p style={s.generatingNote}>Gemini is writing your benefits document. This takes about 15 seconds...</p>}
+        {generating === 'benefits' && <p style={s.generatingNote}>Gemini is writing your benefits document. This can take up to 30 seconds on mobile...</p>}
       </div>
 
       {/* PREVIEW */}
@@ -307,13 +317,19 @@ Sections: Executive Summary, Project Overview, Scope and Deliverables, Team and 
 
 Write each section with substance.`;
 
-  const response = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 90000);
+  const response = await fetch('/api/gemini', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt }),
+    signal: controller.signal,
+  });
+  clearTimeout(timeout);
   if (!response.ok) throw new Error('Gemini API error');
   const result = await response.json();
   return (result.result || '').replace(/```html|```/g, '').trim();
-}
-
-async function generateBenefitsContent(data, benefits) {
+}(data, benefits) {
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Not set';
   const scope = data.scope || {};
 
@@ -340,13 +356,19 @@ Sections: Executive Summary, The Problem We Are Solving, The Solution and Its Va
 
 Write with conviction.`;
 
-  const response = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
+  const controller2 = new AbortController();
+  const timeout2 = setTimeout(() => controller2.abort(), 90000);
+  const response = await fetch('/api/gemini', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt }),
+    signal: controller2.signal,
+  });
+  clearTimeout(timeout2);
   if (!response.ok) throw new Error('Gemini API error');
   const result = await response.json();
   return (result.result || '').replace(/```html|```/g, '').trim();
-}
-
-function buildStyledHTML(content, type, data) {
+}(content, type, data) {
   const isPM = type === 'pm';
   const accentColor = isPM ? '#0284C7' : '#7C3AED';
   const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
