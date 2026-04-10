@@ -10,6 +10,7 @@ export default function DocumentGenerator({ data, methodology, user }) {
   const [generating, setGenerating] = useState(null);
   const [preview, setPreview] = useState(null);
   const [previewType, setPreviewType] = useState(null);
+  const [genError, setGenError] = useState(null);
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState('');
   const [saving, setSaving] = useState(false);
@@ -39,13 +40,14 @@ export default function DocumentGenerator({ data, methodology, user }) {
   const generateDocument = async (type) => {
     setGenerating(type);
     setPreview(null);
+    setGenError(null);
     setCurrentDocId(null);
     try {
       const content = type === 'pm'
         ? await generatePMContent(data, methodology)
         : await generateBenefitsContent(data, benefits);
       if (!content || content.trim().length < 100) {
-        alert('Document generation returned empty content. Please try again.');
+        setGenError('The document came back empty. Please try again.');
         setGenerating(null);
         return;
       }
@@ -55,9 +57,9 @@ export default function DocumentGenerator({ data, methodology, user }) {
     } catch (err) {
       console.error('Document generation error:', err);
       if (err.name === 'AbortError') {
-        alert('This is taking longer than expected. Please check your internet connection and try again.');
+        setGenError('This is taking longer than expected. Please check your connection and try again.');
       } else {
-        alert(`Error: ${err.message || 'Unknown error'}. Please try again.`);
+        setGenError('AI is experiencing high demand right now. Please wait a moment and try again.');
       }
     }
     setGenerating(null);
@@ -182,6 +184,12 @@ export default function DocumentGenerator({ data, methodology, user }) {
           </button>
         </div>
         {generating === 'pm' && <p style={s.generatingNote}>PM Buddy is writing your masterpiece project management plan. This can take up to 1 min — nothing good comes easily 🤗</p>}
+        {genError && previewType !== 'pm' && !generating && (
+          <div style={s.errorNote}>
+            <p style={s.errorNoteText}>{genError}</p>
+            <button style={s.retryBtn} onClick={() => generateDocument('pm')}>Try again</button>
+          </div>
+        )}
       </div>
 
       {/* BENEFITS DOCUMENT */}
@@ -223,6 +231,12 @@ export default function DocumentGenerator({ data, methodology, user }) {
           </button>
         </div>
         {generating === 'benefits' && <p style={s.generatingNote}>PM Buddy is writing your masterpiece benefits document. This can take up to 1 min — nothing good comes easily 🤗</p>}
+        {genError && previewType !== 'benefits' && !generating && (
+          <div style={s.errorNote}>
+            <p style={s.errorNoteText}>{genError}</p>
+            <button style={s.retryBtn} onClick={() => generateDocument('benefits')}>Try again</button>
+          </div>
+        )}
       </div>
 
       {/* PREVIEW */}
@@ -389,6 +403,9 @@ const s = {
   smBtn: { padding: '7px 14px', background: WH, color: BL, border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
   textBtn: { background: 'none', border: 'none', color: BLUE, fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', padding: 0, textDecoration: 'underline', marginBottom: 8, display: 'block' },
   generatingNote: { fontSize: 13, color: '#6B7280', marginTop: 10 },
+  errorNote: { marginTop: 12, background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
+  errorNoteText: { fontSize: 13, color: '#DC2626', lineHeight: 1.5, flex: 1 },
+  retryBtn: { padding: '6px 14px', background: '#DC2626', color: '#FFFFFF', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 },
   benefitsForm: { background: WH, borderRadius: 10, padding: '16px', border: '1px solid #E5E7EB', marginBottom: 14 },
   benefitsFormNote: { fontSize: 13, color: '#6B7280', lineHeight: 1.65, marginBottom: 16 },
   label: { display: 'block', fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 4 },
