@@ -4,9 +4,9 @@
   "framework": "create-react-app",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
   "functions": {
-    "api/gemini.js": { "maxDuration": 30 },
+    "api/gemini.js": { "maxDuration": 60 },
     "api/send-reminder.js": { "maxDuration": 15 },
-    "api/check-milestones.js": { "maxDuration": 30 }
+    "api/check-milestones.js": { "maxDuration": 60 }
   },
   "crons": [
     {
