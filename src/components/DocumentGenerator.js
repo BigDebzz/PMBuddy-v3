@@ -23,8 +23,6 @@ export default function DocumentGenerator({ data, methodology, user }) {
   });
   const [showBenefitsForm, setShowBenefitsForm] = useState(false);
 
-  useEffect(() => { fetchDocs(); }, []);
-
   const fetchDocs = async () => {
     setLoadingDocs(true);
     const { data: docs } = await supabase
@@ -35,6 +33,8 @@ export default function DocumentGenerator({ data, methodology, user }) {
     setSavedDocs(docs || []);
     setLoadingDocs(false);
   };
+
+  useEffect(() => { fetchDocs(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const generateDocument = async (type) => {
     setGenerating(type);
