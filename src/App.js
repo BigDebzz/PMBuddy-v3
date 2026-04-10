@@ -97,7 +97,7 @@ export default function App() {
         </button>
         <div style={nav.right}>
           {user ? (
-            <button style={nav.dashBtn} onClick={() => setScreen(S.DASHBOARD)}>My Projects</button>
+            <button style={nav.dashBtn} onClick={() => setScreen(S.DASHBOARD)}>Dashboard</button>
           ) : (
             <>
               <button style={nav.loginBtn} onClick={() => setScreen(S.AUTH)}>Log In</button>
