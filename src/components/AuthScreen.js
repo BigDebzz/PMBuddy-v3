@@ -13,24 +13,37 @@ export default function AuthScreen({ onAuth, onBack }) {
   const [role, setRole] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) onAuth(session.user);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) onAuth(session.user);
-    });
-    return () => subscription.unsubscribe();
-  }, [onAuth]);
 
   const roles = [
     'Founder', 'Hackathon participant', 'Solo builder',
     'Product manager', 'Student', 'Community builder', 'Other',
   ];
+
+  useEffect(() => {
+    // Check if this is a password reset redirect
+    const hash = window.location.hash;
+    if (hash && hash.includes('type=recovery')) {
+      setMode('reset');
+      window.history.replaceState(null, '', window.location.pathname);
+      return;
+    }
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) onAuth(session.user);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (_event === 'PASSWORD_RECOVERY') {
+        setMode('reset');
+        return;
+      }
+      if (session?.user && _event !== 'PASSWORD_RECOVERY') onAuth(session.user);
+    });
+    return () => subscription.unsubscribe();
+  }, [onAuth]);
 
   const handleGoogle = async () => {
     setError('');
@@ -40,6 +53,34 @@ export default function AuthScreen({ onAuth, onBack }) {
       options: { redirectTo: window.location.origin }
     });
     if (err) { setError(err.message); setLoading(false); }
+  };
+
+  const handleForgotPassword = async () => {
+    setError('');
+    setMessage('');
+    if (!email.trim()) { setError('Please enter your email address first.'); return; }
+    setLoading(true);
+    const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}`,
+    });
+    setLoading(false);
+    if (err) { setError(err.message); return; }
+    setMessage('Check your email for a password reset link.');
+  };
+
+  const handleResetPassword = async () => {
+    setError('');
+    if (!newPassword || newPassword.length < 6) { setError('Password must be at least 6 characters.'); return; }
+    setLoading(true);
+    const { error: err } = await supabase.auth.updateUser({ password: newPassword });
+    setLoading(false);
+    if (err) { setError(err.message); return; }
+    setMessage('Password updated. Logging you in...');
+    setTimeout(() => {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) onAuth(session.user);
+      });
+    }, 1500);
   };
 
   const handle = async () => {
@@ -78,6 +119,55 @@ export default function AuthScreen({ onAuth, onBack }) {
     }
     setLoading(false);
   };
+
+  // Password reset screen
+  if (mode === 'reset') {
+    return (
+      <div style={s.page}>
+        <div style={s.card}>
+          <div style={s.logoRow}>
+            <LogoIcon size={32} />
+            <span style={s.logoText}>PM Buddy</span>
+          </div>
+          <h1 style={s.title}>Set a new password</h1>
+          <p style={s.sub}>Enter your new password below.</p>
+          {error && <div style={s.error}>{error}</div>}
+          {message && <div style={s.success}>{message}</div>}
+          <label style={s.label}>New password</label>
+          <input style={s.input} type="password" placeholder="At least 6 characters" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+          <button style={s.btn} onClick={handleResetPassword} disabled={loading}>
+            {loading ? 'Updating...' : 'Update password'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Forgot password screen
+  if (mode === 'forgot') {
+    return (
+      <div style={s.page}>
+        <div style={s.card}>
+          <div style={s.logoRow}>
+            <LogoIcon size={32} />
+            <span style={s.logoText}>PM Buddy</span>
+          </div>
+          <h1 style={s.title}>Reset your password</h1>
+          <p style={s.sub}>Enter your email and we will send you a reset link.</p>
+          {error && <div style={s.error}>{error}</div>}
+          {message && <div style={s.success}>{message}</div>}
+          <label style={s.label}>Email address</label>
+          <input style={s.input} type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} />
+          <button style={s.btn} onClick={handleForgotPassword} disabled={loading}>
+            {loading ? 'Sending...' : 'Send reset link'}
+          </button>
+          <button style={s.backLink} onClick={() => { setMode('login'); setError(''); setMessage(''); }}>
+            Back to log in
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={s.page}>
@@ -125,7 +215,6 @@ export default function AuthScreen({ onAuth, onBack }) {
                 <input style={s.input} type="text" placeholder="Last name" value={lastName} onChange={e => setLastName(e.target.value)} />
               </div>
             </div>
-
             <label style={s.label}>What describes you best?</label>
             <div style={s.roleGrid}>
               {roles.map(r => (
@@ -140,7 +229,14 @@ export default function AuthScreen({ onAuth, onBack }) {
         <label style={s.label}>Email address</label>
         <input style={s.input} type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} />
 
-        <label style={s.label}>Password</label>
+        <div style={s.passwordRow}>
+          <label style={s.label}>Password</label>
+          {mode === 'login' && (
+            <button style={s.forgotLink} onClick={() => { setMode('forgot'); setError(''); setMessage(''); }}>
+              Forgot password?
+            </button>
+          )}
+        </div>
         <input style={s.input} type="password" placeholder={mode === 'signup' ? 'At least 6 characters' : 'Your password'} value={password} onChange={e => setPassword(e.target.value)} />
 
         <button style={s.btn} onClick={handle} disabled={loading}>
@@ -198,10 +294,13 @@ const s = {
   input: { width: '100%', border: '1px solid #E5E7EB', borderRadius: 8, padding: '11px 14px', fontSize: 14, fontFamily: 'inherit', marginBottom: 16, boxSizing: 'border-box', color: BL, outline: 'none' },
   roleGrid: { display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
   roleBtn: { padding: '8px 14px', border: '1.5px solid', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' },
+  passwordRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  forgotLink: { background: 'none', border: 'none', color: B, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', padding: 0 },
   btn: { width: '100%', background: B, color: WH, border: 'none', borderRadius: 8, padding: '13px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 12, marginTop: 4 },
   termsNote: { fontSize: 12, color: '#9CA3AF', textAlign: 'center', marginBottom: 16, lineHeight: 1.6 },
   termsLink: { color: '#6B7280', textDecoration: 'underline', textUnderlineOffset: 2 },
   toggle: { fontSize: 13, color: '#6B7280', textAlign: 'center', marginBottom: 12 },
   toggleBtn: { background: 'none', border: 'none', color: B, fontWeight: 700, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' },
   backBtn: { width: '100%', background: 'none', border: '1px solid #E5E7EB', borderRadius: 8, padding: '11px', fontSize: 13, color: '#6B7280', cursor: 'pointer', fontFamily: 'inherit' },
+  backLink: { width: '100%', background: 'none', border: 'none', color: '#6B7280', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', marginTop: 8, textAlign: 'center' },
 };
