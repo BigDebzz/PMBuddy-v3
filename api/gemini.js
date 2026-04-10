@@ -23,8 +23,7 @@ export default async function handler(request, response) {
       return response.status(400).json({ error: 'No prompt provided' });
     }
 
-    // Use higher token limit for document generation
-    const maxTokens = mode === 'document' ? 8000 : 2000;
+    const maxTokens = mode === 'document' ? 4000 : 2000;
 
     const geminiResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
@@ -33,21 +32,25 @@ export default async function handler(request, response) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.5, maxOutputTokens: maxTokens }
+          generationConfig: { temperature: 0.4, maxOutputTokens: maxTokens }
         })
       }
     );
 
     if (!geminiResponse.ok) {
-      const err = await geminiResponse.json();
-      return response.status(geminiResponse.status).json({ error: err });
+      const errBody = await geminiResponse.text();
+      console.error('Gemini error response:', errBody);
+      return response.status(geminiResponse.status).json({ error: errBody });
     }
 
     const data = await geminiResponse.json();
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    if (!text) return response.status(500).json({ error: 'No response from Gemini' });
 
-    // For document mode return raw text, for JSON mode apply truncation fix
+    if (!text) {
+      console.error('Empty Gemini response:', JSON.stringify(data));
+      return response.status(500).json({ error: 'No response from Gemini', raw: data });
+    }
+
     if (mode === 'document') {
       return response.status(200).json({ result: text });
     }
