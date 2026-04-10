@@ -322,7 +322,7 @@ Write each section with substance.`;
   const response = await fetch('/api/gemini', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({ prompt, mode: 'document' }),
     signal: controller.signal,
   });
   clearTimeout(timeout);
@@ -363,7 +363,7 @@ Write with conviction.`;
   const response = await fetch('/api/gemini', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({ prompt, mode: 'document' }),
     signal: controller2.signal,
   });
   clearTimeout(timeout2);
