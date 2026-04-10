@@ -285,9 +285,7 @@ async function generatePMContent(data, methodology) {
   const risks = (data.risks || []);
   const team = (data.team || []);
   const milestones = (data.milestones || []);
-  const planning = data.planning || {};
   const scope = data.scope || {};
-  const compliance = data.compliance || {};
 
   const prompt = `Write a Project Management Plan in HTML. Use h2 for headings, p for paragraphs. No html/head/body tags. Professional English. No bullet points in prose.
 
