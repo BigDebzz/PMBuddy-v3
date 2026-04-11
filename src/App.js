@@ -20,7 +20,8 @@ const S = {
 export default function App() {
   const [screen, setScreen] = useState(() => {
     const saved = localStorage.getItem('pmb_screen');
-    return saved && saved !== S.LAND && saved !== S.AUTH ? saved : S.LAND;
+    const safeScreens = [S.DASHBOARD, S.PROJECT_OPEN, S.CAMPAIGN_NEW, S.PROJECT_NEW];
+    return saved && safeScreens.includes(saved) ? saved : S.LAND;
   });
   const [mode, setMode] = useState(null);
   const [answers, setAnswers] = useState({});
