@@ -38,7 +38,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
   const [data, setData] = useState(project);
   const [methodology, setMethodology] = useState(project.methodology || 'Agile');
   const [showMethodPicker, setShowMethodPicker] = useState(false);
-  const [tab, setTab] = useState('Overview');
+  const [tab, setTab] = useState(project._openDoc ? 'Documents' : 'Overview');
 
   const tabs = methodology === 'Agile' ? AGILE_TABS : methodology === 'Predictive' ? PREDICTIVE_TABS : HYBRID_TABS;
 
@@ -120,7 +120,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
           {tab === 'Planning' && <PlanningTab data={data} onSave={save} methodology={methodology} />}
           {tab === 'Risks and Compliance' && <RisksComplianceTab data={data} onSave={save} />}
 
-          {tab === 'Documents' && <DocumentsTab data={data} methodology={methodology} user={project.user_id} />}
+          {tab === 'Documents' && <DocumentsTab data={data} methodology={methodology} user={project.user_id} openDoc={project._openDoc} />}
           {tab === 'Team' && <TeamTab project={data} currentUser={project._currentUser} />}
           {tab === 'Reminders' && <RemindersPanel project={data} onUpdate={(updated) => { setData(updated); onUpdate(updated); }} />}
         </div>
@@ -738,8 +738,8 @@ function ProgressTab({ data, onSave, methodology }) {
   );
 }
 
-function DocumentsTab({ data, methodology, user }) {
-  return <DocumentGenerator data={data} methodology={methodology} user={user} />;
+function DocumentsTab({ data, methodology, user, openDoc }) {
+  return <DocumentGenerator data={data} methodology={methodology} user={user} openDoc={openDoc} />;
 }
 
 function SectionHead({ title, sub }) {
