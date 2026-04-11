@@ -6,17 +6,17 @@ const BL = '#0A0A0A';
 const WH = '#FFFFFF';
 const GREY = '#F8FAFC';
 
-export default function DocumentGenerator({ data, methodology, user }) {
+export default function DocumentGenerator({ data, methodology, user, openDoc }) {
   const [generating, setGenerating] = useState(null);
-  const [preview, setPreview] = useState(null);
-  const [previewType, setPreviewType] = useState(null);
+  const [preview, setPreview] = useState(openDoc?.content || null);
+  const [previewType, setPreviewType] = useState(openDoc?.type || null);
   const [genError, setGenError] = useState(null);
   const [editing, setEditing] = useState(false);
-  const [editContent, setEditContent] = useState('');
+  const [editContent, setEditContent] = useState(openDoc?.content || '');
   const [saving, setSaving] = useState(false);
   const [savedDocs, setSavedDocs] = useState([]);
   const [loadingDocs, setLoadingDocs] = useState(true);
-  const [currentDocId, setCurrentDocId] = useState(null);
+  const [currentDocId, setCurrentDocId] = useState(openDoc?.id || null);
   const [benefits, setBenefits] = useState({
     problem: '', affectedPeople: '', expectedRevenue: '',
     socialImpact: '', strategicAlignment: '', successMetrics: '',
@@ -35,19 +35,35 @@ export default function DocumentGenerator({ data, methodology, user }) {
     const risks = (data.risks || []);
     const milestones = (data.milestones || []);
     const team = (data.team || []);
+    const planning = data.planning || {};
 
-    const prompt = `Project manager health check. Reply ONLY with valid JSON, no markdown.
+    const prompt = `You are a senior project manager doing a detailed health check on a project. Be specific, honest and helpful. Reference the actual project details in your response.
 
-Project: ${data.name} | Industry: ${data.industry} | Methodology: ${methodology}
-Goal: ${(scope.goal || 'Not set').slice(0, 100)}
-Team: ${team.length > 0 ? team.map(m => m.name).join(', ') : 'Solo'}
-Risks: ${risks.length} | Milestones: ${milestones.length}
-Timeline: ${data.timeline?.start || 'Not set'} to ${data.timeline?.end || 'Not set'}
+PROJECT DETAILS:
+Name: ${data.name}
+Industry: ${data.industry}
+Methodology: ${methodology}
+Goal: ${scope.goal || 'Not provided'}
+Description: ${data.description || 'Not provided'}
+Team type: ${data.team_type || 'Not set'}
+Team members: ${team.length > 0 ? team.map(m => `${m.name} (${m.role})`).join(', ') : 'None added'}
+Risks identified: ${risks.length > 0 ? risks.map(r => r.title).join(', ') : 'None'}
+Milestones: ${milestones.length > 0 ? milestones.map(m => m.title).join(', ') : 'None'}
+Start date: ${data.timeline?.start || 'Not set'}
+End date: ${data.timeline?.end || 'Not set'}
+Communication plan: ${planning.communications || 'Not set'}
+Tools: ${planning.tools || 'Not set'}
 
-Return this JSON only:
-{"score":75,"verdict":"Ready to document","strengths":["strength 1","strength 2"],"gaps":["gap 1","gap 2"],"recommendation":"one sentence","readyToDocument":true}
+Respond ONLY with this JSON. No markdown. No code blocks. Pure JSON.
+{"score":75,"verdict":"Almost ready","strengths":[{"title":"Clear title here","detail":"Specific explanation referencing their actual project data. Why this is good and what it enables."},{"title":"Second strength","detail":"Specific explanation."}],"gaps":[{"title":"Gap title","why":"Why this matters for THIS specific project","howToFix":"Concrete actionable step they can take right now, specific to their project"},{"title":"Second gap","why":"Why it matters","howToFix":"How to fix it"}],"recommendation":"One specific sentence telling them the single most important action to take today based on their project","readyToDocument":true}
 
-verdict must be one of: "Ready to document", "Almost ready", "Needs more work". Max 2 strengths, 2 gaps. Each under 15 words.`;
+Rules:
+- Score 0-100 based on completeness and quality
+- verdict: "Ready to document", "Almost ready", or "Needs more work"  
+- Max 3 strengths and 3 gaps
+- Reference their actual project name, goal, industry or team in your responses
+- howToFix must be specific and actionable, not generic advice
+- Keep each field under 30 words`;
 
     try {
       const res = await fetch('/api/gemini', {
@@ -268,10 +284,13 @@ verdict must be one of: "Ready to document", "Almost ready", "Needs more work". 
             {aiReport.strengths?.length > 0 && (
               <div style={s.aiSection}>
                 <p style={s.aiSectionLabel}>What is working</p>
-                {aiReport.strengths.map((s2, i) => (
-                  <div key={i} style={s.aiItem}>
-                    <div style={{ ...s.aiDot, background: '#15803D' }} />
-                    <p style={s.aiItemText}>{s2}</p>
+                {aiReport.strengths.map((item, i) => (
+                  <div key={i} style={s.aiStrengthCard}>
+                    <div style={s.aiStrengthTop}>
+                      <div style={{ ...s.aiDot, background: '#15803D', marginTop: 2 }} />
+                      <p style={s.aiItemTitle}>{typeof item === 'string' ? item : item.title}</p>
+                    </div>
+                    {item.detail && <p style={s.aiItemDetail}>{item.detail}</p>}
                   </div>
                 ))}
               </div>
@@ -280,10 +299,18 @@ verdict must be one of: "Ready to document", "Almost ready", "Needs more work". 
             {aiReport.gaps?.length > 0 && (
               <div style={s.aiSection}>
                 <p style={s.aiSectionLabel}>What needs attention</p>
-                {aiReport.gaps.map((g, i) => (
-                  <div key={i} style={s.aiItem}>
-                    <div style={{ ...s.aiDot, background: '#D97706' }} />
-                    <p style={s.aiItemText}>{g}</p>
+                {aiReport.gaps.map((item, i) => (
+                  <div key={i} style={s.aiGapCard}>
+                    <div style={s.aiGapTop}>
+                      <div style={{ ...s.aiDot, background: '#D97706', marginTop: 2 }} />
+                      <p style={s.aiItemTitle}>{typeof item === 'string' ? item : item.title}</p>
+                    </div>
+                    {item.why && (
+                      <div style={s.aiGapBody}>
+                        <p style={s.aiGapWhy}><strong>Why it matters:</strong> {item.why}</p>
+                        {item.howToFix && <p style={s.aiGapFix}><strong>How to fix it:</strong> {item.howToFix}</p>}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -427,12 +454,13 @@ verdict must be one of: "Ready to document", "Almost ready", "Needs more work". 
 
           {editing ? (
             <div style={s.editArea}>
-              <p style={s.editNote}>You are editing the document content. Use HTML tags like &lt;h2&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;li&gt;. Changes will be saved to your project.</p>
-              <textarea
-                style={s.editTextarea}
-                value={editContent}
-                onChange={e => setEditContent(e.target.value)}
-                rows={30}
+              <p style={s.editNote}>Click anywhere in the document to edit. Your changes are saved when you click "Save changes".</p>
+              <div
+                style={s.editableDoc}
+                contentEditable
+                suppressContentEditableWarning
+                onInput={e => setEditContent(e.currentTarget.innerHTML)}
+                dangerouslySetInnerHTML={{ __html: editContent }}
               />
             </div>
           ) : (
@@ -592,9 +620,26 @@ const s = {
   unsavedBadge: { fontSize: 10, fontWeight: 600, background: '#FEF3C7', color: '#D97706', padding: '2px 8px', borderRadius: 100 },
   previewBtns: { display: 'flex', gap: 8, flexWrap: 'wrap' },
   previewContent: { padding: '24px', maxHeight: 500, overflowY: 'auto', fontSize: 14, lineHeight: 1.75, color: '#374151' },
-  editArea: { padding: '16px' },
-  editNote: { fontSize: 12, color: '#9CA3AF', marginBottom: 10, lineHeight: 1.6 },
-  editTextarea: { width: '100%', border: '1px solid #E5E7EB', borderRadius: 8, padding: '12px', fontSize: 13, fontFamily: 'monospace', boxSizing: 'border-box', color: BL, outline: 'none', resize: 'vertical', lineHeight: 1.6, background: WH },
+  aiStrengthCard: { marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid #F0FDF4' },
+  aiStrengthTop: { display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 4 },
+  aiGapCard: { marginBottom: 12, padding: '12px 14px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8 },
+  aiGapTop: { display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 6 },
+  aiItemTitle: { fontSize: 13, fontWeight: 600, color: BL, lineHeight: 1.4 },
+  aiItemDetail: { fontSize: 13, color: '#374151', lineHeight: 1.6, marginLeft: 14, marginTop: 2 },
+  aiGapBody: { marginLeft: 14 },
+  aiGapWhy: { fontSize: 13, color: '#92400E', lineHeight: 1.6, marginBottom: 6 },
+  aiGapFix: { fontSize: 13, color: '#374151', lineHeight: 1.6, background: WH, padding: '8px 10px', borderRadius: 6, border: '1px solid #FDE68A' },
+  editArea: { padding: '0' },
+  editNote: { fontSize: 12, color: '#9CA3AF', padding: '10px 16px', background: '#F8FAFC', borderBottom: '1px solid #E5E7EB' },
+  editableDoc: {
+    padding: '32px',
+    minHeight: 400,
+    outline: 'none',
+    fontSize: 14,
+    lineHeight: 1.8,
+    color: '#374151',
+    fontFamily: 'Georgia, serif',
+  },
   noteCard: { background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '12px 14px', marginTop: 12 },
   noteText: { fontSize: 12, color: '#92400E', lineHeight: 1.7 },
 };
