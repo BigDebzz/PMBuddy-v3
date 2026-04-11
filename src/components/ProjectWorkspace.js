@@ -2,15 +2,16 @@ import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import DocumentGenerator from './DocumentGenerator';
 import RemindersPanel from './RemindersPanel';
+import TeamTab from './TeamTab';
 
 const BLUE = '#0284C7';
 const BL = '#0A0A0A';
 const WH = '#FFFFFF';
 const GREY = '#F8FAFC';
 
-const AGILE_TABS = ['Overview', 'What We Are Building', 'Work Cycles', 'Progress', 'What We Learned', 'Risks', 'Documents', 'Reminders'];
-const PREDICTIVE_TABS = ['Overview', 'Who Is Involved', 'Scope', 'Planning', 'Risks and Compliance', 'Progress', 'Documents', 'Reminders'];
-const HYBRID_TABS = ['Overview', 'What We Are Building', 'Who Is Involved', 'Planning', 'Risks and Compliance', 'Progress', 'Documents', 'Reminders'];
+const AGILE_TABS = ['Overview', 'What We Are Building', 'Work Cycles', 'Progress', 'What We Learned', 'Risks', 'Documents', 'Team', 'Reminders'];
+const PREDICTIVE_TABS = ['Overview', 'Who Is Involved', 'Scope', 'Planning', 'Risks and Compliance', 'Progress', 'Documents', 'Team', 'Reminders'];
+const HYBRID_TABS = ['Overview', 'What We Are Building', 'Who Is Involved', 'Planning', 'Risks and Compliance', 'Progress', 'Documents', 'Team', 'Reminders'];
 
 const METHODOLOGY_INFO = {
   Agile: {
@@ -120,6 +121,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
           {tab === 'Risks and Compliance' && <RisksComplianceTab data={data} onSave={save} />}
 
           {tab === 'Documents' && <DocumentsTab data={data} methodology={methodology} user={project.user_id} />}
+          {tab === 'Team' && <TeamTab project={data} currentUser={project._currentUser} />}
           {tab === 'Reminders' && <RemindersPanel project={data} onUpdate={(updated) => { setData(updated); onUpdate(updated); }} />}
         </div>
 
