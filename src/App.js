@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import LandingScreen from './components/LandingScreen';
 import QuestionWizard from './components/QuestionWizard';
 import ResultsDashboard from './components/ResultsDashboard';
@@ -18,19 +18,72 @@ const S = {
 };
 
 export default function App() {
-  const [screen, setScreen] = useState(S.LAND);
+  const [screen, setScreen] = useState(() => {
+    const saved = localStorage.getItem('pmb_screen');
+    return saved && saved !== S.LAND && saved !== S.AUTH ? saved : S.LAND;
+  });
   const [mode, setMode] = useState(null);
   const [answers, setAnswers] = useState({});
   const [analysis, setAnalysis] = useState(null);
   const [user, setUser] = useState(null);
   const [projectId, setProjectId] = useState(null);
-  const [activeProject, setActiveProject] = useState(null);
+  const [activeProject, setActiveProject] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('pmb_project')) || null; } catch { return null; }
+  });
+
+  const goTo = useCallback((s) => {
+    setScreen(s);
+    localStorage.setItem('pmb_screen', s);
+    if (s === S.LAND || s === S.DASHBOARD || s === S.AUTH) {
+      localStorage.removeItem('pmb_project');
+    }
+  }, []);
+
+  const saveProject = useCallback((p) => {
+    setActiveProject(p);
+    if (p) localStorage.setItem('pmb_project', JSON.stringify(p));
+    else localStorage.removeItem('pmb_project');
+  }, []);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Handle invite token from URL
+    const params = new URLSearchParams(window.location.search);
+    const inviteToken = params.get('invite');
+    if (inviteToken) {
+      localStorage.setItem('pmb_invite_token', inviteToken);
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        setScreen(S.DASHBOARD);
+        // Handle pending invite
+        const token = localStorage.getItem('pmb_invite_token');
+        if (token) {
+          localStorage.removeItem('pmb_invite_token');
+          const { data: invite } = await supabase
+            .from('project_members')
+            .select('*')
+            .eq('token', token)
+            .single();
+          if (invite) {
+            await supabase.from('project_members').update({
+              user_id: session.user.id,
+              status: 'active',
+            }).eq('id', invite.id);
+            const { data: proj } = await supabase
+              .from('pm_projects')
+              .select('*')
+              .eq('id', invite.project_id)
+              .single();
+            if (proj) {
+              saveProject({ ...proj, _currentUser: session.user });
+              goTo(S.PROJECT_OPEN);
+              return;
+            }
+          }
+        }
+        goTo(S.DASHBOARD);
       }
       if (window.location.hash || window.location.search.includes('code=')) {
         window.history.replaceState(null, '', window.location.pathname);
@@ -40,31 +93,46 @@ export default function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user);
-        setScreen(S.DASHBOARD);
+        const savedScreen = localStorage.getItem('pmb_screen');
+        if (!savedScreen || savedScreen === S.LAND || savedScreen === S.AUTH) {
+          goTo(S.DASHBOARD);
+        }
+        // Attach current user to active project
+        const savedProject = localStorage.getItem('pmb_project');
+        if (savedProject) {
+          try {
+            const p = JSON.parse(savedProject);
+            setActiveProject({ ...p, _currentUser: session.user });
+          } catch {}
+        }
+      } else {
+        goTo(S.LAND);
+        localStorage.removeItem('pmb_project');
       }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [goTo, saveProject]);
 
   const selectMode = (m) => {
-    setMode(m); setAnswers({}); setAnalysis(null); setProjectId(null); setScreen(S.QA);
+    setMode(m); setAnswers({}); setAnalysis(null); setProjectId(null); goTo(S.QA);
   };
 
   const complete = (a) => {
     const r = analyze(mode, a);
     setAnswers(a); setAnalysis(r);
     Analytics.reportGenerated(mode, r.score);
-    setScreen(S.RESULTS);
+    goTo(S.RESULTS);
   };
 
   const reset = () => {
-    setMode(null); setAnswers({}); setAnalysis(null); setProjectId(null); setActiveProject(null);
-    setScreen(S.LAND);
+    setMode(null); setAnswers({}); setAnalysis(null); setProjectId(null);
+    saveProject(null);
+    goTo(S.LAND);
   };
 
   const saveValidation = async (title) => {
-    if (!user) { setScreen(S.AUTH); return; }
+    if (!user) { goTo(S.AUTH); return; }
     if (projectId) {
       await supabase.from('projects').update({ title, answers, analysis, updated_at: new Date().toISOString() }).eq('id', projectId);
     } else {
@@ -75,12 +143,12 @@ export default function App() {
 
   const openValidation = (p) => {
     setMode(p.mode); setAnswers(p.answers); setAnalysis(p.analysis); setProjectId(p.id);
-    setScreen(S.RESULTS);
+    goTo(S.RESULTS);
   };
 
   const openProject = (p) => {
-    setActiveProject(p);
-    setScreen(S.PROJECT_OPEN);
+    saveProject({ ...p, _currentUser: user });
+    goTo(S.PROJECT_OPEN);
   };
 
   const logout = async () => {
@@ -97,11 +165,11 @@ export default function App() {
         </button>
         <div style={nav.right}>
           {user ? (
-            <button style={nav.dashBtn} onClick={() => setScreen(S.DASHBOARD)}>Dashboard</button>
+            <button style={nav.dashBtn} onClick={() => goTo(S.DASHBOARD)}>Dashboard</button>
           ) : (
             <>
-              <button style={nav.loginBtn} onClick={() => setScreen(S.AUTH)}>Log In</button>
-              <button style={nav.signupBtn} onClick={() => setScreen(S.AUTH)}>Get Started</button>
+              <button style={nav.loginBtn} onClick={() => goTo(S.AUTH)}>Log In</button>
+              <button style={nav.signupBtn} onClick={() => goTo(S.AUTH)}>Get Started</button>
             </>
           )}
           {screen !== S.LAND && user && (
@@ -111,28 +179,28 @@ export default function App() {
       </nav>
 
       {screen === S.LAND && (
-        <LandingScreen onSelectMode={selectMode} onLogin={() => setScreen(S.AUTH)} onSignup={() => setScreen(S.AUTH)} onDashboard={() => setScreen(S.DASHBOARD)} user={user} />
+        <LandingScreen onSelectMode={selectMode} onLogin={() => goTo(S.AUTH)} onSignup={() => goTo(S.AUTH)} onDashboard={() => goTo(S.DASHBOARD)} user={user} />
       )}
       {screen === S.QA && mode && (
-        <QuestionWizard mode={mode} onComplete={complete} onBack={() => setScreen(S.LAND)} />
+        <QuestionWizard mode={mode} onComplete={complete} onBack={() => goTo(S.LAND)} />
       )}
       {screen === S.RESULTS && analysis && (
-        <ResultsDashboard mode={mode} answers={answers} analysis={analysis} onReset={reset} onEdit={() => setScreen(S.QA)} onSave={saveValidation} user={user} projectId={projectId} />
+        <ResultsDashboard mode={mode} answers={answers} analysis={analysis} onReset={reset} onEdit={() => goTo(S.QA)} onSave={saveValidation} user={user} projectId={projectId} />
       )}
       {screen === S.AUTH && (
-        <AuthScreen onAuth={(u) => { setUser(u); setScreen(S.DASHBOARD); }} onBack={() => setScreen(S.LAND)} />
+        <AuthScreen onAuth={(u) => { setUser(u); goTo(S.DASHBOARD); }} onBack={() => goTo(S.LAND)} />
       )}
       {screen === S.DASHBOARD && user && (
-        <Dashboard user={user} onOpenValidation={openValidation} onOpenProject={openProject} onNewValidation={reset} onNewProject={() => setScreen(S.PROJECT_NEW)} onNewCampaign={() => setScreen(S.CAMPAIGN_NEW)} onLogout={logout} />
+        <Dashboard user={user} onOpenValidation={openValidation} onOpenProject={openProject} onNewValidation={reset} onNewProject={() => goTo(S.PROJECT_NEW)} onNewCampaign={() => goTo(S.CAMPAIGN_NEW)} onLogout={logout} />
       )}
       {screen === S.CAMPAIGN_NEW && user && (
-        <CampaignWizard user={user} onComplete={(p) => { setActiveProject(p); setScreen(S.PROJECT_OPEN); }} onBack={() => setScreen(S.DASHBOARD)} />
+        <CampaignWizard user={user} onComplete={(p) => { saveProject({ ...p, _currentUser: user }); goTo(S.PROJECT_OPEN); }} onBack={() => goTo(S.DASHBOARD)} />
       )}
       {screen === S.PROJECT_NEW && user && (
-        <ProjectWizard user={user} onComplete={(p) => { setActiveProject(p); setScreen(S.PROJECT_OPEN); }} onBack={() => setScreen(S.DASHBOARD)} />
+        <ProjectWizard user={user} onComplete={(p) => { saveProject({ ...p, _currentUser: user }); goTo(S.PROJECT_OPEN); }} onBack={() => goTo(S.DASHBOARD)} />
       )}
       {screen === S.PROJECT_OPEN && activeProject && (
-        <ProjectWorkspace project={activeProject} onBack={() => setScreen(S.DASHBOARD)} onUpdate={setActiveProject} />
+        <ProjectWorkspace project={activeProject} onBack={() => goTo(S.DASHBOARD)} onUpdate={(p) => saveProject({ ...p, _currentUser: user })} />
       )}
     </div>
   );
