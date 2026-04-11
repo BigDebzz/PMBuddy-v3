@@ -244,8 +244,20 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                     <div style={s.docRowActions}>
                       <button style={s.openBtn} onClick={() => {
                         const project = projects.find(p => p.id === doc.project_id);
-                        if (project) onOpenProject(project);
-                      }}>Open Project</button>
+                        if (project) onOpenProject({ ...project, _openDoc: doc });
+                      }}>Open Document</button>
+                      <button style={{ ...s.openBtn, background: WH, color: BLUE, border: `1px solid ${BLUE}` }} onClick={() => {
+                        const html = doc.content;
+                        const blob = new Blob([html], { type: 'text/html' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${doc.title.replace(/\s+/g, '_')}.html`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                      }}>Download</button>
                     </div>
                   </div>
                 ))}
