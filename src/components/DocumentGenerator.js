@@ -22,42 +22,32 @@ export default function DocumentGenerator({ data, methodology, user }) {
     socialImpact: '', strategicAlignment: '', successMetrics: '',
     timeToValue: '', accountable: '',
   });
-  const [aiReport, setAiReport] = useState(null);
+  const [aiReport, setAiReport] = useState(data.ai_health_check || null);
   const [aiReportLoading, setAiReportLoading] = useState(false);
+  const [aiReportError, setAiReportError] = useState(null);
   const [showBenefitsForm, setShowBenefitsForm] = useState(false);
 
   const runAiReport = async () => {
     setAiReportLoading(true);
     setAiReport(null);
+    setAiReportError(null);
     const scope = data.scope || {};
     const risks = (data.risks || []);
     const milestones = (data.milestones || []);
     const team = (data.team || []);
 
-    const prompt = `You are a senior project manager reviewing a project setup. Give an honest, specific health check.
+    const prompt = `Project manager health check. Reply ONLY with valid JSON, no markdown.
 
-Project: ${data.name}
-Industry: ${data.industry}
-Methodology: ${methodology}
-Goal: ${scope.goal || 'Not set'}
-Description: ${data.description || 'Not set'}
-Team: ${team.length > 0 ? team.map(m => `${m.name} (${m.role})`).join(', ') : 'Solo'}
-Risks identified: ${risks.length} risks
-Milestones: ${milestones.length} milestones
+Project: ${data.name} | Industry: ${data.industry} | Methodology: ${methodology}
+Goal: ${(scope.goal || 'Not set').slice(0, 100)}
+Team: ${team.length > 0 ? team.map(m => m.name).join(', ') : 'Solo'}
+Risks: ${risks.length} | Milestones: ${milestones.length}
 Timeline: ${data.timeline?.start || 'Not set'} to ${data.timeline?.end || 'Not set'}
 
-Respond in this exact JSON format, no markdown, no code blocks, raw JSON only:
+Return this JSON only:
+{"score":75,"verdict":"Ready to document","strengths":["strength 1","strength 2"],"gaps":["gap 1","gap 2"],"recommendation":"one sentence","readyToDocument":true}
 
-{
-  "score": 75,
-  "verdict": "Ready to document",
-  "strengths": ["specific strength 1", "specific strength 2"],
-  "gaps": ["specific gap 1", "specific gap 2"],
-  "recommendation": "The single most important thing to do before generating documents",
-  "readyToDocument": true
-}
-
-Score 0-100. verdict is one of: "Ready to document", "Almost ready", "Needs more work". Keep each item to one sentence. Be direct and specific to this project.`;
+verdict must be one of: "Ready to document", "Almost ready", "Needs more work". Max 2 strengths, 2 gaps. Each under 15 words.`;
 
     try {
       const res = await fetch('/api/gemini', {
@@ -65,15 +55,31 @@ Score 0-100. verdict is one of: "Ready to document", "Almost ready", "Needs more
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt })
       });
+      if (!res.ok) {
+        setAiReportError('AI is busy right now. Please try again in a moment.');
+        setAiReportLoading(false);
+        return;
+      }
       const result = await res.json();
       if (result.result) {
         const clean = result.result.replace(/```json|```/g, '').trim();
+        const firstBrace = clean.indexOf('{');
         const lastBrace = clean.lastIndexOf('}');
-        const fixed = lastBrace !== -1 ? clean.substring(0, lastBrace + 1) : clean;
-        setAiReport(JSON.parse(fixed));
+        if (firstBrace === -1 || lastBrace === -1) {
+          setAiReportError('Could not parse AI response. Please try again.');
+          setAiReportLoading(false);
+          return;
+        }
+        const jsonStr = clean.substring(firstBrace, lastBrace + 1);
+        const parsed = JSON.parse(jsonStr);
+        setAiReport(parsed);
+        await supabase.from('pm_projects').update({ ai_health_check: parsed }).eq('id', data.id);
+      } else {
+        setAiReportError('No response from AI. Please try again.');
       }
     } catch (err) {
       console.error('AI report error:', err);
+      setAiReportError('Something went wrong. Please try again.');
     }
     setAiReportLoading(false);
   };
@@ -231,6 +237,13 @@ Score 0-100. verdict is one of: "Ready to document", "Almost ready", "Needs more
           <div style={s.aiReportLoading}>
             <div style={s.aiSpinner} />
             <p style={s.aiReportLoadingText}>Reviewing your project setup...</p>
+          </div>
+        )}
+
+        {aiReportError && !aiReportLoading && (
+          <div style={{ marginTop: 12, padding: '10px 14px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+            <p style={{ fontSize: 13, color: '#DC2626' }}>{aiReportError}</p>
+            <button style={{ padding: '5px 12px', background: '#DC2626', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={runAiReport}>Retry</button>
           </div>
         )}
 
