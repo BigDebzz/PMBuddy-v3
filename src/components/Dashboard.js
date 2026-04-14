@@ -1,45 +1,224 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+
+function useVoice(onResult) {
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef(null);
+
+  const toggle = () => {
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+      alert('Voice input is not supported on this browser. Try Chrome on desktop or Android.');
+      return;
+    }
+    const recognition = new SR();
+    recognitionRef.current = recognition;
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+    recognition.onstart = () => setListening(true);
+    recognition.onresult = (e) => {
+      const transcript = Array.from(e.results).map(r => r[0].transcript).join(' ');
+      onResult(transcript);
+      setListening(false);
+    };
+    recognition.onerror = () => setListening(false);
+    recognition.onend = () => setListening(false);
+    try { recognition.start(); } catch { setListening(false); }
+  };
+
+  return { listening, toggle };
+}
 
 const BLUE = '#0284C7';
 const BL = '#0A0A0A';
 const WH = '#FFFFFF';
 const GREY = '#F8FAFC';
-const RULE = '#E5E7EB';
 
-export default function Dashboard({ user, onOpenValidation, onOpenProject, onNewValidation, onNewProject, onNewCampaign, onNewQuickDoc, onLogout }) {
-  const [validations, setValidations] = useState([]);
-  const [projects, setProjects] = useState([]);
-  const [documents, setDocuments] = useState([]);
-  const [loading, setLoading] = useState(true);
+const STAGES = { CHAT: 'chat', GENERATING: 'generating', DOCUMENT: 'document', NEXT: 'next' };
 
-  const firstName = user?.user_metadata?.first_name || user?.email?.split('@')[0] || 'there';
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+export default function QuickDoc({ user, onBack, onStartProject, onStartCampaign }) {
+  const [stage, setStage] = useState(STAGES.CHAT);
+  const [messages, setMessages] = useState([
+    {
+      role: 'assistant',
+      text: `Hey ${user?.user_metadata?.first_name || 'there'} 👋 What do you need to create today? It could be a concept note, a session plan, a proposal, a workshop agenda — anything. Just describe it in your own words and we will figure out the rest together.`,
+    }
+  ]);
+  const [input, setInput] = useState('');
+  const [thinking, setThinking] = useState(false);
+  const [probeCount, setProbeCount] = useState(0);
+  const [docContent, setDocContent] = useState('');
+  const [docTitle, setDocTitle] = useState('');
+  const [docId, setDocId] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const { listening: isListening, toggle: toggleVoice } = useVoice((transcript) => {
+    setInput(prev => (prev + ' ' + transcript).trim());
+  });
+  const [updateInput, setUpdateInput] = useState('');
+  const [updating, setUpdating] = useState(false);
+  const bottomRef = useRef(null);
+  const conversationRef = useRef([]);
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, stage]);
 
-  const fetchAll = async () => {
-    setLoading(true);
-    const [{ data: v }, { data: p }, { data: d }] = await Promise.all([
-      supabase.from('projects').select('*').order('updated_at', { ascending: false }),
-      supabase.from('pm_projects').select('*').order('updated_at', { ascending: false }),
-      supabase.from('documents').select('*').order('updated_at', { ascending: false }),
-    ]);
-    setValidations(v || []);
-    setProjects(p || []);
-    setDocuments(d || []);
-    setLoading(false);
+  const addMessage = (role, text) => {
+    const msg = { role, text };
+    setMessages(prev => [...prev, msg]);
+    conversationRef.current = [...conversationRef.current, msg];
   };
 
-  const deleteValidation = async (id) => {
-    await supabase.from('projects').delete().eq('id', id);
-    setValidations(validations.filter(p => p.id !== id));
+  const buildConversationContext = () => {
+    return conversationRef.current
+      .map(m => `${m.role === 'assistant' ? 'PM Buddy' : 'User'}: ${m.text}`)
+      .join('\n');
   };
 
-  const deleteProject = async (id) => {
-    await supabase.from('pm_projects').delete().eq('id', id);
-    setProjects(projects.filter(p => p.id !== id));
+  const sendMessage = async () => {
+    if (!input.trim() || thinking) return;
+    const userText = input.trim();
+    setInput('');
+    addMessage('user', userText);
+    setThinking(true);
+
+    const context = buildConversationContext() + `\nUser: ${userText}`;
+    const newProbeCount = probeCount + 1;
+    setProbeCount(newProbeCount);
+
+    if (newProbeCount >= 3) {
+      // Generate document
+      setStage(STAGES.GENERATING);
+      addMessage('assistant', 'I have enough to work with. Generating your document now...');
+      await generateDocument(context);
+    } else {
+      // Probe
+      const probePrompt = `You are PM Buddy, a friendly project management assistant helping someone create a professional document.
+
+Here is the conversation so far:
+${context}
+
+This is probe ${newProbeCount} of 2. Ask 1 to 2 specific follow-up questions to get the remaining details needed to write a great document. Be conversational, friendly and specific to what they described. Do not ask generic questions. If they have already given enough detail on probe 2, say you have enough and will generate the document now.
+
+Keep your response under 60 words. Do not use bullet points. Just natural conversation.`;
+
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: probePrompt }),
+      });
+      const result = await res.json();
+      const reply = result.result || 'Tell me a bit more — who is this for and do you have any timeline in mind?';
+      addMessage('assistant', reply);
+      setThinking(false);
+    }
+  };
+
+  const generateDocument = async (context) => {
+    const genPrompt = `You are a professional document writer. Based on this conversation, write a complete, professional document.
+
+Conversation:
+${context}
+
+Instructions:
+- Determine the best document type from the conversation (concept note, session plan, agenda, proposal, training plan etc)
+- Write the full document in HTML using h1 for the title, h2 for section headings, p for paragraphs
+- Make it detailed, professional and ready to use
+- No html, head or body tags. No markdown. Pure HTML content only.
+- First line must be: <h1>DOCUMENT TITLE HERE</h1>
+- Include all relevant sections based on what was discussed
+- Where information was not provided, write professional placeholder text in [brackets]`;
+
+    try {
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: genPrompt, mode: 'document' }),
+      });
+      const result = await res.json();
+      const raw = (result.result || '').replace(/```html|```/g, '').trim();
+
+      // Extract title from h1
+      const titleMatch = raw.match(/<h1[^>]*>(.*?)<\/h1>/i);
+      const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, '') : 'Quick Document';
+
+      setDocContent(raw);
+      setDocTitle(title);
+
+      // Auto save
+      const userId = typeof user === 'string' ? user : user?.id;
+      const { data: saved } = await supabase.from('documents').insert({
+        user_id: userId,
+        project_id: null,
+        project_name: 'Quick Docs',
+        type: 'quick',
+        title,
+        content: raw,
+      }).select().single();
+      if (saved) setDocId(saved.id);
+
+      setStage(STAGES.DOCUMENT);
+      setThinking(false);
+    } catch (err) {
+      console.error(err);
+      addMessage('assistant', 'Something went wrong generating the document. Please try again.');
+      setStage(STAGES.CHAT);
+      setThinking(false);
+    }
+  };
+
+  const saveEdits = async (newContent) => {
+    if (docId) {
+      await supabase.from('documents').update({ content: newContent, updated_at: new Date().toISOString() }).eq('id', docId);
+    }
+    setDocContent(newContent);
+    setEditing(false);
+  };
+
+  const updateDocument = async () => {
+    if (!updateInput.trim()) return;
+    setUpdating(true);
+    const updatePrompt = `You previously wrote this document:
+
+${docContent}
+
+The user wants to update it with this additional information:
+"${updateInput}"
+
+Rewrite the complete updated document in HTML (h1 for title, h2 for sections, p for paragraphs). No html/head/body tags. No markdown. Pure HTML only. Incorporate the new information naturally.`;
+
+    const res = await fetch('/api/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: updatePrompt, mode: 'document' }),
+    });
+    const result = await res.json();
+    const updated = (result.result || '').replace(/```html|```/g, '').trim();
+    setDocContent(updated);
+    if (docId) {
+      await supabase.from('documents').update({ content: updated, updated_at: new Date().toISOString() }).eq('id', docId);
+    }
+    setUpdateInput('');
+    setUpdating(false);
+  };
+
+  const downloadDoc = () => {
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${docTitle}</title><style>body{font-family:Georgia,serif;max-width:800px;margin:60px auto;padding:0 40px;color:#1a1a1a;line-height:1.8}h1{font-size:28px;font-weight:800;margin-bottom:8px}h2{font-size:18px;font-weight:700;color:#0284C7;margin-top:40px;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #EFF6FF}p{margin-bottom:14px}ul,ol{padding-left:24px;margin-bottom:14px}li{margin-bottom:6px}.footer{margin-top:60px;padding-top:16px;border-top:1px solid #E5E7EB;font-size:12px;color:#9CA3AF}</style></head><body>${docContent}<div class="footer">Generated by PM Buddy — ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div></body></html>`;
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${docTitle.replace(/\s+/g, '_')}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -49,296 +228,191 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
         {/* HEADER */}
         <div style={s.header}>
           <div>
-            <p style={s.greeting}>{greeting}, {firstName}.</p>
-            <h1 style={s.title}>Your Dashboard</h1>
-          </div>
-          <button style={s.logoutBtn} onClick={onLogout}>Log out</button>
-        </div>
-
-        <div style={s.rule} />
-
-        {/* QUICK ACTIONS */}
-        <div style={s.quickSection}>
-          <p style={s.sectionLabel}>Quick Actions</p>
-          <div style={s.quickGrid}>
-            {[
-              { icon: '◈', label: 'New Project', body: 'Full PM project with risks, milestones and team roles.', action: onNewProject, bg: BL, color: WH },
-              { icon: '◈', label: 'New Campaign', body: 'Short-term partnerships, drives and mini-projects.', action: onNewCampaign, bg: '#EFF6FF', color: BLUE },
-              { icon: '✦', label: 'New Validation', body: 'Check if your idea is worth building before you start.', action: onNewValidation, bg: '#F0FDF4', color: '#15803D' },
-              { icon: '⚡', label: 'Quick Doc', body: 'Create a concept note, session plan or proposal in minutes.', action: onNewQuickDoc, bg: '#FFF7ED', color: '#C2410C' },
-              { icon: '◎', label: 'Book a Consultant', body: 'Get expert PM support directly from your dashboard.', action: null, bg: '#F3F4F6', color: '#9CA3AF', soon: true },
-            ].map((item, i) => (
-              <button
-                key={i}
-                style={{ ...s.quickCard, cursor: item.action ? 'pointer' : 'default', opacity: item.action ? 1 : 0.5 }}
-                onClick={item.action || undefined}
-                disabled={!item.action}
-              >
-                <div style={{ ...s.quickIcon, background: item.bg, color: item.color }}>{item.icon}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={s.quickTitleRow}>
-                    <p style={s.quickTitle}>{item.label}</p>
-                    {item.soon && <span style={s.comingSoon}>Soon</span>}
-                  </div>
-                  <p style={s.quickBody}>{item.body}</p>
-                </div>
-              </button>
-            ))}
+            <button style={s.backBtn} onClick={onBack}>← Dashboard</button>
+            <h1 style={s.title}>Quick Doc</h1>
+            <p style={s.sub}>Describe what you need. We will create it.</p>
           </div>
         </div>
 
-        <div style={s.rule} />
-
-        {/* PM PROJECTS */}
-        <div style={s.section}>
-          <div style={s.sectionHead}>
-            <p style={s.sectionLabel}>My Projects</p>
-            {projects.length > 0 && (
-              <button style={s.newBtn} onClick={onNewProject}>New project</button>
-            )}
-          </div>
-
-          {loading && <p style={s.emptyText}>Loading...</p>}
-
-          {!loading && projects.length === 0 && (
-            <div style={s.emptyState}>
-              <p style={s.emptyTitle}>No projects yet.</p>
-              <p style={s.emptyBody}>Create your first project and PM Buddy will set it up with risks, milestones, team roles and a communication plan.</p>
-              <button style={s.primaryBtn} onClick={onNewProject}>Create your first project</button>
-            </div>
-          )}
-
-          {!loading && projects.length > 0 && (
-            <div style={s.projectsGrid}>
-              {projects.map(p => {
-                const end = p.timeline?.end ? new Date(p.timeline.end) : null;
-                const daysLeft = end ? Math.ceil((end - new Date()) / 86400000) : null;
-                const openRisks = (p.risks || []).filter(r => r.status === 'open').length;
-                const doneMilestones = (p.milestones || []).filter(m => m.status === 'done').length;
-                const totalMilestones = (p.milestones || []).length;
-
-                return (
-                  <div key={p.id} style={s.projectCard}>
-                    <div style={s.projectCardTop}>
-                      <div style={s.projectBadges}>
-                        <span style={s.industryBadge}>{p.industry}</span>
-                        <span style={s.methodBadge}>{p.methodology}</span>
-                      </div>
-                    </div>
-                    <p style={s.projectName}>{p.name}</p>
-                    <p style={s.projectDesc}>{p.description}</p>
-                    <div style={s.projectStats}>
-                      <div style={s.stat}>
-                        <span style={s.statNum}>{doneMilestones}/{totalMilestones}</span>
-                        <span style={s.statLabel}>Milestones</span>
-                      </div>
-                      <div style={s.statDivider} />
-                      <div style={s.stat}>
-                        <span style={{ ...s.statNum, color: openRisks > 0 ? '#DC2626' : '#15803D' }}>{openRisks}</span>
-                        <span style={s.statLabel}>Open Risks</span>
-                      </div>
-                      <div style={s.statDivider} />
-                      <div style={s.stat}>
-                        <span style={{ ...s.statNum, color: daysLeft !== null && daysLeft < 7 ? '#DC2626' : BL }}>
-                          {daysLeft !== null ? `${daysLeft}d` : 'N/A'}
-                        </span>
-                        <span style={s.statLabel}>Days Left</span>
-                      </div>
-                    </div>
-                    <div style={s.cardActions}>
-                      <button style={s.openBtn} onClick={() => onOpenProject(p)}>Open project</button>
-                      <button style={s.deleteBtn} onClick={() => deleteProject(p.id)}>Delete</button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        <div style={s.rule} />
-
-        {/* VALIDATIONS */}
-        <div style={s.section}>
-          <div style={s.sectionHead}>
-            <p style={s.sectionLabel}>My Validations</p>
-            {validations.length > 0 && (
-              <button style={s.newBtn} onClick={onNewValidation}>New validation</button>
-            )}
-          </div>
-
-          {!loading && validations.length === 0 && (
-            <div style={s.emptyState}>
-              <p style={s.emptyTitle}>No validations yet.</p>
-              <p style={s.emptyBody}>Answer honest questions about your idea and get a detailed report in 10 minutes.</p>
-              <button style={s.primaryBtn} onClick={onNewValidation}>Start a validation</button>
-            </div>
-          )}
-
-          {!loading && validations.length > 0 && (
-            <div style={s.validationsGrid}>
-              {validations.map(v => (
-                <div key={v.id} style={s.validationRow}>
-                  <div style={s.validationLeft}>
-                    <div style={s.validationMeta}>
-                      <span style={s.modeBadge}>{v.mode === 'hackathon' ? 'Hackathon' : 'Startup'}</span>
-                      <span style={s.validationDate}>
-                        {new Date(v.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </span>
-                    </div>
-                    <p style={s.validationTitle}>{v.title || 'Untitled Validation'}</p>
-                    <p style={{ ...s.validationVerdict, color: v.analysis.color }}>{v.analysis.verdict}</p>
-                  </div>
-                  <div style={s.validationRight}>
-                    <div style={s.scoreRing}>
-                      <span style={{ ...s.scoreNum, color: v.analysis.color }}>{v.analysis.score}</span>
-                      <span style={s.scoreLabel}>/ 100</span>
-                    </div>
-                    <div style={s.validationActions}>
-                      <button style={s.openBtn} onClick={() => onOpenValidation(v)}>Open</button>
-                      <button style={s.deleteBtn} onClick={() => deleteValidation(v.id)}>Delete</button>
-                    </div>
+        {/* CHAT STAGE */}
+        {(stage === STAGES.CHAT || stage === STAGES.GENERATING) && (
+          <div style={s.chatWrap}>
+            <div style={s.chatMessages}>
+              {messages.map((msg, i) => (
+                <div key={i} style={{ ...s.msgRow, justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                  {msg.role === 'assistant' && <div style={s.avatar}>PM</div>}
+                  <div style={{ ...s.bubble, background: msg.role === 'user' ? BLUE : WH, color: msg.role === 'user' ? WH : BL, border: msg.role === 'user' ? 'none' : '1px solid #E5E7EB' }}>
+                    {msg.text}
                   </div>
                 </div>
               ))}
-            </div>
-          )}
-        </div>
-
-        <div style={s.rule} />
-
-        {/* DOCUMENTS */}
-        <div style={s.section}>
-          <div style={s.sectionHead}>
-            <p style={s.sectionLabel}>My Documents</p>
-          </div>
-
-          {!loading && documents.length === 0 && (
-            <div style={s.emptyState}>
-              <p style={s.emptyTitle}>No documents yet.</p>
-              <p style={s.emptyBody}>Open a project and go to the Documents tab to generate and save PM documents.</p>
-            </div>
-          )}
-
-          {!loading && documents.length > 0 && (() => {
-            const grouped = documents.reduce((acc, doc) => {
-              const key = doc.project_name || 'Unknown Project';
-              if (!acc[key]) acc[key] = [];
-              acc[key].push(doc);
-              return acc;
-            }, {});
-
-            return Object.entries(grouped).map(([projectName, docs]) => (
-              <div key={projectName} style={s.docGroup}>
-                <p style={s.docGroupLabel}>{projectName}</p>
-                {docs.map(doc => (
-                  <div key={doc.id} style={s.docRow}>
-                    <div style={s.docRowLeft}>
-                      <span style={{ ...s.docTypeBadge, background: doc.type === 'pm' ? '#EFF6FF' : '#F5F3FF', color: doc.type === 'pm' ? BLUE : '#7C3AED' }}>
-                        {doc.type === 'pm' ? 'Internal' : 'External'}
-                      </span>
-                      <p style={s.docRowTitle}>{doc.title}</p>
-                      <p style={s.docRowDate}>
-                        {new Date(doc.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </p>
-                    </div>
-                    <div style={s.docRowActions}>
-                      <button style={s.openBtn} onClick={() => {
-                        const project = projects.find(p => p.id === doc.project_id);
-                        if (project) onOpenProject({ ...project, _openDoc: doc });
-                      }}>Open Document</button>
-                      <button style={{ ...s.openBtn, background: WH, color: BLUE, border: `1px solid ${BLUE}` }} onClick={() => {
-                        const html = doc.content;
-                        const blob = new Blob([html], { type: 'text/html' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `${doc.title.replace(/\s+/g, '_')}.html`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
-                      }}>Download</button>
+              {thinking && (
+                <div style={{ ...s.msgRow, justifyContent: 'flex-start' }}>
+                  <div style={s.avatar}>PM</div>
+                  <div style={{ ...s.bubble, background: WH, border: '1px solid #E5E7EB' }}>
+                    <div style={s.typingDots}>
+                      <span /><span /><span />
                     </div>
                   </div>
-                ))}
+                </div>
+              )}
+              <div ref={bottomRef} />
+            </div>
+
+            {stage === STAGES.CHAT && (
+              <div style={s.inputRow}>
+                <div style={s.inputWrap}>
+                  <textarea
+                    style={s.input}
+                    placeholder="Describe what you need to create..."
+                    value={input}
+                    onChange={e => setInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                    rows={3}
+                  />
+                  <div style={s.inputActions}>
+                    <button
+                      style={{ ...s.voiceBtn, background: isListening ? '#FEF2F2' : GREY, color: isListening ? '#DC2626' : '#6B7280' }}
+                      onClick={toggleVoice}
+                    >
+                      {isListening ? '⏹ Stop' : '◉ Voice'}
+                    </button>
+                    <button
+                      style={{ ...s.sendBtn, opacity: !input.trim() || thinking ? 0.5 : 1 }}
+                      onClick={sendMessage}
+                      disabled={!input.trim() || thinking}
+                    >
+                      Send
+                    </button>
+                  </div>
+                </div>
               </div>
-            ));
-          })()}
-        </div>
+            )}
+          </div>
+        )}
+
+        {/* DOCUMENT STAGE */}
+        {stage === STAGES.DOCUMENT && (
+          <div style={s.docWrap}>
+            <div style={s.docActions}>
+              <p style={s.docTitleLabel}>{docTitle}</p>
+              <div style={s.docBtns}>
+                <button style={s.smBtn} onClick={() => setEditing(e => !e)}>{editing ? 'Done editing' : 'Edit'}</button>
+                <button style={s.smBtn} onClick={downloadDoc}>Download</button>
+                <button style={{ ...s.smBtn, background: BL, color: WH, borderColor: BL }} onClick={() => setStage(STAGES.NEXT)}>What next?</button>
+              </div>
+            </div>
+
+            {/* UPDATE INPUT */}
+            <div style={s.updateBar}>
+              <input
+                style={s.updateInput}
+                placeholder="Want to add something? e.g. 'Add a budget section' or 'Include the AI topic details'"
+                value={updateInput}
+                onChange={e => setUpdateInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && updateDocument()}
+              />
+              <button style={{ ...s.sendBtn, opacity: !updateInput.trim() || updating ? 0.5 : 1 }} onClick={updateDocument} disabled={!updateInput.trim() || updating}>
+                {updating ? 'Updating...' : 'Update'}
+              </button>
+            </div>
+
+            <div style={s.docCard}>
+              {editing ? (
+                <div
+                  style={s.docEditor}
+                  contentEditable
+                  suppressContentEditableWarning
+                  onBlur={e => saveEdits(e.currentTarget.innerHTML)}
+                  dangerouslySetInnerHTML={{ __html: docContent }}
+                />
+              ) : (
+                <div style={s.docViewer} dangerouslySetInnerHTML={{ __html: docContent }} />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* WHAT NEXT STAGE */}
+        {stage === STAGES.NEXT && (
+          <div style={s.nextWrap}>
+            <div style={s.nextCard}>
+              <p style={s.nextTitle}>Your document is saved. What do you want to do next?</p>
+              <p style={s.nextSub}>PM Buddy can help you turn this into a full execution plan.</p>
+              <div style={s.nextOptions}>
+                <button style={s.nextOptionBtn} onClick={onStartProject}>
+                  <p style={s.nextOptTitle}>Start a Full Project</p>
+                  <p style={s.nextOptDesc}>Set up risks, milestones, team roles and a full PM plan for long term execution.</p>
+                </button>
+                <button style={s.nextOptionBtn} onClick={onStartCampaign}>
+                  <p style={s.nextOptTitle}>Start a Campaign</p>
+                  <p style={s.nextOptDesc}>This is a short term drive or partnership. Set it up as a focused campaign.</p>
+                </button>
+                <button style={{ ...s.nextOptionBtn, borderColor: '#E5E7EB' }} onClick={onBack}>
+                  <p style={s.nextOptTitle}>Just save the document</p>
+                  <p style={s.nextOptDesc}>I am done for now. The document is in My Documents on my dashboard.</p>
+                </button>
+              </div>
+              <button style={s.backToDocBtn} onClick={() => setStage(STAGES.DOCUMENT)}>← Back to document</button>
+            </div>
+          </div>
+        )}
 
       </div>
+
+      <style>{`
+        @keyframes bounce {
+          0%, 80%, 100% { transform: translateY(0); }
+          40% { transform: translateY(-6px); }
+        }
+        .typing-dot { display: inline-block; width: 6px; height: 6px; background: #9CA3AF; border-radius: 50%; margin: 0 2px; animation: bounce 1.2s infinite; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+      `}</style>
     </div>
   );
 }
 
 const s = {
-  page: { minHeight: '100vh', background: WH, padding: '48px 48px 80px', fontFamily: "'DM Sans', system-ui, sans-serif" },
-  wrap: { maxWidth: 1000, margin: '0 auto' },
+  page: { minHeight: '100vh', background: GREY, padding: '32px 24px 80px', fontFamily: "'DM Sans', system-ui, sans-serif" },
+  wrap: { maxWidth: 800, margin: '0 auto' },
+  header: { marginBottom: 24 },
+  backBtn: { background: 'none', border: 'none', color: '#9CA3AF', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', padding: 0, marginBottom: 8 },
+  title: { fontSize: 26, fontWeight: 600, color: BL, letterSpacing: '-0.6px', marginBottom: 4 },
+  sub: { fontSize: 14, color: '#9CA3AF' },
 
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32, flexWrap: 'wrap', gap: 12 },
-  greeting: { fontSize: 13, color: '#9CA3AF', fontWeight: 400, marginBottom: 6, letterSpacing: '0.01em' },
-  title: { fontSize: 28, fontWeight: 500, color: BL, letterSpacing: '-0.8px' },
-  logoutBtn: { padding: '8px 16px', background: 'none', color: '#6B7280', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
+  chatWrap: { display: 'flex', flexDirection: 'column', gap: 0 },
+  chatMessages: { background: WH, borderRadius: 16, border: '1px solid #E5E7EB', padding: '24px', minHeight: 400, maxHeight: 500, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 12 },
+  msgRow: { display: 'flex', gap: 10, alignItems: 'flex-end' },
+  avatar: { width: 32, height: 32, borderRadius: '50%', background: BLUE, color: WH, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0 },
+  bubble: { maxWidth: '75%', padding: '12px 16px', borderRadius: 16, fontSize: 14, lineHeight: 1.65 },
+  typingDots: { display: 'flex', gap: 4, alignItems: 'center', padding: '4px 0' },
 
-  rule: { borderTop: `1px solid ${RULE}`, margin: '0 0 36px' },
+  inputRow: { background: WH, borderRadius: 12, border: '1px solid #E5E7EB', overflow: 'hidden' },
+  inputWrap: { padding: '12px' },
+  input: { width: '100%', border: 'none', outline: 'none', fontSize: 14, fontFamily: 'inherit', color: BL, resize: 'none', lineHeight: 1.6, boxSizing: 'border-box', background: 'transparent' },
+  inputActions: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, borderTop: '1px solid #F3F4F6', marginTop: 8 },
+  voiceBtn: { padding: '6px 14px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  sendBtn: { padding: '8px 20px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
 
-  quickSection: { marginBottom: 36 },
-  sectionLabel: { fontSize: 11, fontWeight: 500, color: BLUE, textTransform: 'uppercase', letterSpacing: '0.16em', marginBottom: 16 },
-  quickGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 },
-  quickCard: { display: 'flex', alignItems: 'flex-start', gap: 14, background: WH, border: `1px solid ${RULE}`, borderRadius: 10, padding: '18px', fontFamily: 'inherit', textAlign: 'left', transition: 'border-color 0.15s ease', width: '100%' },
-  quickIcon: { width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 },
-  quickTitleRow: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 },
-  quickTitle: { fontSize: 13, fontWeight: 600, color: BL },
-  quickBody: { fontSize: 12, color: '#9CA3AF', lineHeight: 1.6 },
-  comingSoon: { fontSize: 10, fontWeight: 600, color: BLUE, background: '#EFF6FF', padding: '2px 7px', borderRadius: 100 },
+  docWrap: { display: 'flex', flexDirection: 'column', gap: 12 },
+  docActions: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 },
+  docTitleLabel: { fontSize: 16, fontWeight: 600, color: BL },
+  docBtns: { display: 'flex', gap: 8 },
+  smBtn: { padding: '7px 14px', background: WH, color: BL, border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
+  updateBar: { display: 'flex', gap: 10, alignItems: 'center', background: WH, border: '1px solid #E5E7EB', borderRadius: 10, padding: '10px 14px' },
+  updateInput: { flex: 1, border: 'none', outline: 'none', fontSize: 13, fontFamily: 'inherit', color: BL, background: 'transparent' },
+  docCard: { background: WH, border: '1px solid #E5E7EB', borderRadius: 12, overflow: 'hidden' },
+  docViewer: { padding: '40px 48px', fontSize: 15, lineHeight: 1.8, color: '#374151', fontFamily: 'Georgia, serif', maxHeight: 600, overflowY: 'auto' },
+  docEditor: { padding: '40px 48px', fontSize: 15, lineHeight: 1.8, color: '#374151', fontFamily: 'Georgia, serif', minHeight: 400, outline: 'none' },
 
-  section: { marginBottom: 36 },
-  sectionHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-  newBtn: { padding: '6px 14px', background: 'none', color: BLUE, border: `1px solid ${BLUE}`, borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
-  primaryBtn: { padding: '10px 20px', background: BL, color: WH, border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
-
-  emptyState: { padding: '40px 0' },
-  emptyTitle: { fontSize: 16, fontWeight: 500, color: BL, marginBottom: 8 },
-  emptyBody: { fontSize: 14, color: '#9CA3AF', marginBottom: 20, lineHeight: 1.7, maxWidth: 420 },
-  emptyText: { color: '#9CA3AF', fontSize: 14, padding: '24px 0' },
-
-  projectsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 },
-  projectCard: { border: `1px solid ${RULE}`, borderRadius: 10, padding: '20px' },
-  projectCardTop: { marginBottom: 12 },
-  projectBadges: { display: 'flex', gap: 6 },
-  industryBadge: { fontSize: 10, fontWeight: 600, background: '#EFF6FF', color: BLUE, padding: '3px 9px', borderRadius: 100, letterSpacing: '0.04em' },
-  methodBadge: { fontSize: 10, fontWeight: 600, background: GREY, color: '#6B7280', padding: '3px 9px', borderRadius: 100, letterSpacing: '0.04em' },
-  projectName: { fontSize: 15, fontWeight: 600, color: BL, marginBottom: 4, letterSpacing: '-0.2px' },
-  projectDesc: { fontSize: 13, color: '#9CA3AF', lineHeight: 1.6, marginBottom: 16 },
-  projectStats: { display: 'flex', gap: 0, marginBottom: 16, border: `1px solid ${RULE}`, borderRadius: 8, overflow: 'hidden' },
-  stat: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 8px', gap: 3 },
-  statNum: { fontSize: 16, fontWeight: 600, color: BL, letterSpacing: '-0.3px' },
-  statLabel: { fontSize: 10, fontWeight: 500, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em' },
-  statDivider: { width: 1, background: RULE, flexShrink: 0 },
-  cardActions: { display: 'flex', gap: 8 },
-  openBtn: { padding: '7px 16px', background: BL, color: WH, border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
-  deleteBtn: { padding: '7px 14px', background: 'none', color: '#9CA3AF', border: `1px solid ${RULE}`, borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
-
-  validationsGrid: { display: 'flex', flexDirection: 'column', gap: 0 },
-  validationRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 0', borderBottom: `1px solid ${RULE}`, gap: 20, flexWrap: 'wrap' },
-  validationLeft: { flex: 1, minWidth: 200 },
-  validationMeta: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 },
-  modeBadge: { fontSize: 10, fontWeight: 600, background: '#EFF6FF', color: BLUE, padding: '3px 9px', borderRadius: 100 },
-  validationDate: { fontSize: 12, color: '#9CA3AF' },
-  validationTitle: { fontSize: 15, fontWeight: 500, color: BL, marginBottom: 4, letterSpacing: '-0.2px' },
-  validationVerdict: { fontSize: 12, fontWeight: 600 },
-  validationRight: { display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 },
-  scoreRing: { display: 'flex', alignItems: 'baseline', gap: 3 },
-  scoreNum: { fontSize: 28, fontWeight: 600, letterSpacing: '-1px', lineHeight: 1 },
-  scoreLabel: { fontSize: 12, color: '#9CA3AF' },
-  validationActions: { display: 'flex', gap: 8 },
-  docGroup: { marginBottom: 24 },
-  docGroupLabel: { fontSize: 13, fontWeight: 600, color: BL, marginBottom: 10, paddingBottom: 8, borderBottom: `1px solid ${RULE}` },
-  docRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: `1px solid ${RULE}`, gap: 16, flexWrap: 'wrap' },
-  docRowLeft: { flex: 1 },
-  docTypeBadge: { fontSize: 10, fontWeight: 600, padding: '3px 9px', borderRadius: 100, display: 'inline-block', marginBottom: 4 },
-  docRowTitle: { fontSize: 14, fontWeight: 500, color: BL, marginBottom: 2 },
-  docRowDate: { fontSize: 12, color: '#9CA3AF' },
-  docRowActions: { display: 'flex', gap: 8 },
+  nextWrap: { display: 'flex', justifyContent: 'center', paddingTop: 40 },
+  nextCard: { background: WH, border: '1px solid #E5E7EB', borderRadius: 16, padding: '32px', maxWidth: 560, width: '100%' },
+  nextTitle: { fontSize: 18, fontWeight: 600, color: BL, marginBottom: 8 },
+  nextSub: { fontSize: 14, color: '#6B7280', marginBottom: 24 },
+  nextOptions: { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 },
+  nextOptionBtn: { padding: '16px 18px', background: WH, border: `1.5px solid ${BLUE}`, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' },
+  nextOptTitle: { fontSize: 14, fontWeight: 600, color: BL, marginBottom: 4 },
+  nextOptDesc: { fontSize: 13, color: '#6B7280', lineHeight: 1.6 },
+  backToDocBtn: { background: 'none', border: 'none', color: '#9CA3AF', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', padding: 0 },
 };
