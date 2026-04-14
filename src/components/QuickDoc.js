@@ -47,7 +47,7 @@ export default function QuickDoc({ user, onBack, onStartProject, onStartCampaign
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      text: `Hey ${user?.user_metadata?.first_name || 'there'} 👋 What do you need to create today? It could be a concept note, a session plan, a proposal, a workshop agenda — anything. Just describe it in your own words and we will figure out the rest together.`,
+      text: `Hey ${user?.user_metadata?.first_name || 'there'}, what do you need to create today? It could be a concept note, a session plan, a proposal, a workshop agenda or anything else. Just describe it in your own words and we will figure out the rest together.`,
     }
   ]);
   const [input, setInput] = useState('');
