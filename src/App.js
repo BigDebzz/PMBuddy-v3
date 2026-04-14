@@ -9,6 +9,7 @@ import ProjectWorkspace from './components/ProjectWorkspace';
 import CampaignWizard from './components/CampaignWizard';
 import { supabase } from './lib/supabase';
 import QuickDoc from './components/QuickDoc';
+import { Analytics } from './lib/analytics';
 import { analyze } from './data/analysis';
 
 const S = {
