@@ -30,8 +30,9 @@ export default function App() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Clean up any stale localStorage screen state
+    // Clear all stale navigation state
     localStorage.removeItem('pmb_screen');
+    localStorage.removeItem('pmb_project');
 
     const params = new URLSearchParams(window.location.search);
     const inviteToken = params.get('invite');
