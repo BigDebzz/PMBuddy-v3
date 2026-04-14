@@ -7,7 +7,6 @@ import Dashboard from './components/Dashboard';
 import ProjectWizard from './components/ProjectWizard';
 import ProjectWorkspace from './components/ProjectWorkspace';
 import CampaignWizard from './components/CampaignWizard';
-import QuickDoc from './components/QuickDoc';
 import { supabase } from './lib/supabase';
 import { Analytics } from './lib/analytics';
 import { analyze } from './data/analysis';
@@ -16,7 +15,7 @@ const S = {
   LAND: 'land', QA: 'qa', RESULTS: 'results',
   AUTH: 'auth', DASHBOARD: 'dashboard',
   PROJECT_NEW: 'project_new', PROJECT_OPEN: 'project_open',
-  CAMPAIGN_NEW: 'campaign_new', QUICK_DOC: 'quick_doc',
+  CAMPAIGN_NEW: 'campaign_new',
 };
 
 export default function App() {
@@ -29,10 +28,7 @@ export default function App() {
   const [activeProject, setActiveProject] = useState(null);
 
   useEffect(() => {
-    // Clear any stale localStorage from previous versions
-    localStorage.removeItem('pmb_screen');
-    localStorage.removeItem('pmb_project');
-
+    localStorage.clear();
     if (window.location.hash) {
       window.history.replaceState(null, '', window.location.pathname);
     }
@@ -43,86 +39,50 @@ export default function App() {
       }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user && window.location.hash) {
-        window.history.replaceState(null, '', window.location.pathname);
+      if (_event === 'SIGNED_IN' && session?.user) {
+        setUser(session.user);
+        if (window.location.hash) window.history.replaceState(null, '', window.location.pathname);
         setScreen(S.DASHBOARD);
+      }
+      if (_event === 'SIGNED_OUT') {
+        setUser(null);
+        setScreen(S.LAND);
       }
     });
     return () => subscription.unsubscribe();
   }, []);
 
-  const selectMode = (m) => {
-    setMode(m); setAnswers({}); setAnalysis(null); setProjectId(null); setScreen(S.QA);
-  };
-
-  const complete = (a) => {
-    const r = analyze(mode, a);
-    setAnswers(a); setAnalysis(r);
-    Analytics.reportGenerated(mode, r.score);
-    setScreen(S.RESULTS);
-  };
-
-  const reset = () => {
-    setMode(null); setAnswers({}); setAnalysis(null); setProjectId(null); setActiveProject(null);
-    setScreen(S.LAND);
-  };
-
+  const selectMode = (m) => { setMode(m); setAnswers({}); setAnalysis(null); setProjectId(null); setScreen(S.QA); };
+  const complete = (a) => { const r = analyze(mode, a); setAnswers(a); setAnalysis(r); Analytics.reportGenerated(mode, r.score); setScreen(S.RESULTS); };
+  const reset = () => { setMode(null); setAnswers({}); setAnalysis(null); setProjectId(null); setActiveProject(null); setScreen(S.LAND); };
   const saveValidation = async (title) => {
     if (!user) { setScreen(S.AUTH); return; }
-    if (projectId) {
-      await supabase.from('projects').update({ title, answers, analysis, updated_at: new Date().toISOString() }).eq('id', projectId);
-    } else {
-      const { data } = await supabase.from('projects').insert({ user_id: user.id, mode, title, answers, analysis }).select().single();
-      if (data) setProjectId(data.id);
-    }
+    if (projectId) { await supabase.from('projects').update({ title, answers, analysis, updated_at: new Date().toISOString() }).eq('id', projectId); }
+    else { const { data } = await supabase.from('projects').insert({ user_id: user.id, mode, title, answers, analysis }).select().single(); if (data) setProjectId(data.id); }
   };
-
-  const openValidation = (p) => {
-    setMode(p.mode); setAnswers(p.answers); setAnalysis(p.analysis); setProjectId(p.id);
-    setScreen(S.RESULTS);
-  };
-
-  const openProject = (p) => {
-    setActiveProject({ ...p, _currentUser: user });
-    setScreen(S.PROJECT_OPEN);
-  };
-
-  const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    reset();
-  };
+  const openValidation = (p) => { setMode(p.mode); setAnswers(p.answers); setAnalysis(p.analysis); setProjectId(p.id); setScreen(S.RESULTS); };
+  const openProject = (p) => { setActiveProject({ ...p, _currentUser: user }); setScreen(S.PROJECT_OPEN); };
+  const logout = async () => { await supabase.auth.signOut(); setUser(null); reset(); };
 
   return (
     <div>
       <nav style={nav.bar}>
-        <button style={nav.logo} onClick={reset}>
-          <span style={nav.logoText}>PM Buddy</span>
-        </button>
+        <button style={nav.logo} onClick={reset}><span style={nav.logoText}>PM Buddy</span></button>
         <div style={nav.right}>
-          {user ? (
-            <button style={nav.dashBtn} onClick={() => setScreen(S.DASHBOARD)}>Dashboard</button>
-          ) : (
-            <>
-              <button style={nav.loginBtn} onClick={() => setScreen(S.AUTH)}>Log In</button>
-              <button style={nav.signupBtn} onClick={() => setScreen(S.AUTH)}>Get Started</button>
-            </>
-          )}
-          {screen !== S.LAND && user && (
-            <button style={nav.loginBtn} onClick={reset}>Home</button>
-          )}
+          {user ? <button style={nav.dashBtn} onClick={() => setScreen(S.DASHBOARD)}>Dashboard</button> : <>
+            <button style={nav.loginBtn} onClick={() => setScreen(S.AUTH)}>Log In</button>
+            <button style={nav.signupBtn} onClick={() => setScreen(S.AUTH)}>Get Started</button>
+          </>}
+          {screen !== S.LAND && user && <button style={nav.loginBtn} onClick={reset}>Home</button>}
         </div>
       </nav>
-
       {screen === S.LAND && <LandingScreen onSelectMode={selectMode} onLogin={() => setScreen(S.AUTH)} onSignup={() => setScreen(S.AUTH)} onDashboard={() => setScreen(S.DASHBOARD)} user={user} />}
       {screen === S.QA && mode && <QuestionWizard mode={mode} onComplete={complete} onBack={() => setScreen(S.LAND)} />}
       {screen === S.RESULTS && analysis && <ResultsDashboard mode={mode} answers={answers} analysis={analysis} onReset={reset} onEdit={() => setScreen(S.QA)} onSave={saveValidation} user={user} projectId={projectId} />}
       {screen === S.AUTH && <AuthScreen onAuth={(u) => { setUser(u); setScreen(S.DASHBOARD); }} onBack={() => setScreen(S.LAND)} />}
-      {screen === S.DASHBOARD && user && <Dashboard user={user} onOpenValidation={openValidation} onOpenProject={openProject} onNewValidation={reset} onNewProject={() => setScreen(S.PROJECT_NEW)} onNewCampaign={() => setScreen(S.CAMPAIGN_NEW)} onNewQuickDoc={() => setScreen(S.QUICK_DOC)} onLogout={logout} />}
+      {screen === S.DASHBOARD && user && <Dashboard user={user} onOpenValidation={openValidation} onOpenProject={openProject} onNewValidation={reset} onNewProject={() => setScreen(S.PROJECT_NEW)} onNewCampaign={() => setScreen(S.CAMPAIGN_NEW)} onNewQuickDoc={() => setScreen(S.DASHBOARD)} onLogout={logout} />}
       {screen === S.CAMPAIGN_NEW && user && <CampaignWizard user={user} onComplete={(p) => { setActiveProject({ ...p, _currentUser: user }); setScreen(S.PROJECT_OPEN); }} onBack={() => setScreen(S.DASHBOARD)} />}
       {screen === S.PROJECT_NEW && user && <ProjectWizard user={user} onComplete={(p) => { setActiveProject({ ...p, _currentUser: user }); setScreen(S.PROJECT_OPEN); }} onBack={() => setScreen(S.DASHBOARD)} />}
-      {screen === S.QUICK_DOC && user && <QuickDoc user={user} onBack={() => setScreen(S.DASHBOARD)} onStartProject={() => setScreen(S.PROJECT_NEW)} onStartCampaign={() => setScreen(S.CAMPAIGN_NEW)} />}
       {screen === S.PROJECT_OPEN && activeProject && activeProject.id && <ProjectWorkspace project={activeProject} onBack={() => setScreen(S.DASHBOARD)} onUpdate={(p) => setActiveProject({ ...p, _currentUser: user })} />}
     </div>
   );
