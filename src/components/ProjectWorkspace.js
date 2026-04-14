@@ -191,8 +191,8 @@ function OverviewTab({ data, methodology, info }) {
               <p style={{ ...s.milestoneName, textDecoration: m.status === 'done' ? 'line-through' : 'none', color: m.status === 'done' ? '#9CA3AF' : BL }}>{m.title}</p>
               <p style={s.milestoneDate}>{m.date ? formatDate(m.date) : 'No date set'}</p>
             </div>
-            <span style={{ ...s.pill, background: m.status === 'done' ? '#F0FDF4' : '#EFF6FF', color: m.status === 'done' ? '#15803D' : BLUE }}>
-              {m.status === 'done' ? 'Done' : 'Pending'}
+            <span style={{ ...s.pill, background: m.status === 'done' ? '#F0FDF4' : m.status === 'in_progress' ? '#EFF6FF' : '#F9FAFB', color: m.status === 'done' ? '#15803D' : m.status === 'in_progress' ? BLUE : '#6B7280' }}>
+              {m.status === 'done' ? 'Done' : m.status === 'in_progress' ? 'In Progress' : 'Pending'}
             </span>
           </div>
         ))}
@@ -697,15 +697,51 @@ function RisksComplianceTab({ data, onSave }) {
 
 function ProgressTab({ data, onSave, methodology }) {
   const milestones = data.milestones || [];
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(milestones);
 
-  const toggleMilestone = (i) => {
-    const updated = milestones.map((m, idx) => idx === i ? { ...m, status: m.status === 'done' ? 'pending' : 'done' } : m);
+  const statusColors = {
+    done: { bg: '#F0FDF4', color: '#15803D', label: 'Done' },
+    in_progress: { bg: '#EFF6FF', color: BLUE, label: 'In Progress' },
+    pending: { bg: '#F9FAFB', color: '#6B7280', label: 'Pending' },
+  };
+
+  const updateDraft = (i, field, val) => {
+    const updated = [...draft];
+    updated[i] = { ...updated[i], [field]: val };
+    setDraft(updated);
+  };
+
+  const addMilestone = () => {
+    setDraft(prev => [...prev, { title: '', date: '', status: 'pending' }]);
+  };
+
+  const removeMilestone = (i) => {
+    setDraft(prev => prev.filter((_, idx) => idx !== i));
+  };
+
+  const saveEdits = () => {
+    const cleaned = draft.filter(m => m.title.trim());
+    onSave({ milestones: cleaned });
+    setEditing(false);
+  };
+
+  const cancelEdit = () => {
+    setDraft(milestones);
+    setEditing(false);
+  };
+
+  const cycleStatus = (i) => {
+    const order = ['pending', 'in_progress', 'done'];
+    const current = milestones[i].status || 'pending';
+    const next = order[(order.indexOf(current) + 1) % order.length];
+    const updated = milestones.map((m, idx) => idx === i ? { ...m, status: next } : m);
     onSave({ milestones: updated });
   };
 
   return (
     <div>
-      <SectionHead title="Progress" sub="Track where things stand. Mark milestones as done when complete and keep notes on what was delivered." />
+      <SectionHead title="Progress" sub="Track where things stand. Click a milestone status to cycle through Pending, In Progress and Done. Use Edit to rename milestones or add new ones." />
 
       <div style={s.timelineRange}>
         <div style={{ flex: 1, textAlign: 'center' }}>
@@ -719,21 +755,71 @@ function ProgressTab({ data, onSave, methodology }) {
         </div>
       </div>
 
-      <p style={s.sectionLabel}>Milestones</p>
-      {milestones.map((m, i) => (
-        <div key={i} style={s.milestoneCard}>
-          <button style={{ ...s.checkBtn, background: m.status === 'done' ? BLUE : WH, borderColor: m.status === 'done' ? BLUE : '#D1D5DB' }} onClick={() => toggleMilestone(i)}>
-            {m.status === 'done' && <span style={{ color: WH, fontSize: 10, fontWeight: 900 }}>✓</span>}
-          </button>
-          <div style={{ flex: 1 }}>
-            <p style={{ ...s.milestoneName, textDecoration: m.status === 'done' ? 'line-through' : 'none', color: m.status === 'done' ? '#9CA3AF' : BL }}>{m.title}</p>
-            <p style={s.milestoneDate}>{m.date ? formatDate(m.date) : 'No date'}</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <p style={s.sectionLabel}>Milestones</p>
+        {!editing ? (
+          <button style={{ ...s.sprintBtn, fontSize: 12 }} onClick={() => { setDraft([...milestones]); setEditing(true); }}>Edit Milestones</button>
+        ) : (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button style={{ ...s.sprintBtn, background: BLUE, color: WH, borderColor: BLUE, fontSize: 12 }} onClick={saveEdits}>Save</button>
+            <button style={{ ...s.sprintBtn, fontSize: 12 }} onClick={cancelEdit}>Cancel</button>
           </div>
-          <span style={{ ...s.pill, background: m.status === 'done' ? '#F0FDF4' : '#EFF6FF', color: m.status === 'done' ? '#15803D' : BLUE }}>
-            {m.status === 'done' ? 'Done' : 'Pending'}
-          </span>
-        </div>
-      ))}
+        )}
+      </div>
+
+      {!editing ? (
+        <>
+          {milestones.length === 0 && <p style={s.emptyText}>No milestones yet. Click Edit Milestones to add some.</p>}
+          {milestones.map((m, i) => {
+            const sc = statusColors[m.status] || statusColors.pending;
+            return (
+              <div key={i} style={s.milestoneCard}>
+                <div style={{ flex: 1 }}>
+                  <p style={{ ...s.milestoneName, textDecoration: m.status === 'done' ? 'line-through' : 'none', color: m.status === 'done' ? '#9CA3AF' : BL }}>{m.title}</p>
+                  <p style={s.milestoneDate}>{m.date ? formatDate(m.date) : 'No date set'}</p>
+                </div>
+                <button
+                  style={{ ...s.pill, background: sc.bg, color: sc.color, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700 }}
+                  onClick={() => cycleStatus(i)}
+                  title="Click to change status"
+                >
+                  {sc.label}
+                </button>
+              </div>
+            );
+          })}
+        </>
+      ) : (
+        <>
+          {draft.map((m, i) => (
+            <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
+              <input
+                style={{ ...s.input, flex: 2, marginBottom: 0, fontSize: 13 }}
+                placeholder="Milestone title"
+                value={m.title}
+                onChange={e => updateDraft(i, 'title', e.target.value)}
+              />
+              <input
+                style={{ ...s.input, flex: 1, marginBottom: 0, fontSize: 13, minWidth: 120 }}
+                type="date"
+                value={m.date || ''}
+                onChange={e => updateDraft(i, 'date', e.target.value)}
+              />
+              <select
+                style={{ ...s.select, fontSize: 12 }}
+                value={m.status || 'pending'}
+                onChange={e => updateDraft(i, 'status', e.target.value)}
+              >
+                <option value="done">Done</option>
+                <option value="in_progress">In Progress</option>
+                <option value="pending">Pending</option>
+              </select>
+              <button style={s.removeSmallBtn} onClick={() => removeMilestone(i)}>✕</button>
+            </div>
+          ))}
+          <button style={s.addBtn} onClick={addMilestone}>+ Add Milestone</button>
+        </>
+      )}
     </div>
   );
 }
