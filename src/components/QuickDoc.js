@@ -11,19 +11,30 @@ const STAGES = { CHAT: 'chat', GENERATING: 'generating', DOCUMENT: 'document', N
 function useVoice(onResult) {
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef(null);
+  const hasResultRef = useRef(false);
+
   const toggle = () => {
     if (listening) { recognitionRef.current?.stop(); setListening(false); return; }
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { alert('Voice input is not supported on this browser. Try Chrome on desktop or Android.'); return; }
     const recognition = new SR();
     recognitionRef.current = recognition;
+    hasResultRef.current = false;
     recognition.continuous = false;
     recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
     recognition.lang = 'en-US';
     recognition.onstart = () => setListening(true);
-    recognition.onresult = (e) => { onResult(Array.from(e.results).map(r => r[0].transcript).join(' ')); setListening(false); };
-    recognition.onerror = () => setListening(false);
-    recognition.onend = () => setListening(false);
+    recognition.onresult = (e) => {
+      if (hasResultRef.current) return;
+      hasResultRef.current = true;
+      recognition.stop();
+      const transcript = e.results[0][0].transcript;
+      onResult(transcript);
+      setListening(false);
+    };
+    recognition.onerror = () => { setListening(false); };
+    recognition.onend = () => { setListening(false); };
     try { recognition.start(); } catch { setListening(false); }
   };
   return { listening, toggle };
