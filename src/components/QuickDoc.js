@@ -114,7 +114,7 @@ Keep your response under 60 words. Do not use bullet points. Just natural conver
         body: JSON.stringify({ prompt: probePrompt }),
       });
       const result = await res.json();
-      const reply = result.result || 'Tell me a bit more — who is this for and do you have any timeline in mind?';
+      const reply = result.result || 'Tell me a bit more. Who is this for and do you have any timeline in mind?';
       addMessage('assistant', reply);
       setThinking(false);
     }
