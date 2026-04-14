@@ -11,6 +11,7 @@ const STAGES = { CHAT: 'chat', GENERATING: 'generating', DOCUMENT: 'document', N
 function useVoice(onResult) {
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef(null);
+  const lastResultIndexRef = useRef(0);
 
   const toggle = () => {
     if (listening) { recognitionRef.current?.stop(); setListening(false); return; }
@@ -18,17 +19,20 @@ function useVoice(onResult) {
     if (!SR) { alert('Voice input is not supported on this browser. Try Chrome on desktop or Android.'); return; }
     const recognition = new SR();
     recognitionRef.current = recognition;
+    lastResultIndexRef.current = 0;
     recognition.continuous = true;
     recognition.interimResults = false;
     recognition.lang = 'en-US';
     recognition.onstart = () => setListening(true);
     recognition.onresult = (e) => {
-      const transcript = Array.from(e.results)
-        .filter(r => r.isFinal)
-        .map(r => r[0].transcript)
-        .join(' ')
-        .trim();
-      if (transcript) onResult(transcript);
+      let transcript = '';
+      for (let i = lastResultIndexRef.current; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          transcript += e.results[i][0].transcript + ' ';
+          lastResultIndexRef.current = i + 1;
+        }
+      }
+      if (transcript.trim()) onResult(transcript.trim());
     };
     recognition.onerror = () => setListening(false);
     recognition.onend = () => setListening(false);
