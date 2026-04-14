@@ -115,22 +115,43 @@ This is follow-up question ${newProbeCount} of 2. Based on what they described, 
 
   const generateDocument = async (context) => {
     setGenError(null);
-    const genPrompt = `You are a professional document writer with expertise in project management, business writing and organisational communication.
+    const genPrompt = `You are a senior professional document writer. Write a COMPLETE, DETAILED, PROFESSIONAL document based on this conversation.
 
-Based on this conversation, write a complete, detailed, professional document:
-
+CONVERSATION:
 ${context}
 
-Requirements:
-- Determine the exact document type from the conversation (concept note, session plan, training agenda, proposal, workshop plan, project brief etc)
-- Write a FULL document with ALL sections properly filled in. Minimum 600 words.
-- Be specific and detailed. Use the actual information provided. Do not be vague.
-- Where exact details were not provided, write realistic professional placeholder content in [brackets] that shows what should go there
-- Structure: use <h1> for document title, <h2> for section headings, <p> for paragraphs, <ul><li> for lists where appropriate
-- No html, head, body or style tags. Pure content HTML only.
-- Sections must include at minimum: Introduction/Background, Objectives, Scope/Content, Timeline/Schedule, Roles and Responsibilities, Expected Outcomes, Next Steps
-- For session/training plans also include: Session Agenda with times, Learning Objectives, Materials Needed, Facilitation Notes
-- Write as a seasoned professional would. Full sentences. No bullet point summaries masquerading as content.`;
+CRITICAL REQUIREMENTS:
+- This must be a FULL document. Minimum 800 words of actual content. Not a summary or outline.
+- Every section must have multiple paragraphs of real, substantive content.
+- Write as a professional would for a real organisation. Make it credible and compelling.
+- Use the actual details from the conversation. Fill gaps with realistic professional content in [brackets].
+- No vague filler. Every paragraph must add real value.
+- Structure: use <h1> for document title, <h2> for section headings, <p> for paragraphs, <ul><li> for lists. No html/head/body/style tags.
+
+For a CONCEPT NOTE include ALL of these sections fully written:
+1. Executive Summary (2 full paragraphs)
+2. Background and Context (2-3 paragraphs explaining why this is needed)
+3. Objectives (written in full sentences with detail)
+4. Scope and Description (detailed explanation of what will happen and how)
+5. Implementation Plan (phases, timeline, activities in detail)
+6. Roles and Responsibilities (who does what)
+7. Expected Outcomes and Impact (measurable results)
+8. Resource Requirements (people, tools, budget)
+9. Risk and Mitigation (challenges and solutions)
+10. Next Steps and Call to Action (clear actions with owners)
+
+For a SESSION or TRAINING PLAN include ALL of these:
+1. Overview and Purpose (2 paragraphs)
+2. Learning Objectives (specific and measurable)
+3. Target Audience and Prerequisites
+4. Detailed Session Agenda (with exact times, activities, facilitator notes per segment)
+5. Content Outline per topic
+6. Facilitation Approach and Methodology
+7. Materials and Resources Needed
+8. Assessment and Follow-up Plan
+9. Success Metrics
+
+Write EVERYTHING in full. Do not abbreviate any section. Every section must be substantive and complete.`;
 
     try {
       const controller = new AbortController();
