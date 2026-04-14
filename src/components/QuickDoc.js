@@ -83,20 +83,29 @@ export default function QuickDoc({ user, onBack, onStartProject, onStartCampaign
     setThinking(true);
 
     const context = buildContext() + `\nUser: ${userText}`;
+    const wordCount = userText.split(/\s+/).length;
     const newProbeCount = probeCount + 1;
     setProbeCount(newProbeCount);
 
-    if (newProbeCount >= 3) {
+    // If input is detailed enough (80+ words) or we have asked enough questions, generate
+    if (newProbeCount >= 3 || wordCount >= 80) {
       setStage(STAGES.GENERATING);
       addMessage('assistant', 'I have enough to work with. Writing your document now. This may take up to a minute.');
-      await generateDocument(context);
+      try {
+        await generateDocument(context);
+      } catch (err) {
+        console.error(err);
+        setGenError('Something went wrong. Please try again.');
+        setStage(STAGES.CHAT);
+        setThinking(false);
+      }
     } else {
-      const probePrompt = `You are PM Buddy helping someone create a professional document. 
+      const probePrompt = `You are PM Buddy helping someone create a professional document.
 
 Conversation so far:
 ${context}
 
-This is follow-up question ${newProbeCount} of 2. Based on what they described, ask 1 to 2 specific questions to get details you need to write a thorough document. Be specific to their situation. Ask about timeline, audience, objectives, or key content areas that are missing. Do not ask generic questions. Keep response under 60 words. No bullet points.`;
+This is follow-up question ${newProbeCount} of 2. Based on what they described, ask 1 to 2 specific questions to get details needed to write a thorough document. Be specific to their situation. Ask about timeline, audience, objectives, or key content areas missing. Do not ask generic questions. Keep response under 60 words. No bullet points.`;
 
       try {
         const res = await fetch('/api/gemini', {
@@ -104,10 +113,11 @@ This is follow-up question ${newProbeCount} of 2. Based on what they described, 
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt: probePrompt }),
         });
+        if (!res.ok) throw new Error('API error');
         const result = await res.json();
         addMessage('assistant', result.result || 'Tell me more about who this is for and what outcome you are hoping for.');
       } catch {
-        addMessage('assistant', 'Tell me more about the audience and timeline for this.');
+        addMessage('assistant', 'Tell me more about the audience, timeline and main objectives for this.');
       }
       setThinking(false);
     }
