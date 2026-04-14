@@ -32,6 +32,7 @@ export default function App() {
     }
     return saved;
   });
+  const [authReady, setAuthReady] = useState(false);
   const [mode, setMode] = useState(null);
   const [answers, setAnswers] = useState({});
   const [analysis, setAnalysis] = useState(null);
@@ -117,7 +118,6 @@ export default function App() {
         } else {
           goTo(S.DASHBOARD);
         }
-        // Attach current user to active project
         const savedProject = localStorage.getItem('pmb_project');
         if (savedProject) {
           try {
@@ -129,6 +129,7 @@ export default function App() {
         goTo(S.LAND);
         localStorage.removeItem('pmb_project');
       }
+      setAuthReady(true);
     });
 
     return () => subscription.unsubscribe();
@@ -198,36 +199,37 @@ export default function App() {
         </div>
       </nav>
 
-      {screen === S.LAND && (
-        <LandingScreen onSelectMode={selectMode} onLogin={() => goTo(S.AUTH)} onSignup={() => goTo(S.AUTH)} onDashboard={() => goTo(S.DASHBOARD)} user={user} />
-      )}
-      {screen === S.QA && mode && (
-        <QuestionWizard mode={mode} onComplete={complete} onBack={() => goTo(S.LAND)} />
-      )}
-      {screen === S.RESULTS && analysis && (
-        <ResultsDashboard mode={mode} answers={answers} analysis={analysis} onReset={reset} onEdit={() => goTo(S.QA)} onSave={saveValidation} user={user} projectId={projectId} />
-      )}
-      {screen === S.AUTH && (
-        <AuthScreen onAuth={(u) => { setUser(u); goTo(S.DASHBOARD); }} onBack={() => goTo(S.LAND)} />
-      )}
-      {screen === S.DASHBOARD && user && (
-        <Dashboard user={user} onOpenValidation={openValidation} onOpenProject={openProject} onNewValidation={reset} onNewProject={() => goTo(S.PROJECT_NEW)} onNewCampaign={() => goTo(S.CAMPAIGN_NEW)} onNewQuickDoc={() => goTo(S.QUICK_DOC)} onLogout={logout} />
-      )}
-      {screen === S.DASHBOARD && !user && (
+      {!authReady && (
         <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <p style={{ color: '#9CA3AF', fontSize: 14 }}>Loading your dashboard...</p>
+          <p style={{ color: '#9CA3AF', fontSize: 14 }}>Loading...</p>
         </div>
       )}
-      {screen === S.CAMPAIGN_NEW && user && (
+
+      {authReady && screen === S.LAND && (
+        <LandingScreen onSelectMode={selectMode} onLogin={() => goTo(S.AUTH)} onSignup={() => goTo(S.AUTH)} onDashboard={() => goTo(S.DASHBOARD)} user={user} />
+      )}
+      {authReady && screen === S.QA && mode && (
+        <QuestionWizard mode={mode} onComplete={complete} onBack={() => goTo(S.LAND)} />
+      )}
+      {authReady && screen === S.RESULTS && analysis && (
+        <ResultsDashboard mode={mode} answers={answers} analysis={analysis} onReset={reset} onEdit={() => goTo(S.QA)} onSave={saveValidation} user={user} projectId={projectId} />
+      )}
+      {authReady && screen === S.AUTH && (
+        <AuthScreen onAuth={(u) => { setUser(u); goTo(S.DASHBOARD); }} onBack={() => goTo(S.LAND)} />
+      )}
+      {authReady && screen === S.DASHBOARD && user && (
+        <Dashboard user={user} onOpenValidation={openValidation} onOpenProject={openProject} onNewValidation={reset} onNewProject={() => goTo(S.PROJECT_NEW)} onNewCampaign={() => goTo(S.CAMPAIGN_NEW)} onNewQuickDoc={() => goTo(S.QUICK_DOC)} onLogout={logout} />
+      )}
+      {authReady && screen === S.CAMPAIGN_NEW && user && (
         <CampaignWizard user={user} onComplete={(p) => { saveProject({ ...p, _currentUser: user }); goTo(S.PROJECT_OPEN); }} onBack={() => goTo(S.DASHBOARD)} />
       )}
-      {screen === S.PROJECT_NEW && user && (
+      {authReady && screen === S.PROJECT_NEW && user && (
         <ProjectWizard user={user} onComplete={(p) => { saveProject({ ...p, _currentUser: user }); goTo(S.PROJECT_OPEN); }} onBack={() => goTo(S.DASHBOARD)} />
       )}
-      {screen === S.QUICK_DOC && user && (
+      {authReady && screen === S.QUICK_DOC && user && (
         <QuickDoc user={user} onBack={() => goTo(S.DASHBOARD)} onStartProject={() => goTo(S.PROJECT_NEW)} onStartCampaign={() => goTo(S.CAMPAIGN_NEW)} />
       )}
-      {screen === S.PROJECT_OPEN && activeProject && activeProject.id && (
+      {authReady && screen === S.PROJECT_OPEN && activeProject && activeProject.id && (
         <ProjectWorkspace project={activeProject} onBack={() => goTo(S.DASHBOARD)} onUpdate={(p) => saveProject({ ...p, _currentUser: user })} />
       )}
     </div>
