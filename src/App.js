@@ -22,7 +22,7 @@ const S = {
 export default function App() {
   const [screen, setScreen] = useState(() => {
     const saved = localStorage.getItem('pmb_screen');
-    const safeScreens = [S.DASHBOARD, S.PROJECT_OPEN, S.CAMPAIGN_NEW, S.PROJECT_NEW, S.QUICK_DOC];
+    const safeScreens = [S.DASHBOARD, S.PROJECT_OPEN, S.CAMPAIGN_NEW, S.PROJECT_NEW];
     if (!saved || !safeScreens.includes(saved)) return S.LAND;
     if (saved === S.PROJECT_OPEN) {
       try {
@@ -207,8 +207,10 @@ export default function App() {
       {screen === S.AUTH && (
         <AuthScreen onAuth={(u) => { setUser(u); goTo(S.DASHBOARD); }} onBack={() => goTo(S.LAND)} />
       )}
-      {screen === S.DASHBOARD && user && (
-        <Dashboard user={user} onOpenValidation={openValidation} onOpenProject={openProject} onNewValidation={reset} onNewProject={() => goTo(S.PROJECT_NEW)} onNewCampaign={() => goTo(S.CAMPAIGN_NEW)} onNewQuickDoc={() => goTo(S.QUICK_DOC)} onLogout={logout} />
+      {screen === S.DASHBOARD && (
+        user
+          ? <Dashboard user={user} onOpenValidation={openValidation} onOpenProject={openProject} onNewValidation={reset} onNewProject={() => goTo(S.PROJECT_NEW)} onNewCampaign={() => goTo(S.CAMPAIGN_NEW)} onNewQuickDoc={() => goTo(S.QUICK_DOC)} onLogout={logout} />
+          : <div style={{ padding: '80px 48px', color: '#9CA3AF', fontSize: 14 }}>Loading...</div>
       )}
       {screen === S.CAMPAIGN_NEW && user && (
         <CampaignWizard user={user} onComplete={(p) => { saveProject({ ...p, _currentUser: user }); goTo(S.PROJECT_OPEN); }} onBack={() => goTo(S.DASHBOARD)} />
