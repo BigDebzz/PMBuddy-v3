@@ -197,14 +197,23 @@ Write EVERYTHING in full. Do not abbreviate any section. Every section must be s
       setDocContent(raw);
       setDocTitle(title);
 
-      const userId = typeof user === 'string' ? user : user?.id;
-      const { data: saved } = await supabase.from('documents').insert({
+      // Get fresh user ID from session to ensure it's correct
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id || (typeof user === 'string' ? user : user?.id);
+      if (!userId) {
+        console.error('No user ID available for save');
+        setStage(STAGES.DOCUMENT);
+        setThinking(false);
+        return;
+      }
+      const { data: saved, error: saveError } = await supabase.from('documents').insert({
         user_id: userId,
         project_name: 'Quick Docs',
         type: 'quick',
         title,
         content: raw,
       }).select().single();
+      if (saveError) console.error('Save error:', JSON.stringify(saveError));
       if (saved) setDocId(saved.id);
 
       setStage(STAGES.DOCUMENT);
