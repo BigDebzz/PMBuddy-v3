@@ -7,7 +7,7 @@ const WH = '#FFFFFF';
 const GREY = '#F8FAFC';
 const RULE = '#E5E7EB';
 
-export default function Dashboard({ user, onOpenValidation, onOpenProject, onNewValidation, onNewProject, onNewCampaign, onLogout }) {
+export default function Dashboard({ user, onOpenValidation, onOpenProject, onNewValidation, onNewProject, onNewCampaign, onNewQuickDoc, onLogout }) {
   const [validations, setValidations] = useState([]);
   const [projects, setProjects] = useState([]);
   const [documents, setDocuments] = useState([]);
@@ -65,6 +65,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
               { icon: '◈', label: 'New Project', body: 'Full PM project with risks, milestones and team roles.', action: onNewProject, bg: BL, color: WH },
               { icon: '◈', label: 'New Campaign', body: 'Short-term partnerships, drives and mini-projects.', action: onNewCampaign, bg: '#EFF6FF', color: BLUE },
               { icon: '✦', label: 'New Validation', body: 'Check if your idea is worth building before you start.', action: onNewValidation, bg: '#F0FDF4', color: '#15803D' },
+              { icon: '⚡', label: 'Quick Doc', body: 'Create a concept note, session plan or proposal in minutes.', action: onNewQuickDoc, bg: '#FFF7ED', color: '#C2410C' },
               { icon: '◎', label: 'Book a Consultant', body: 'Get expert PM support directly from your dashboard.', action: null, bg: '#F3F4F6', color: '#9CA3AF', soon: true },
             ].map((item, i) => (
               <button
