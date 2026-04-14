@@ -190,7 +190,6 @@ Write EVERYTHING in full. Do not abbreviate any section. Every section must be s
       const userId = typeof user === 'string' ? user : user?.id;
       const { data: saved } = await supabase.from('documents').insert({
         user_id: userId,
-        project_id: null,
         project_name: 'Quick Docs',
         type: 'quick',
         title,
