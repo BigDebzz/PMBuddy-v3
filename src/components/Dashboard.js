@@ -234,8 +234,11 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                 {docs.map(doc => (
                   <div key={doc.id} style={s.docRow}>
                     <div style={s.docRowLeft}>
-                      <span style={{ ...s.docTypeBadge, background: doc.type === 'pm' ? '#EFF6FF' : '#F5F3FF', color: doc.type === 'pm' ? BLUE : '#7C3AED' }}>
-                        {doc.type === 'pm' ? 'Internal' : 'External'}
+                      <span style={{ ...s.docTypeBadge,
+                        background: doc.type === 'pm' ? '#EFF6FF' : doc.type === 'quick' ? '#FFF7ED' : '#F5F3FF',
+                        color: doc.type === 'pm' ? BLUE : doc.type === 'quick' ? '#C2410C' : '#7C3AED'
+                      }}>
+                        {doc.type === 'pm' ? 'Internal' : doc.type === 'quick' ? 'Quick Doc' : 'External'}
                       </span>
                       <p style={s.docRowTitle}>{doc.title}</p>
                       <p style={s.docRowDate}>
