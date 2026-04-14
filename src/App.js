@@ -210,10 +210,13 @@ export default function App() {
       {screen === S.AUTH && (
         <AuthScreen onAuth={(u) => { setUser(u); goTo(S.DASHBOARD); }} onBack={() => goTo(S.LAND)} />
       )}
-      {screen === S.DASHBOARD && (
-        user
-          ? <Dashboard user={user} onOpenValidation={openValidation} onOpenProject={openProject} onNewValidation={reset} onNewProject={() => goTo(S.PROJECT_NEW)} onNewCampaign={() => goTo(S.CAMPAIGN_NEW)} onNewQuickDoc={() => goTo(S.QUICK_DOC)} onLogout={logout} />
-          : <div style={{ padding: '80px 48px', color: '#9CA3AF', fontSize: 14 }}>Loading...</div>
+      {screen === S.DASHBOARD && user && (
+        <Dashboard user={user} onOpenValidation={openValidation} onOpenProject={openProject} onNewValidation={reset} onNewProject={() => goTo(S.PROJECT_NEW)} onNewCampaign={() => goTo(S.CAMPAIGN_NEW)} onNewQuickDoc={() => goTo(S.QUICK_DOC)} onLogout={logout} />
+      )}
+      {screen === S.DASHBOARD && !user && (
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <p style={{ color: '#9CA3AF', fontSize: 14 }}>Loading your dashboard...</p>
+        </div>
       )}
       {screen === S.CAMPAIGN_NEW && user && (
         <CampaignWizard user={user} onComplete={(p) => { saveProject({ ...p, _currentUser: user }); goTo(S.PROJECT_OPEN); }} onBack={() => goTo(S.DASHBOARD)} />
