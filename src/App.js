@@ -27,90 +27,33 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [projectId, setProjectId] = useState(null);
   const [activeProject, setActiveProject] = useState(null);
-  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Clear all stale navigation state
+    // Clear any stale localStorage from previous versions
     localStorage.removeItem('pmb_screen');
     localStorage.removeItem('pmb_project');
 
-    const params = new URLSearchParams(window.location.search);
-    const inviteToken = params.get('invite');
-    if (inviteToken) {
-      localStorage.setItem('pmb_invite_token', inviteToken);
+    if (window.location.hash) {
       window.history.replaceState(null, '', window.location.pathname);
     }
-
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user);
-
-        // Handle pending invite
-        const token = localStorage.getItem('pmb_invite_token');
-        if (token) {
-          localStorage.removeItem('pmb_invite_token');
-          const { data: invite } = await supabase
-            .from('project_members').select('*').eq('token', token).single();
-          if (invite) {
-            await supabase.from('project_members')
-              .update({ user_id: session.user.id, status: 'active' })
-              .eq('id', invite.id);
-            const { data: proj } = await supabase
-              .from('pm_projects').select('*').eq('id', invite.project_id).single();
-            if (proj) {
-              setActiveProject({ ...proj, _currentUser: session.user });
-              setScreen(S.PROJECT_OPEN);
-              setReady(true);
-              return;
-            }
-          }
-        }
-
-        // Restore last project if available
-        try {
-          const saved = localStorage.getItem('pmb_project');
-          if (saved) {
-            const p = JSON.parse(saved);
-            if (p && p.id) setActiveProject({ ...p, _currentUser: session.user });
-          }
-        } catch {}
-
         setScreen(S.DASHBOARD);
-      } else {
-        setScreen(S.LAND);
       }
-      setReady(true);
     });
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (_event === 'SIGNED_IN' && session?.user) {
-        setUser(session.user);
+      setUser(session?.user ?? null);
+      if (session?.user && window.location.hash) {
+        window.history.replaceState(null, '', window.location.pathname);
         setScreen(S.DASHBOARD);
       }
-      if (_event === 'SIGNED_OUT') {
-        setUser(null);
-        setActiveProject(null);
-        localStorage.removeItem('pmb_project');
-        setScreen(S.LAND);
-      }
-      if (window.location.hash || window.location.search.includes('code=')) {
-        window.history.replaceState(null, '', window.location.pathname);
-      }
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
-  const openProject = (p) => {
-    const proj = { ...p, _currentUser: user };
-    setActiveProject(proj);
-    try { localStorage.setItem('pmb_project', JSON.stringify(proj)); } catch {}
-    setScreen(S.PROJECT_OPEN);
-  };
-
   const selectMode = (m) => {
-    setMode(m); setAnswers({}); setAnalysis(null); setProjectId(null);
-    setScreen(S.QA);
+    setMode(m); setAnswers({}); setAnalysis(null); setProjectId(null); setScreen(S.QA);
   };
 
   const complete = (a) => {
@@ -121,9 +64,7 @@ export default function App() {
   };
 
   const reset = () => {
-    setMode(null); setAnswers({}); setAnalysis(null); setProjectId(null);
-    setActiveProject(null);
-    localStorage.removeItem('pmb_project');
+    setMode(null); setAnswers({}); setAnalysis(null); setProjectId(null); setActiveProject(null);
     setScreen(S.LAND);
   };
 
@@ -142,21 +83,16 @@ export default function App() {
     setScreen(S.RESULTS);
   };
 
+  const openProject = (p) => {
+    setActiveProject({ ...p, _currentUser: user });
+    setScreen(S.PROJECT_OPEN);
+  };
+
   const logout = async () => {
     await supabase.auth.signOut();
     setUser(null);
-    setActiveProject(null);
-    localStorage.removeItem('pmb_project');
-    setScreen(S.LAND);
+    reset();
   };
-
-  if (!ready) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
-        <p style={{ color: '#9CA3AF', fontSize: 14, fontFamily: 'system-ui, sans-serif' }}>Loading...</p>
-      </div>
-    );
-  }
 
   return (
     <div>
@@ -173,6 +109,9 @@ export default function App() {
               <button style={nav.signupBtn} onClick={() => setScreen(S.AUTH)}>Get Started</button>
             </>
           )}
+          {screen !== S.LAND && user && (
+            <button style={nav.loginBtn} onClick={reset}>Home</button>
+          )}
         </div>
       </nav>
 
@@ -181,10 +120,10 @@ export default function App() {
       {screen === S.RESULTS && analysis && <ResultsDashboard mode={mode} answers={answers} analysis={analysis} onReset={reset} onEdit={() => setScreen(S.QA)} onSave={saveValidation} user={user} projectId={projectId} />}
       {screen === S.AUTH && <AuthScreen onAuth={(u) => { setUser(u); setScreen(S.DASHBOARD); }} onBack={() => setScreen(S.LAND)} />}
       {screen === S.DASHBOARD && user && <Dashboard user={user} onOpenValidation={openValidation} onOpenProject={openProject} onNewValidation={reset} onNewProject={() => setScreen(S.PROJECT_NEW)} onNewCampaign={() => setScreen(S.CAMPAIGN_NEW)} onNewQuickDoc={() => setScreen(S.QUICK_DOC)} onLogout={logout} />}
-      {screen === S.PROJECT_NEW && user && <ProjectWizard user={user} onComplete={(p) => { const proj = { ...p, _currentUser: user }; setActiveProject(proj); try { localStorage.setItem('pmb_project', JSON.stringify(proj)); } catch {} setScreen(S.PROJECT_OPEN); }} onBack={() => setScreen(S.DASHBOARD)} />}
-      {screen === S.CAMPAIGN_NEW && user && <CampaignWizard user={user} onComplete={(p) => { const proj = { ...p, _currentUser: user }; setActiveProject(proj); try { localStorage.setItem('pmb_project', JSON.stringify(proj)); } catch {} setScreen(S.PROJECT_OPEN); }} onBack={() => setScreen(S.DASHBOARD)} />}
+      {screen === S.CAMPAIGN_NEW && user && <CampaignWizard user={user} onComplete={(p) => { setActiveProject({ ...p, _currentUser: user }); setScreen(S.PROJECT_OPEN); }} onBack={() => setScreen(S.DASHBOARD)} />}
+      {screen === S.PROJECT_NEW && user && <ProjectWizard user={user} onComplete={(p) => { setActiveProject({ ...p, _currentUser: user }); setScreen(S.PROJECT_OPEN); }} onBack={() => setScreen(S.DASHBOARD)} />}
       {screen === S.QUICK_DOC && user && <QuickDoc user={user} onBack={() => setScreen(S.DASHBOARD)} onStartProject={() => setScreen(S.PROJECT_NEW)} onStartCampaign={() => setScreen(S.CAMPAIGN_NEW)} />}
-      {screen === S.PROJECT_OPEN && activeProject && activeProject.id && <ProjectWorkspace project={activeProject} onBack={() => setScreen(S.DASHBOARD)} onUpdate={(p) => { const proj = { ...p, _currentUser: user }; setActiveProject(proj); try { localStorage.setItem('pmb_project', JSON.stringify(proj)); } catch {}; }} />}
+      {screen === S.PROJECT_OPEN && activeProject && activeProject.id && <ProjectWorkspace project={activeProject} onBack={() => setScreen(S.DASHBOARD)} onUpdate={(p) => setActiveProject({ ...p, _currentUser: user })} />}
     </div>
   );
 }
