@@ -111,7 +111,10 @@ export default function App() {
       if (session?.user) {
         setUser(session.user);
         const savedScreen = localStorage.getItem('pmb_screen');
-        if (!savedScreen || savedScreen === S.LAND || savedScreen === S.AUTH) {
+        const safeScreens = [S.DASHBOARD, S.PROJECT_OPEN, S.CAMPAIGN_NEW, S.PROJECT_NEW];
+        if (savedScreen && safeScreens.includes(savedScreen)) {
+          setScreen(savedScreen);
+        } else {
           goTo(S.DASHBOARD);
         }
         // Attach current user to active project
