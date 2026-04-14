@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { useVoice } from '../lib/useVoice';
 
 const BLUE = '#0284C7';
 const BL = '#0A0A0A';
@@ -23,11 +24,12 @@ export default function QuickDoc({ user, onBack, onStartProject, onStartCampaign
   const [docTitle, setDocTitle] = useState('');
   const [docId, setDocId] = useState(null);
   const [editing, setEditing] = useState(false);
-  const [listening, setListening] = useState(false);
+  const { listening: isListening, toggle: toggleVoice } = useVoice((transcript) => {
+    setInput(prev => (prev + ' ' + transcript).trim());
+  });
   const [updateInput, setUpdateInput] = useState('');
   const [updating, setUpdating] = useState(false);
   const bottomRef = useRef(null);
-  const recognitionRef = useRef(null);
   const conversationRef = useRef([]);
 
   useEffect(() => {
@@ -38,30 +40,6 @@ export default function QuickDoc({ user, onBack, onStartProject, onStartCampaign
     const msg = { role, text };
     setMessages(prev => [...prev, msg]);
     conversationRef.current = [...conversationRef.current, msg];
-  };
-
-  const startVoice = () => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return;
-    const recognition = new SR();
-    recognitionRef.current = recognition;
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = 'en-NG';
-    recognition.onresult = (e) => {
-      const transcript = e.results[0][0].transcript;
-      setInput(prev => prev + ' ' + transcript);
-      setListening(false);
-    };
-    recognition.onend = () => setListening(false);
-    recognition.onerror = () => setListening(false);
-    setListening(true);
-    recognition.start();
-  };
-
-  const stopVoice = () => {
-    recognitionRef.current?.stop();
-    setListening(false);
   };
 
   const buildConversationContext = () => {
@@ -261,10 +239,10 @@ Rewrite the complete updated document in HTML (h1 for title, h2 for sections, p 
                   />
                   <div style={s.inputActions}>
                     <button
-                      style={{ ...s.voiceBtn, background: listening ? '#FEF2F2' : GREY, color: listening ? '#DC2626' : '#6B7280' }}
-                      onClick={listening ? stopVoice : startVoice}
+                      style={{ ...s.voiceBtn, background: isListening ? '#FEF2F2' : GREY, color: isListening ? '#DC2626' : '#6B7280' }}
+                      onClick={toggleVoice}
                     >
-                      {listening ? '⏹ Stop' : '🎤 Voice'}
+                      {isListening ? '⏹ Stop' : '◉ Voice'}
                     </button>
                     <button
                       style={{ ...s.sendBtn, opacity: !input.trim() || thinking ? 0.5 : 1 }}
