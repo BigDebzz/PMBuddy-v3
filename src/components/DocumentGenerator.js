@@ -364,7 +364,7 @@ Rules:
             {generating === 'pm' ? 'Writing document...' : 'Generate Document'}
           </button>
         </div>
-        {generating === 'pm' && <p style={s.generatingNote}>PM Buddy is writing your masterpiece project management plan. This can take up to 1 min — nothing good comes easily 🤗</p>}
+        {generating === 'pm' && <p style={s.generatingNote}>PM Buddy is writing your project management plan. This can take up to 1 minute. Nothing good comes easily.</p>}
         {genError && previewType !== 'pm' && !generating && (
           <div style={s.errorNote}>
             <p style={s.errorNoteText}>{genError}</p>
@@ -411,7 +411,7 @@ Rules:
             {generating === 'benefits' ? 'Writing document...' : 'Generate Document'}
           </button>
         </div>
-        {generating === 'benefits' && <p style={s.generatingNote}>PM Buddy is writing your masterpiece benefits document. This can take up to 1 min — nothing good comes easily 🤗</p>}
+        {generating === 'benefits' && <p style={s.generatingNote}>PM Buddy is writing your benefits document. This can take up to 1 minute. Nothing good comes easily.</p>}
         {genError && previewType !== 'benefits' && !generating && (
           <div style={s.errorNote}>
             <p style={s.errorNoteText}>{genError}</p>
