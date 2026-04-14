@@ -28,19 +28,18 @@ export default function App() {
   const [activeProject, setActiveProject] = useState(null);
 
   useEffect(() => {
-    if (window.location.hash) {
-      window.history.replaceState(null, '', window.location.pathname);
-    }
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user);
         setScreen(S.DASHBOARD);
       }
+      if (window.location.hash) {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser(session.user);
-        if (window.location.hash) window.history.replaceState(null, '', window.location.pathname);
         setScreen(S.DASHBOARD);
       }
       if (_event === 'SIGNED_OUT') {
