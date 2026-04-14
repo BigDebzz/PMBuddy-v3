@@ -8,13 +8,14 @@ import ProjectWizard from './components/ProjectWizard';
 import ProjectWorkspace from './components/ProjectWorkspace';
 import CampaignWizard from './components/CampaignWizard';
 import { supabase } from './lib/supabase';
-import { Analytics } from './lib/analytics';
+import QuickDoc from './components/QuickDoc';
 import { analyze } from './data/analysis';
 
 const S = {
   LAND: 'land', QA: 'qa', RESULTS: 'results',
   AUTH: 'auth', DASHBOARD: 'dashboard',
-  PROJECT_NEW: 'project_new', PROJECT_OPEN: 'project_open', CAMPAIGN_NEW: 'campaign_new',
+  PROJECT_NEW: 'project_new', PROJECT_OPEN: 'project_open',
+  CAMPAIGN_NEW: 'campaign_new', QUICK_DOC: 'quick_doc',
 };
 
 export default function App() {
@@ -192,7 +193,7 @@ export default function App() {
         <AuthScreen onAuth={(u) => { setUser(u); goTo(S.DASHBOARD); }} onBack={() => goTo(S.LAND)} />
       )}
       {screen === S.DASHBOARD && user && (
-        <Dashboard user={user} onOpenValidation={openValidation} onOpenProject={openProject} onNewValidation={reset} onNewProject={() => goTo(S.PROJECT_NEW)} onNewCampaign={() => goTo(S.CAMPAIGN_NEW)} onLogout={logout} />
+        <Dashboard user={user} onOpenValidation={openValidation} onOpenProject={openProject} onNewValidation={reset} onNewProject={() => goTo(S.PROJECT_NEW)} onNewCampaign={() => goTo(S.CAMPAIGN_NEW)} onNewQuickDoc={() => goTo(S.QUICK_DOC)} onLogout={logout} />
       )}
       {screen === S.CAMPAIGN_NEW && user && (
         <CampaignWizard user={user} onComplete={(p) => { saveProject({ ...p, _currentUser: user }); goTo(S.PROJECT_OPEN); }} onBack={() => goTo(S.DASHBOARD)} />
@@ -200,7 +201,9 @@ export default function App() {
       {screen === S.PROJECT_NEW && user && (
         <ProjectWizard user={user} onComplete={(p) => { saveProject({ ...p, _currentUser: user }); goTo(S.PROJECT_OPEN); }} onBack={() => goTo(S.DASHBOARD)} />
       )}
-      {screen === S.PROJECT_OPEN && activeProject && (
+      {screen === S.QUICK_DOC && user && (
+        <QuickDoc user={user} onBack={() => goTo(S.DASHBOARD)} onStartProject={() => goTo(S.PROJECT_NEW)} onStartCampaign={() => goTo(S.CAMPAIGN_NEW)} />
+      )}
         <ProjectWorkspace project={activeProject} onBack={() => goTo(S.DASHBOARD)} onUpdate={(p) => saveProject({ ...p, _currentUser: user })} />
       )}
     </div>
