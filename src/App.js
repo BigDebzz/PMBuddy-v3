@@ -93,7 +93,14 @@ export default function App() {
             }
           }
         }
-        goTo(S.DASHBOARD);
+        // Only navigate to dashboard on actual sign in, not session refresh
+        if (_event === 'SIGNED_IN') {
+          goTo(S.DASHBOARD);
+        }
+      }
+      if (_event === 'SIGNED_OUT') {
+        goTo(S.LAND);
+        localStorage.removeItem('pmb_project');
       }
       if (window.location.hash || window.location.search.includes('code=')) {
         window.history.replaceState(null, '', window.location.pathname);
