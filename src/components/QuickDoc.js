@@ -23,7 +23,6 @@ export default function QuickDoc({ user, onBack, onStartProject, onStartCampaign
   const [docTitle, setDocTitle] = useState('');
   const [docId, setDocId] = useState(null);
   const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [listening, setListening] = useState(false);
   const [updateInput, setUpdateInput] = useState('');
   const [updating, setUpdating] = useState(false);
@@ -164,13 +163,11 @@ Instructions:
   };
 
   const saveEdits = async (newContent) => {
-    setSaving(true);
     if (docId) {
       await supabase.from('documents').update({ content: newContent, updated_at: new Date().toISOString() }).eq('id', docId);
     }
     setDocContent(newContent);
     setEditing(false);
-    setSaving(false);
   };
 
   const updateDocument = async () => {
