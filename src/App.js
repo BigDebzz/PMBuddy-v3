@@ -22,8 +22,15 @@ const S = {
 export default function App() {
   const [screen, setScreen] = useState(() => {
     const saved = localStorage.getItem('pmb_screen');
-    const safeScreens = [S.DASHBOARD, S.PROJECT_OPEN, S.CAMPAIGN_NEW, S.PROJECT_NEW];
-    return saved && safeScreens.includes(saved) ? saved : S.LAND;
+    const safeScreens = [S.DASHBOARD, S.PROJECT_OPEN, S.CAMPAIGN_NEW, S.PROJECT_NEW, S.QUICK_DOC];
+    if (!saved || !safeScreens.includes(saved)) return S.LAND;
+    if (saved === S.PROJECT_OPEN) {
+      try {
+        const p = JSON.parse(localStorage.getItem('pmb_project'));
+        if (!p || !p.id) return S.DASHBOARD;
+      } catch { return S.DASHBOARD; }
+    }
+    return saved;
   });
   const [mode, setMode] = useState(null);
   const [answers, setAnswers] = useState({});
@@ -205,6 +212,7 @@ export default function App() {
       {screen === S.QUICK_DOC && user && (
         <QuickDoc user={user} onBack={() => goTo(S.DASHBOARD)} onStartProject={() => goTo(S.PROJECT_NEW)} onStartCampaign={() => goTo(S.CAMPAIGN_NEW)} />
       )}
+      {screen === S.PROJECT_OPEN && activeProject && activeProject.id && (
         <ProjectWorkspace project={activeProject} onBack={() => goTo(S.DASHBOARD)} onUpdate={(p) => saveProject({ ...p, _currentUser: user })} />
       )}
     </div>
