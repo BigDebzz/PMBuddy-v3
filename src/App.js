@@ -100,8 +100,6 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const goTo = (s) => setScreen(s);
-
   const openProject = (p) => {
     const proj = { ...p, _currentUser: user };
     setActiveProject(proj);
