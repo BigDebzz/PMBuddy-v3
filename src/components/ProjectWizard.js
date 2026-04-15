@@ -119,14 +119,10 @@ function MilestoneEditor({ milestones, onChange, industry, description, isOngoin
 
   const suggestMilestones = async () => {
     setSuggesting(true);
-    const prompt = `Suggest 5 realistic project milestones for a ${industry} project.
-Description: ${description || 'Not specified'}
-${isOngoing ? 'This project is already in progress.' : 'This is a new project.'}
+    const prompt = `List 5 project milestones for a ${industry || 'general'} project. ${description ? `Project: ${description}` : ''} ${isOngoing ? 'Project is in progress, mix done and upcoming.' : 'New project, all pending.'}
 
-Reply ONLY with a JSON array, no markdown:
-[{"title":"Milestone name","status":"${isOngoing ? 'done' : 'pending'}"},{"title":"...","status":"pending"}]
-
-Make them specific to ${industry}. Mix of completed and upcoming if ongoing.`;
+Respond with ONLY a raw JSON array. No explanation. No markdown. No code blocks. Just the array:
+[{"title":"milestone name","status":"pending"},{"title":"milestone name","status":"pending"}]`;
 
     try {
       const res = await fetch('/api/gemini', {
@@ -134,14 +130,27 @@ Make them specific to ${industry}. Mix of completed and upcoming if ongoing.`;
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt }),
       });
+      if (!res.ok) throw new Error('API error');
       const result = await res.json();
-      const clean = result.result.replace(/```json|```/g, '').trim();
+      const raw = result.result || result.text || '';
+      if (!raw) throw new Error('Empty response');
+      const clean = raw.replace(/```json|```/g, '').trim();
       const firstBracket = clean.indexOf('[');
       const lastBracket = clean.lastIndexOf(']');
+      if (firstBracket === -1 || lastBracket === -1) throw new Error('No JSON array found');
       const parsed = JSON.parse(clean.substring(firstBracket, lastBracket + 1));
-      onChange(parsed.map(m => ({ title: m.title, date: '', status: m.status || 'pending' })));
+      if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('Empty array');
+      onChange(parsed.map(m => ({ title: m.title || '', date: '', status: m.status || 'pending' })));
     } catch (err) {
-      console.error(err);
+      console.error('Milestone suggest error:', err);
+      // Fallback — give generic milestones so the user is not left with nothing
+      onChange([
+        { title: 'Project Kickoff', date: '', status: isOngoing ? 'done' : 'pending' },
+        { title: 'Planning Complete', date: '', status: isOngoing ? 'done' : 'pending' },
+        { title: 'First Deliverable', date: '', status: isOngoing ? 'in_progress' : 'pending' },
+        { title: 'Review and Feedback', date: '', status: 'pending' },
+        { title: 'Project Complete', date: '', status: 'pending' },
+      ]);
     }
     setSuggesting(false);
   };
@@ -189,32 +198,88 @@ Make them specific to ${industry}. Mix of completed and upcoming if ongoing.`;
 }
 
 // ─── Main Wizard ──────────────────────────────────────────────────────────────
-export default function ProjectWizard({ user, onComplete, onBack }) {
-  const [projectType, setProjectType] = useState(null); // 'new' | 'ongoing'
-  const [step, setStep] = useState(0); // 0 = type selection
-  const [saving, setSaving] = useState(false);
+const DRAFT_KEY = 'pmb_wizard_draft';
 
-  const [data, setData] = useState({
-    // Common
+export default function ProjectWizard({ user, onComplete, onBack }) {
+  const [projectType, setProjectType] = useState(null);
+  const [step, setStep] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState('');
+  const [generating, setGenerating] = useState(false);
+
+  const defaultData = {
     name: '', description: '', goal: '', industry: '',
     teamType: 'solo', teamMembers: [{ name: '', role: '' }],
     startDate: '', endDate: '', topRisks: ['', '', ''],
     milestones: [],
-    // Ongoing-specific
     currentPhase: '', completedWork: '', remainingWork: '',
     blockers: '', communicationFlow: '', methodology: '',
+  };
+
+  // Load draft from localStorage on mount
+  const [data, setData] = useState(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return { ...defaultData, ...parsed.data };
+      }
+    } catch {}
+    return defaultData;
   });
 
-  const update = useCallback((key, val) => setData(p => ({ ...p, [key]: val })), []);
+  // Restore step and projectType from draft
+  useState(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.projectType) setProjectType(parsed.projectType);
+        if (parsed.step) setStep(parsed.step);
+      }
+    } catch {}
+  });
 
-  const totalSteps = projectType === 'new' ? 5 : 5;
-  const progress = step === 0 ? 0 : ((step - 1) / (totalSteps - 1)) * 100;
+  // Save draft to localStorage whenever data/step/type changes
+  const saveDraft = useCallback((newData, newStep, newType) => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({
+        data: newData, step: newStep, projectType: newType, savedAt: Date.now()
+      }));
+    } catch {}
+  }, []);
 
-  const next = () => setStep(s => s + 1);
+  const clearDraft = () => {
+    try { localStorage.removeItem(DRAFT_KEY); } catch {}
+  };
+
+  const update = useCallback((key, val) => {
+    setData(p => {
+      const updated = { ...p, [key]: val };
+      saveDraft(updated, step, projectType);
+      return updated;
+    });
+  }, [step, projectType, saveDraft]);
+
+  const progress = step === 0 ? 0 : ((step - 1) / 4) * 100;
+
+  const next = () => {
+    const newStep = step + 1;
+    setStep(newStep);
+    saveDraft(data, newStep, projectType);
+  };
+
   const back = () => {
     if (step === 0) { onBack(); return; }
-    if (step === 1) { setProjectType(null); setStep(0); return; }
-    setStep(s => s - 1);
+    if (step === 1) {
+      setProjectType(null);
+      setStep(0);
+      saveDraft(data, 0, null);
+      return;
+    }
+    const newStep = step - 1;
+    setStep(newStep);
+    saveDraft(data, newStep, projectType);
   };
 
   const addMember = () => setData(p => ({ ...p, teamMembers: [...p.teamMembers, { name: '', role: '' }] }));
@@ -226,22 +291,12 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
   const removeMember = (i) => setData(p => ({ ...p, teamMembers: p.teamMembers.filter((_, idx) => idx !== i) }));
 
   const selectType = (type) => {
-    if (step !== 0) return; // prevent double firing
+    if (step !== 0) return;
     setProjectType(type);
-    // Pre-set milestones with status for ongoing
-    if (type === 'ongoing') {
-      setData(p => ({ ...p, milestones: [
-        { title: '', date: '', status: 'done' },
-        { title: '', date: '', status: 'in_progress' },
-        { title: '', date: '', status: 'pending' },
-      ]}));
-    } else {
-      setData(p => ({ ...p, milestones: [
-        { title: 'Project Kickoff', date: '', status: 'pending' },
-        { title: 'First Deliverable', date: '', status: 'pending' },
-        { title: 'Midpoint Review', date: '', status: 'pending' },
-      ]}));
-    }
+    const milestones = type === 'ongoing'
+      ? [{ title: '', date: '', status: 'done' }, { title: '', date: '', status: 'in_progress' }, { title: '', date: '', status: 'pending' }]
+      : [{ title: 'Project Kickoff', date: '', status: 'pending' }, { title: 'First Deliverable', date: '', status: 'pending' }, { title: 'Midpoint Review', date: '', status: 'pending' }];
+    setData(p => { const updated = { ...p, milestones }; saveDraft(updated, 1, type); return updated; });
     setStep(1);
   };
 
@@ -253,9 +308,13 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
 
   const save = async () => {
     setSaving(true);
+    setSaveMsg('');
+    const userId = typeof user === 'string' ? user : user?.id;
+    if (!userId) { setSaveMsg('You must be logged in.'); setSaving(false); return; }
     const methodology = data.methodology || deriveMethodology(data);
+
     const { data: project, error } = await supabase.from('pm_projects').insert({
-      user_id: user.id,
+      user_id: userId,
       name: data.name,
       description: data.description,
       industry: data.industry,
@@ -271,8 +330,64 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
       compliance: { industry: data.industry, flags: getComplianceFlags(data.industry) },
       planning: { communications: data.communicationFlow, blockers: data.blockers },
     }).select().single();
+
     setSaving(false);
-    if (!error && project) onComplete(project);
+    if (error) { setSaveMsg(`Could not save: ${error.message}`); return; }
+    if (!project) { setSaveMsg('Something went wrong. Please try again.'); return; }
+
+    // Generate project brief
+    clearDraft();
+    setGenerating(true);
+    setSaveMsg('');
+
+    try {
+      const briefPrompt = `You are a professional project manager. Write a concise project brief for this project.
+
+Project: ${data.name}
+Industry: ${data.industry}
+Type: ${projectType === 'ongoing' ? 'Already in progress' : 'New project'}
+Description: ${data.description}
+Goal: ${data.goal}
+Methodology: ${methodology}
+Team: ${data.teamType === 'solo' ? 'Solo project' : data.teamMembers.filter(m => m.name).map(m => `${m.name} (${m.role})`).join(', ')}
+Timeline: ${data.startDate ? `${data.startDate} to ${data.endDate}` : 'Not set'}
+${projectType === 'ongoing' ? `Current Phase: ${data.currentPhase}
+Completed: ${data.completedWork}
+Remaining: ${data.remainingWork}
+Blockers: ${data.blockers}` : ''}
+Risks: ${data.topRisks.filter(r => r.trim()).join(', ') || 'None listed'}
+Milestones: ${data.milestones.filter(m => m.title).map(m => m.title).join(', ')}
+
+Write a professional project brief in HTML (h1 for title, h2 for sections, p for paragraphs). No html/head/body tags. Include: Project Overview, Objectives, Scope, Team and Roles, Timeline, Key Risks, Success Metrics. Make it specific to their actual inputs. Minimum 400 words.`;
+
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: briefPrompt, mode: 'document' }),
+      });
+
+      if (res.ok) {
+        const result = await res.json();
+        const content = (result.result || '').replace(/```html|```/g, '').trim();
+        if (content && content.length > 100) {
+          // Save the brief as a document
+          await supabase.from('documents').insert({
+            user_id: userId,
+            project_id: project.id,
+            project_name: data.name,
+            type: 'pm',
+            title: `${data.name} — Project Brief`,
+            content,
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Brief generation error:', err);
+      // Don't block — just proceed without the brief
+    }
+
+    setGenerating(false);
+    onComplete(project);
   };
 
   // ─── Type Selection ──────────────────────────────────────────────────────
@@ -524,11 +639,17 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
           )}
 
           <div style={s.footer}>
-            {step < 5 ? (
-              <button style={{ ...s.nextBtn, opacity: canProceed() ? 1 : 0.5 }} onClick={next} disabled={!canProceed()}>Continue</button>
-            ) : (
-              <button style={s.nextBtn} onClick={save} disabled={saving}>{saving ? 'Setting up your project...' : projectType === 'ongoing' ? 'Import My Project' : 'Launch My Project'}</button>
-            )}
+            {saveMsg && <p style={{ fontSize: 13, color: '#DC2626', marginBottom: 12, textAlign: 'center' }}>{saveMsg}</p>}
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button style={s.backFooterBtn} onClick={back}>← Back</button>
+              {step < 5 ? (
+                <button style={{ ...s.nextBtn, opacity: canProceed() ? 1 : 0.5, flex: 1 }} onClick={next} disabled={!canProceed()}>Continue</button>
+              ) : (
+                <button style={{ ...s.nextBtn, flex: 1 }} onClick={save} disabled={saving || generating}>
+                  {generating ? 'Generating your project brief...' : saving ? 'Saving...' : 'Save My Project'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -631,6 +752,7 @@ const s = {
   complianceText: { fontSize: 14, color: '#92400E', lineHeight: 1.7 },
   footer: { marginTop: 32, paddingTop: 24, borderTop: '1px solid #F3F4F6' },
   nextBtn: { width: '100%', padding: '14px', background: BLUE, color: WH, border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
+  backFooterBtn: { padding: '14px 20px', background: 'none', color: '#6B7280', border: '1.5px solid #E5E7EB', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 },
   typeCard: { display: 'flex', alignItems: 'flex-start', gap: 16, padding: '20px', border: '1.5px solid #E5E7EB', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', background: WH, width: '100%' },
   typeIcon: { width: 44, height: 44, borderRadius: 10, background: BL, color: WH, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 },
   typeName: { fontSize: 16, fontWeight: 700, color: BL, marginBottom: 6 },
