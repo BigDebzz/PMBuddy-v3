@@ -226,6 +226,7 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
   const removeMember = (i) => setData(p => ({ ...p, teamMembers: p.teamMembers.filter((_, idx) => idx !== i) }));
 
   const selectType = (type) => {
+    if (step !== 0) return; // prevent double firing
     setProjectType(type);
     // Pre-set milestones with status for ongoing
     if (type === 'ongoing') {
@@ -279,7 +280,7 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
     return (
       <div style={s.page}>
         <div style={s.wrap}>
-          <button style={s.backBtn} onClick={onBack}>← Back</button>
+          <button style={s.backBtn} onClick={back}>← Back</button>
           <div style={s.card}>
             <p style={s.stepTag}>New Project</p>
             <h2 style={s.stepTitle}>Is this a new project or one already in progress?</h2>
@@ -332,7 +333,7 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
               <h2 style={s.stepTitle}>Tell Us About Your Project</h2>
               <p style={s.stepSub}>{projectType === 'ongoing' ? 'Start with what this project is about.' : 'The clearer you are here the better PM Buddy can support you.'}</p>
               <label style={s.label}>Project Name</label>
-              <div style={{ marginBottom: 20 }}><VoiceInput value={data.name} onChange={v => update('name', v)} placeholder="e.g. 3MTT Knowledge Sharing Programme" /></div>
+              <div style={{ marginBottom: 20 }}><VoiceInput value={data.name} onChange={v => update('name', v)} placeholder="e.g. Product Launch, Community Training, App Development" /></div>
               <label style={s.label}>What is this project about?</label>
               <div style={{ marginBottom: 20 }}><VoiceTextarea value={data.description} onChange={v => update('description', v)} placeholder="Describe what this project is and what it is trying to achieve." rows={3} /></div>
               <label style={s.label}>What does success look like?</label>
@@ -590,7 +591,7 @@ function StopIcon() {
 const s = {
   page: { minHeight: '100vh', background: GREY, padding: '40px 24px 80px' },
   wrap: { maxWidth: 640, margin: '0 auto' },
-  backBtn: { background: 'none', border: 'none', color: '#6B7280', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 24, padding: 0 },
+  backBtn: { background: 'none', border: 'none', color: '#6B7280', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 24, padding: '8px 0', display: 'block' },
   progressTrack: { height: 4, background: '#E5E7EB', borderRadius: 2, overflow: 'hidden', marginBottom: 16 },
   progressFill: { height: '100%', background: BLUE, borderRadius: 2, transition: 'width 0.4s ease' },
   steps: { display: 'flex', gap: 6, marginBottom: 28, flexWrap: 'wrap' },
