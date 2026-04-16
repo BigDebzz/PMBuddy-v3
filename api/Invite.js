@@ -56,8 +56,8 @@ export default async function handler(request, response) {
 
     if (!res.ok) {
       const err = await res.json();
-      console.error('Brevo error:', err);
-      return response.status(res.status).json({ error: err });
+      console.error('Brevo error:', JSON.stringify(err));
+      return response.status(res.status).json({ error: err.message || JSON.stringify(err) });
     }
 
     return response.status(200).json({ success: true });
