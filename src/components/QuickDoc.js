@@ -57,6 +57,8 @@ export default function QuickDoc({ user, onBack, onStartProject, onStartCampaign
   const [updateInput, setUpdateInput] = useState('');
   const [updating, setUpdating] = useState(false);
   const [genError, setGenError] = useState(null);
+  const [saveStatus, setSaveStatus] = useState(''); // '', 'saving', 'saved', 'error'
+  const [saveError, setSaveError] = useState('');
   const { listening: isListening, toggle: toggleVoice } = useVoice((transcript) => {
     setInput(prev => (prev + ' ' + transcript).trim());
   });
@@ -87,7 +89,6 @@ export default function QuickDoc({ user, onBack, onStartProject, onStartCampaign
     const newProbeCount = probeCount + 1;
     setProbeCount(newProbeCount);
 
-    // If input is very detailed (150+ words) or we have asked enough questions, generate
     if (newProbeCount >= 3 || wordCount >= 150) {
       setStage(STAGES.GENERATING);
       addMessage('assistant', 'I have enough to work with. Writing your document now. This may take up to a minute.');
@@ -120,6 +121,41 @@ This is follow-up question ${newProbeCount} of 2. Based on what they described, 
         addMessage('assistant', 'Tell me more about the audience, timeline and main objectives for this.');
       }
       setThinking(false);
+    }
+  };
+
+  const saveDocument = async (title, content) => {
+    setSaveStatus('saving');
+    setSaveError('');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id || (typeof user === 'string' ? user : user?.id);
+      if (!userId) {
+        setSaveStatus('error');
+        setSaveError('Not logged in — document not saved.');
+        return;
+      }
+      const { data: saved, error: saveError } = await supabase.from('documents').insert({
+        user_id: userId,
+        project_name: 'Quick Docs',
+        type: 'quick',
+        title,
+        content,
+      }).select().single();
+      if (saveError) {
+        console.error('Save error:', JSON.stringify(saveError));
+        setSaveStatus('error');
+        setSaveError(`Could not save: ${saveError.message}`);
+        return;
+      }
+      if (saved) {
+        setDocId(saved.id);
+        setSaveStatus('saved');
+      }
+    } catch (err) {
+      console.error('Save exception:', err);
+      setSaveStatus('error');
+      setSaveError(`Save failed: ${err.message}`);
     }
   };
 
@@ -199,21 +235,9 @@ Write EVERYTHING in full. Do not abbreviate any section. Every section must be s
       setStage(STAGES.DOCUMENT);
       setThinking(false);
 
-      // Save in background — don't block showing the document
-      const { data: { session } } = await supabase.auth.getSession();
-      const userId = session?.user?.id || (typeof user === 'string' ? user : user?.id);
-      if (userId) {
-        supabase.from('documents').insert({
-          user_id: userId,
-          project_name: 'Quick Docs',
-          type: 'quick',
-          title,
-          content: raw,
-        }).select().single().then(({ data: saved, error: saveError }) => {
-          if (saveError) console.error('Save error:', JSON.stringify(saveError));
-          if (saved) setDocId(saved.id);
-        });
-      }
+      // Save document
+      await saveDocument(title, raw);
+
     } catch (err) {
       if (err.name === 'AbortError') {
         setGenError('This is taking longer than expected. Please check your connection and try again.');
@@ -252,7 +276,12 @@ Rewrite the complete updated document in HTML (h1 for title, h2 for sections, p 
       const result = await res.json();
       const updated = (result.result || '').replace(/```html|```/g, '').trim();
       setDocContent(updated);
-      if (docId) await supabase.from('documents').update({ content: updated, updated_at: new Date().toISOString() }).eq('id', docId);
+      if (docId) {
+        await supabase.from('documents').update({ content: updated, updated_at: new Date().toISOString() }).eq('id', docId);
+      } else {
+        // If no docId yet, save as new
+        await saveDocument(docTitle, updated);
+      }
     } catch (err) { console.error(err); }
     setUpdateInput('');
     setUpdating(false);
@@ -328,7 +357,12 @@ Rewrite the complete updated document in HTML (h1 for title, h2 for sections, p 
         {stage === STAGES.DOCUMENT && (
           <div style={s.docWrap}>
             <div style={s.docActions}>
-              <p style={s.docTitleLabel}>{docTitle}</p>
+              <div>
+                <p style={s.docTitleLabel}>{docTitle}</p>
+                {saveStatus === 'saving' && <p style={{ fontSize: 12, color: '#D97706', marginTop: 2 }}>Saving to your documents...</p>}
+                {saveStatus === 'saved' && <p style={{ fontSize: 12, color: '#15803D', marginTop: 2 }}>✓ Saved to My Documents</p>}
+                {saveStatus === 'error' && <p style={{ fontSize: 12, color: '#DC2626', marginTop: 2 }}>{saveError}</p>}
+              </div>
               <div style={s.docBtns}>
                 <button style={s.smBtn} onClick={() => setEditing(e => !e)}>{editing ? 'Done editing' : 'Edit'}</button>
                 <button style={s.smBtn} onClick={downloadDoc}>Download</button>
@@ -401,7 +435,7 @@ const s = {
   voiceBtn: { padding: '6px 14px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
   sendBtn: { padding: '8px 20px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
   docWrap: { display: 'flex', flexDirection: 'column', gap: 12 },
-  docActions: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 },
+  docActions: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 },
   docTitleLabel: { fontSize: 16, fontWeight: 600, color: BL },
   docBtns: { display: 'flex', gap: 8 },
   smBtn: { padding: '7px 14px', background: WH, color: BL, border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
