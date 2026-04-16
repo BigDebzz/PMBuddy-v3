@@ -47,7 +47,7 @@ export default async function handler(request, response) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        sender: { name: 'PM Buddy', email: 'noreply@pmbuddy-v3.vercel.app' },
+        sender: { name: 'PM Buddy', email: 'debbiescorner7@gmail.com' },
         to: [{ email }],
         subject: `You have been invited to ${projectName} on PM Buddy`,
         htmlContent: emailHtml,
