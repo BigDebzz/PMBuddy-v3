@@ -17,6 +17,7 @@ const S = {
   AUTH: 'auth', DASHBOARD: 'dashboard',
   PROJECT_NEW: 'project_new', PROJECT_OPEN: 'project_open',
   CAMPAIGN_NEW: 'campaign_new', QUICK_DOC: 'quick_doc',
+  INVITE: 'invite',
 };
 
 export default function App() {
@@ -27,17 +28,35 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [projectId, setProjectId] = useState(null);
   const [activeProject, setActiveProject] = useState(null);
+  const [inviteToken, setInviteToken] = useState(null);
+  const [inviteData, setInviteData] = useState(null);
+  const [inviteError, setInviteError] = useState('');
+  const [inviteAccepting, setInviteAccepting] = useState(false);
 
   useEffect(() => {
+    // Check for invite token in URL
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('invite');
+    if (token) {
+      setInviteToken(token);
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+
+    if (window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user);
-        setScreen(S.DASHBOARD);
-      }
-      if (window.location.hash) {
-        window.history.replaceState(null, '', window.location.pathname);
+        if (token) {
+          loadInvite(token, session.user);
+        } else {
+          setScreen(S.DASHBOARD);
+        }
       }
     });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser(session.user);
@@ -51,6 +70,47 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
+  const loadInvite = async (token, currentUser) => {
+    const { data: member } = await supabase
+      .from('project_members')
+      .select('*, pm_projects(*)')
+      .eq('token', token)
+      .single();
+
+    if (!member) {
+      setInviteError('This invite link is invalid or has expired.');
+      setScreen(S.INVITE);
+      return;
+    }
+
+    if (member.status === 'accepted') {
+      // Already accepted — just go to dashboard
+      setScreen(S.DASHBOARD);
+      return;
+    }
+
+    setInviteData(member);
+    setScreen(S.INVITE);
+  };
+
+  const acceptInvite = async () => {
+    if (!inviteData || !user) return;
+    setInviteAccepting(true);
+    await supabase.from('project_members').update({
+      status: 'accepted',
+      user_id: user.id,
+    }).eq('id', inviteData.id);
+    setInviteAccepting(false);
+    setScreen(S.DASHBOARD);
+  };
+
+  const declineInvite = async () => {
+    if (inviteData) {
+      await supabase.from('project_members').delete().eq('id', inviteData.id);
+    }
+    setScreen(S.DASHBOARD);
+  };
+
   const selectMode = (m) => { setMode(m); setAnswers({}); setAnalysis(null); setProjectId(null); setScreen(S.QA); };
   const complete = (a) => { const r = analyze(mode, a); setAnswers(a); setAnalysis(r); Analytics.reportGenerated(mode, r.score); setScreen(S.RESULTS); };
   const reset = () => { setMode(null); setAnswers({}); setAnalysis(null); setProjectId(null); setActiveProject(null); setScreen(S.LAND); };
@@ -62,6 +122,52 @@ export default function App() {
   const openValidation = (p) => { setMode(p.mode); setAnswers(p.answers); setAnalysis(p.analysis); setProjectId(p.id); setScreen(S.RESULTS); };
   const openProject = (p) => { setActiveProject({ ...p, _currentUser: user }); setScreen(S.PROJECT_OPEN); };
   const logout = async () => { await supabase.auth.signOut(); setUser(null); reset(); };
+
+  // Invite screen
+  if (screen === S.INVITE) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div style={{ background: '#FFFFFF', borderRadius: 16, padding: 40, maxWidth: 480, width: '100%', border: '1px solid #E5E7EB', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>PM Buddy</p>
+
+          {inviteError ? (
+            <>
+              <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0A0A0A', marginBottom: 12 }}>Invalid Invite</h2>
+              <p style={{ fontSize: 15, color: '#6B7280', lineHeight: 1.7, marginBottom: 24 }}>{inviteError}</p>
+              <button style={{ padding: '12px 24px', background: '#0A0A0A', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setScreen(S.DASHBOARD)}>Go to Dashboard</button>
+            </>
+          ) : inviteData ? (
+            <>
+              <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0A0A0A', marginBottom: 12 }}>You have been invited</h2>
+              <p style={{ fontSize: 15, color: '#6B7280', lineHeight: 1.7, marginBottom: 8 }}>
+                You have been invited to join <strong style={{ color: '#0A0A0A' }}>{inviteData.pm_projects?.name}</strong> as a <strong style={{ color: '#0A0A0A' }}>{inviteData.role}</strong>.
+              </p>
+              <p style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 28 }}>
+                {inviteData.pm_projects?.description}
+              </p>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button
+                  style={{ flex: 1, padding: '12px', background: '#0284C7', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: inviteAccepting ? 0.6 : 1 }}
+                  onClick={acceptInvite}
+                  disabled={inviteAccepting}
+                >
+                  {inviteAccepting ? 'Accepting...' : 'Accept Invitation'}
+                </button>
+                <button
+                  style={{ padding: '12px 20px', background: 'none', color: '#6B7280', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
+                  onClick={declineInvite}
+                >
+                  Decline
+                </button>
+              </div>
+            </>
+          ) : (
+            <p style={{ color: '#9CA3AF' }}>Loading invite...</p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
