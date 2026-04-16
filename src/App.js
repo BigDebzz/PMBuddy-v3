@@ -33,22 +33,39 @@ export default function App() {
   const [inviteAccepting, setInviteAccepting] = useState(false);
 
   useEffect(() => {
-    // Check for invite token in URL
     const params = new URLSearchParams(window.location.search);
     const token = params.get('invite');
     if (token) {
       window.history.replaceState(null, '', window.location.pathname);
     }
-
     if (window.location.hash) {
       window.history.replaceState(null, '', window.location.pathname);
     }
+
+    const loadInvite = async (tok) => {
+      const { data: member } = await supabase
+        .from('project_members')
+        .select('*, pm_projects(*)')
+        .eq('token', tok)
+        .single();
+      if (!member) {
+        setInviteError('This invite link is invalid or has expired.');
+        setScreen(S.INVITE);
+        return;
+      }
+      if (member.status === 'accepted') {
+        setScreen(S.DASHBOARD);
+        return;
+      }
+      setInviteData(member);
+      setScreen(S.INVITE);
+    };
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user);
         if (token) {
-          loadInvite(token, session.user);
+          loadInvite(token);
         } else {
           setScreen(S.DASHBOARD);
         }
@@ -66,30 +83,7 @@ export default function App() {
       }
     });
     return () => subscription.unsubscribe();
-  }, []);
-
-  const loadInvite = async (token, currentUser) => {
-    const { data: member } = await supabase
-      .from('project_members')
-      .select('*, pm_projects(*)')
-      .eq('token', token)
-      .single();
-
-    if (!member) {
-      setInviteError('This invite link is invalid or has expired.');
-      setScreen(S.INVITE);
-      return;
-    }
-
-    if (member.status === 'accepted') {
-      // Already accepted — just go to dashboard
-      setScreen(S.DASHBOARD);
-      return;
-    }
-
-    setInviteData(member);
-    setScreen(S.INVITE);
-  };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const acceptInvite = async () => {
     if (!inviteData || !user) return;
