@@ -1,7 +1,3 @@
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-
 export const config = { api: { bodyParser: true } };
 
 export default async function handler(request, response) {
@@ -13,6 +9,9 @@ export default async function handler(request, response) {
 
     const { email, role, projectId, projectName, inviterName, token } = body;
     if (!email || !projectId || !token) return response.status(400).json({ error: 'Missing fields' });
+
+    const BREVO_API_KEY = process.env.BREVO_API_KEY;
+    if (!BREVO_API_KEY) return response.status(500).json({ error: 'Email service not configured' });
 
     const inviteUrl = `https://pmbuddy-v3.vercel.app?invite=${token}`;
 
@@ -41,19 +40,23 @@ export default async function handler(request, response) {
 </body>
 </html>`;
 
-    const res = await fetch('https://api.resend.com/emails', {
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      headers: {
+        'api-key': BREVO_API_KEY,
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
-        from: 'PM Buddy <onboarding@resend.dev>',
-        to: [email],
+        sender: { name: 'PM Buddy', email: 'noreply@pmbuddy-v3.vercel.app' },
+        to: [{ email }],
         subject: `You have been invited to ${projectName} on PM Buddy`,
-        html: emailHtml,
+        htmlContent: emailHtml,
       }),
     });
 
     if (!res.ok) {
       const err = await res.json();
+      console.error('Brevo error:', err);
       return response.status(res.status).json({ error: err });
     }
 
