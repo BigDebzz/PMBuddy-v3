@@ -9,8 +9,7 @@
   "functions": {
     "api/gemini.js": { "maxDuration": 60 },
     "api/send-reminder.js": { "maxDuration": 15 },
-    "api/check-milestones.js": { "maxDuration": 60 },
-    "api/invite.js": { "maxDuration": 15 }
+    "api/check-milestones.js": { "maxDuration": 60 }
   },
   "crons": [
     {
