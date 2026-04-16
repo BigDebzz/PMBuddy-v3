@@ -18,7 +18,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => { fetchAll(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchAll = async () => {
     setLoading(true);
