@@ -28,7 +28,6 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [projectId, setProjectId] = useState(null);
   const [activeProject, setActiveProject] = useState(null);
-  const [inviteToken, setInviteToken] = useState(null);
   const [inviteData, setInviteData] = useState(null);
   const [inviteError, setInviteError] = useState('');
   const [inviteAccepting, setInviteAccepting] = useState(false);
