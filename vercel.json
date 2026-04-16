@@ -2,11 +2,15 @@
   "buildCommand": "npm run build",
   "outputDirectory": "build",
   "framework": "create-react-app",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
   "functions": {
     "api/gemini.js": { "maxDuration": 60 },
     "api/send-reminder.js": { "maxDuration": 15 },
-    "api/check-milestones.js": { "maxDuration": 60 }
+    "api/check-milestones.js": { "maxDuration": 60 },
+    "api/invite.js": { "maxDuration": 15 }
   },
   "crons": [
     {
