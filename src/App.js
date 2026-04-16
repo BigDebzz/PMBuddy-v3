@@ -37,7 +37,6 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('invite');
     if (token) {
-      setInviteToken(token);
       window.history.replaceState(null, '', window.location.pathname);
     }
 
