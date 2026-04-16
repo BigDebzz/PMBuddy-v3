@@ -10,6 +10,7 @@ const RULE = '#E5E7EB';
 export default function Dashboard({ user, onOpenValidation, onOpenProject, onNewValidation, onNewProject, onNewCampaign, onNewQuickDoc, onLogout }) {
   const [validations, setValidations] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [invitedProjects, setInvitedProjects] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -21,14 +22,21 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
 
   const fetchAll = async () => {
     setLoading(true);
-    const [{ data: v }, { data: p }, { data: d }] = await Promise.all([
+    const [{ data: v }, { data: p }, { data: d }, { data: members }] = await Promise.all([
       supabase.from('projects').select('*').order('updated_at', { ascending: false }),
       supabase.from('pm_projects').select('*').order('updated_at', { ascending: false }),
       supabase.from('documents').select('*').order('updated_at', { ascending: false }),
+      supabase.from('project_members').select('*, pm_projects(*)').eq('email', user.email).eq('status', 'accepted'),
     ]);
     setValidations(v || []);
     setProjects(p || []);
     setDocuments(d || []);
+    // Extract invited projects — exclude ones the user already owns
+    const ownedIds = new Set((p || []).map(proj => proj.id));
+    const invited = (members || [])
+      .filter(m => m.pm_projects && !ownedIds.has(m.pm_projects.id))
+      .map(m => ({ ...m.pm_projects, _inviteRole: m.role }));
+    setInvitedProjects(invited);
     setLoading(false);
   };
 
@@ -68,12 +76,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
               { icon: '✎', label: 'Quick Doc', body: 'Create a concept note, session plan or proposal in minutes.', action: onNewQuickDoc, bg: '#FFF7ED', color: '#C2410C' },
               { icon: '◎', label: 'Book a Consultant', body: 'Get expert PM support directly from your dashboard.', action: null, bg: '#F3F4F6', color: '#9CA3AF', soon: true },
             ].map((item, i) => (
-              <button
-                key={i}
-                style={{ ...s.quickCard, cursor: item.action ? 'pointer' : 'default', opacity: item.action ? 1 : 0.5 }}
-                onClick={item.action || undefined}
-                disabled={!item.action}
-              >
+              <button key={i} style={{ ...s.quickCard, cursor: item.action ? 'pointer' : 'default', opacity: item.action ? 1 : 0.5 }} onClick={item.action || undefined} disabled={!item.action}>
                 <div style={{ ...s.quickIcon, background: item.bg, color: item.color }}>{item.icon}</div>
                 <div style={{ flex: 1 }}>
                   <div style={s.quickTitleRow}>
@@ -89,13 +92,11 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
 
         <div style={s.rule} />
 
-        {/* PM PROJECTS */}
+        {/* MY PROJECTS */}
         <div style={s.section}>
           <div style={s.sectionHead}>
             <p style={s.sectionLabel}>My Projects</p>
-            {projects.length > 0 && (
-              <button style={s.newBtn} onClick={onNewProject}>New project</button>
-            )}
+            {projects.length > 0 && <button style={s.newBtn} onClick={onNewProject}>New project</button>}
           </div>
 
           {loading && <p style={s.emptyText}>Loading...</p>}
@@ -116,14 +117,11 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                 const openRisks = (p.risks || []).filter(r => r.status === 'open').length;
                 const doneMilestones = (p.milestones || []).filter(m => m.status === 'done').length;
                 const totalMilestones = (p.milestones || []).length;
-
                 return (
                   <div key={p.id} style={s.projectCard}>
-                    <div style={s.projectCardTop}>
-                      <div style={s.projectBadges}>
-                        <span style={s.industryBadge}>{p.industry}</span>
-                        <span style={s.methodBadge}>{p.methodology}</span>
-                      </div>
+                    <div style={s.projectBadges}>
+                      <span style={s.industryBadge}>{p.industry}</span>
+                      <span style={s.methodBadge}>{p.methodology}</span>
                     </div>
                     <p style={s.projectName}>{p.name}</p>
                     <p style={s.projectDesc}>{p.description}</p>
@@ -158,15 +156,65 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
 
         <div style={s.rule} />
 
+        {/* INVITED PROJECTS */}
+        <div style={s.section}>
+          <div style={s.sectionHead}>
+            <p style={s.sectionLabel}>Projects I Was Invited To</p>
+          </div>
+
+          {!loading && invitedProjects.length === 0 && (
+            <div style={s.emptyState}>
+              <p style={s.emptyTitle}>No invited projects yet.</p>
+              <p style={s.emptyBody}>When someone invites you to collaborate on their project and you accept, it will appear here.</p>
+            </div>
+          )}
+
+          {!loading && invitedProjects.length > 0 && (
+            <div style={s.projectsGrid}>
+              {invitedProjects.map(p => {
+                const end = p.timeline?.end ? new Date(p.timeline.end) : null;
+                const daysLeft = end ? Math.ceil((end - new Date()) / 86400000) : null;
+                const doneMilestones = (p.milestones || []).filter(m => m.status === 'done').length;
+                const totalMilestones = (p.milestones || []).length;
+                return (
+                  <div key={p.id} style={{ ...s.projectCard, borderColor: BLUE + '40' }}>
+                    <div style={s.projectBadges}>
+                      <span style={s.industryBadge}>{p.industry}</span>
+                      <span style={{ ...s.methodBadge, background: '#EFF6FF', color: BLUE }}>{p._inviteRole}</span>
+                    </div>
+                    <p style={s.projectName}>{p.name}</p>
+                    <p style={s.projectDesc}>{p.description}</p>
+                    <div style={s.projectStats}>
+                      <div style={s.stat}>
+                        <span style={s.statNum}>{doneMilestones}/{totalMilestones}</span>
+                        <span style={s.statLabel}>Milestones</span>
+                      </div>
+                      <div style={s.statDivider} />
+                      <div style={s.stat}>
+                        <span style={{ ...s.statNum, color: daysLeft !== null && daysLeft < 7 ? '#DC2626' : BL }}>
+                          {daysLeft !== null ? `${daysLeft}d` : 'N/A'}
+                        </span>
+                        <span style={s.statLabel}>Days Left</span>
+                      </div>
+                    </div>
+                    <div style={s.cardActions}>
+                      <button style={s.openBtn} onClick={() => onOpenProject(p)}>Open project</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div style={s.rule} />
+
         {/* VALIDATIONS */}
         <div style={s.section}>
           <div style={s.sectionHead}>
             <p style={s.sectionLabel}>My Validations</p>
-            {validations.length > 0 && (
-              <button style={s.newBtn} onClick={onNewValidation}>New validation</button>
-            )}
+            {validations.length > 0 && <button style={s.newBtn} onClick={onNewValidation}>New validation</button>}
           </div>
-
           {!loading && validations.length === 0 && (
             <div style={s.emptyState}>
               <p style={s.emptyTitle}>No validations yet.</p>
@@ -174,7 +222,6 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
               <button style={s.primaryBtn} onClick={onNewValidation}>Start a validation</button>
             </div>
           )}
-
           {!loading && validations.length > 0 && (
             <div style={s.validationsGrid}>
               {validations.map(v => (
@@ -182,9 +229,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                   <div style={s.validationLeft}>
                     <div style={s.validationMeta}>
                       <span style={s.modeBadge}>{v.mode === 'hackathon' ? 'Hackathon' : 'Startup'}</span>
-                      <span style={s.validationDate}>
-                        {new Date(v.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </span>
+                      <span style={s.validationDate}>{new Date(v.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                     </div>
                     <p style={s.validationTitle}>{v.title || 'Untitled Validation'}</p>
                     <p style={{ ...s.validationVerdict, color: v.analysis.color }}>{v.analysis.verdict}</p>
@@ -209,17 +254,13 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
 
         {/* DOCUMENTS */}
         <div style={s.section}>
-          <div style={s.sectionHead}>
-            <p style={s.sectionLabel}>My Documents</p>
-          </div>
-
+          <div style={s.sectionHead}><p style={s.sectionLabel}>My Documents</p></div>
           {!loading && documents.length === 0 && (
             <div style={s.emptyState}>
               <p style={s.emptyTitle}>No documents yet.</p>
               <p style={s.emptyBody}>Open a project and go to the Documents tab to generate and save PM documents.</p>
             </div>
           )}
-
           {!loading && documents.length > 0 && (() => {
             const grouped = documents.reduce((acc, doc) => {
               const key = doc.project_name || 'Unknown Project';
@@ -227,23 +268,17 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
               acc[key].push(doc);
               return acc;
             }, {});
-
             return Object.entries(grouped).map(([projectName, docs]) => (
               <div key={projectName} style={s.docGroup}>
                 <p style={s.docGroupLabel}>{projectName}</p>
                 {docs.map(doc => (
                   <div key={doc.id} style={s.docRow}>
                     <div style={s.docRowLeft}>
-                      <span style={{ ...s.docTypeBadge,
-                        background: doc.type === 'pm' ? '#EFF6FF' : doc.type === 'quick' ? '#FFF7ED' : '#F5F3FF',
-                        color: doc.type === 'pm' ? BLUE : doc.type === 'quick' ? '#C2410C' : '#7C3AED'
-                      }}>
+                      <span style={{ ...s.docTypeBadge, background: doc.type === 'pm' ? '#EFF6FF' : doc.type === 'quick' ? '#FFF7ED' : '#F5F3FF', color: doc.type === 'pm' ? BLUE : doc.type === 'quick' ? '#C2410C' : '#7C3AED' }}>
                         {doc.type === 'pm' ? 'Internal' : doc.type === 'quick' ? 'Quick Doc' : 'External'}
                       </span>
                       <p style={s.docRowTitle}>{doc.title}</p>
-                      <p style={s.docRowDate}>
-                        {new Date(doc.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </p>
+                      <p style={s.docRowDate}>{new Date(doc.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                     </div>
                     <div style={s.docRowActions}>
                       <button style={s.openBtn} onClick={() => {
@@ -251,8 +286,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                         if (project) onOpenProject({ ...project, _openDoc: doc });
                       }}>Open Document</button>
                       <button style={{ ...s.openBtn, background: WH, color: BLUE, border: `1px solid ${BLUE}` }} onClick={() => {
-                        const html = doc.content;
-                        const blob = new Blob([html], { type: 'text/html' });
+                        const blob = new Blob([doc.content], { type: 'text/html' });
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
@@ -278,42 +312,35 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
 const s = {
   page: { minHeight: '100vh', background: WH, padding: '48px 48px 80px', fontFamily: "'DM Sans', system-ui, sans-serif" },
   wrap: { maxWidth: 1000, margin: '0 auto' },
-
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32, flexWrap: 'wrap', gap: 12 },
   greeting: { fontSize: 13, color: '#9CA3AF', fontWeight: 400, marginBottom: 6, letterSpacing: '0.01em' },
   title: { fontSize: 28, fontWeight: 500, color: BL, letterSpacing: '-0.8px' },
   logoutBtn: { padding: '8px 16px', background: 'none', color: '#6B7280', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
-
   rule: { borderTop: `1px solid ${RULE}`, margin: '0 0 36px' },
-
   quickSection: { marginBottom: 36 },
   sectionLabel: { fontSize: 11, fontWeight: 500, color: BLUE, textTransform: 'uppercase', letterSpacing: '0.16em', marginBottom: 16 },
   quickGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 },
-  quickCard: { display: 'flex', alignItems: 'flex-start', gap: 14, background: WH, border: `1px solid ${RULE}`, borderRadius: 10, padding: '18px', fontFamily: 'inherit', textAlign: 'left', transition: 'border-color 0.15s ease', width: '100%' },
+  quickCard: { display: 'flex', alignItems: 'flex-start', gap: 14, background: WH, border: `1px solid ${RULE}`, borderRadius: 10, padding: '18px', fontFamily: 'inherit', textAlign: 'left', width: '100%' },
   quickIcon: { width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 },
   quickTitleRow: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 },
   quickTitle: { fontSize: 13, fontWeight: 600, color: BL },
   quickBody: { fontSize: 12, color: '#9CA3AF', lineHeight: 1.6 },
   comingSoon: { fontSize: 10, fontWeight: 600, color: BLUE, background: '#EFF6FF', padding: '2px 7px', borderRadius: 100 },
-
   section: { marginBottom: 36 },
   sectionHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   newBtn: { padding: '6px 14px', background: 'none', color: BLUE, border: `1px solid ${BLUE}`, borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
   primaryBtn: { padding: '10px 20px', background: BL, color: WH, border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
-
   emptyState: { padding: '40px 0' },
   emptyTitle: { fontSize: 16, fontWeight: 500, color: BL, marginBottom: 8 },
   emptyBody: { fontSize: 14, color: '#9CA3AF', marginBottom: 20, lineHeight: 1.7, maxWidth: 420 },
   emptyText: { color: '#9CA3AF', fontSize: 14, padding: '24px 0' },
-
   projectsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 },
   projectCard: { border: `1px solid ${RULE}`, borderRadius: 10, padding: '20px' },
-  projectCardTop: { marginBottom: 12 },
-  projectBadges: { display: 'flex', gap: 6 },
-  industryBadge: { fontSize: 10, fontWeight: 600, background: '#EFF6FF', color: BLUE, padding: '3px 9px', borderRadius: 100, letterSpacing: '0.04em' },
-  methodBadge: { fontSize: 10, fontWeight: 600, background: GREY, color: '#6B7280', padding: '3px 9px', borderRadius: 100, letterSpacing: '0.04em' },
+  projectBadges: { display: 'flex', gap: 6, marginBottom: 12 },
+  industryBadge: { fontSize: 10, fontWeight: 600, background: '#EFF6FF', color: BLUE, padding: '3px 9px', borderRadius: 100 },
+  methodBadge: { fontSize: 10, fontWeight: 600, background: GREY, color: '#6B7280', padding: '3px 9px', borderRadius: 100 },
   projectName: { fontSize: 15, fontWeight: 600, color: BL, marginBottom: 4, letterSpacing: '-0.2px' },
-  projectDesc: { fontSize: 13, color: '#9CA3AF', lineHeight: 1.6, marginBottom: 16 },
+  projectDesc: { fontSize: 13, color: '#9CA3AF', lineHeight: 1.6, marginBottom: 16, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' },
   projectStats: { display: 'flex', gap: 0, marginBottom: 16, border: `1px solid ${RULE}`, borderRadius: 8, overflow: 'hidden' },
   stat: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 8px', gap: 3 },
   statNum: { fontSize: 16, fontWeight: 600, color: BL, letterSpacing: '-0.3px' },
@@ -322,7 +349,6 @@ const s = {
   cardActions: { display: 'flex', gap: 8 },
   openBtn: { padding: '7px 16px', background: BL, color: WH, border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
   deleteBtn: { padding: '7px 14px', background: 'none', color: '#9CA3AF', border: `1px solid ${RULE}`, borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
-
   validationsGrid: { display: 'flex', flexDirection: 'column', gap: 0 },
   validationRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 0', borderBottom: `1px solid ${RULE}`, gap: 20, flexWrap: 'wrap' },
   validationLeft: { flex: 1, minWidth: 200 },
