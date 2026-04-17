@@ -558,19 +558,44 @@ function OverviewTab({ data, methodology, info, onSave }) {
 
 function ProgressTab({ data, onSave }) {
   const milestones = data.milestones || [];
+  const [editingIdx, setEditingIdx] = useState(null);
+  const [editDraft, setEditDraft] = useState({});
+  const [newTitle, setNewTitle] = useState('');
+  const [newDate, setNewDate] = useState('');
+
   const cycleMilestone = (i) => {
     const current = milestones[i].status;
     const next = current === 'pending' ? 'in_progress' : current === 'in_progress' ? 'done' : 'pending';
     onSave({ milestones: milestones.map((m, idx) => idx === i ? { ...m, status: next } : m) });
   };
+
+  const startEdit = (i) => { setEditingIdx(i); setEditDraft({ ...milestones[i] }); };
+
+  const saveEdit = () => {
+    onSave({ milestones: milestones.map((m, idx) => idx === editingIdx ? { ...editDraft } : m) });
+    setEditingIdx(null);
+  };
+
+  const deleteMilestone = (i) => {
+    onSave({ milestones: milestones.filter((_, idx) => idx !== i) });
+    if (editingIdx === i) setEditingIdx(null);
+  };
+
+  const addMilestone = () => {
+    if (!newTitle.trim()) return;
+    onSave({ milestones: [...milestones, { title: newTitle.trim(), date: newDate, status: 'pending' }] });
+    setNewTitle(''); setNewDate('');
+  };
+
   const statusConfig = {
     done: { bg: '#F0FDF4', color: '#15803D', label: 'Done', next: 'Mark Pending' },
     in_progress: { bg: '#FFF7ED', color: '#D97706', label: 'In Progress', next: 'Mark Done' },
     pending: { bg: '#EFF6FF', color: BLUE, label: 'Pending', next: 'Mark In Progress' },
   };
+
   return (
     <div>
-      <SectionHead title="Progress" sub="Track where things stand. Click a milestone to cycle through Pending → In Progress → Done." />
+      <SectionHead title="Progress" sub="Track where things stand. Edit milestones, add new ones, or cycle their status." />
       <div style={s.timelineRange}>
         <div style={{ flex: 1, textAlign: 'center' }}>
           <p style={s.timelineDateLabel}>Start Date</p>
@@ -582,10 +607,46 @@ function ProgressTab({ data, onSave }) {
           <p style={s.timelineDateVal}>{data.timeline?.end ? formatDate(data.timeline.end) : 'Not set'}</p>
         </div>
       </div>
-      <p style={s.sectionLabel}>Milestones</p>
-      {milestones.length === 0 && <p style={s.emptyText}>No milestones set.</p>}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <p style={s.sectionLabel}>Milestones</p>
+      </div>
+
+      {milestones.length === 0 && <p style={s.emptyText}>No milestones set. Add one below.</p>}
+
       {milestones.map((m, i) => {
         const sc = statusConfig[m.status] || statusConfig.pending;
+        if (editingIdx === i) {
+          return (
+            <div key={i} style={{ ...s.milestoneCard, flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
+              <input
+                style={{ ...s.input, marginBottom: 0 }}
+                value={editDraft.title}
+                onChange={e => setEditDraft(p => ({ ...p, title: e.target.value }))}
+                placeholder="Milestone name"
+              />
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <input
+                  style={{ ...s.input, marginBottom: 0, flex: 1 }}
+                  type="date"
+                  value={editDraft.date || ''}
+                  onChange={e => setEditDraft(p => ({ ...p, date: e.target.value }))}
+                />
+                <select
+                  style={s.select}
+                  value={editDraft.status}
+                  onChange={e => setEditDraft(p => ({ ...p, status: e.target.value }))}
+                >
+                  <option value="pending">Pending</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="done">Done</option>
+                </select>
+                <button style={{ ...s.sprintBtn, background: BLUE, color: WH, borderColor: BLUE }} onClick={saveEdit}>Save</button>
+                <button style={s.sprintBtn} onClick={() => setEditingIdx(null)}>Cancel</button>
+              </div>
+            </div>
+          );
+        }
         return (
           <div key={i} style={s.milestoneCard}>
             <div style={{ flex: 1 }}>
@@ -594,9 +655,32 @@ function ProgressTab({ data, onSave }) {
             </div>
             <span style={{ ...s.pill, background: sc.bg, color: sc.color }}>{sc.label}</span>
             <button style={s.sprintBtn} onClick={() => cycleMilestone(i)}>{sc.next}</button>
+            <button style={s.sprintBtn} onClick={() => startEdit(i)}>Edit</button>
+            <button style={{ ...s.sprintBtn, color: '#DC2626', borderColor: '#FECACA' }} onClick={() => deleteMilestone(i)}>Delete</button>
           </div>
         );
       })}
+
+      {/* Add new milestone */}
+      <div style={{ marginTop: 16, background: GREY, borderRadius: 10, padding: '14px', border: '1px solid #E5E7EB' }}>
+        <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 10 }}>Add a Milestone</p>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <input
+            style={{ ...s.input, flex: 2, marginBottom: 0, minWidth: 140 }}
+            placeholder="e.g. Launch beta version"
+            value={newTitle}
+            onChange={e => setNewTitle(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addMilestone()}
+          />
+          <input
+            style={{ ...s.input, flex: 1, marginBottom: 0, minWidth: 120 }}
+            type="date"
+            value={newDate}
+            onChange={e => setNewDate(e.target.value)}
+          />
+          <button style={s.addBtn} onClick={addMilestone}>Add</button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -968,3 +1052,4 @@ const s = {
   editedBadge: { fontSize: 10, fontWeight: 600, color: '#D97706', background: '#FFFBEB', padding: '2px 7px', borderRadius: 100, display: 'inline-block', marginTop: 2 },
   insightSmBtn: { padding: '4px 10px', background: WH, color: '#374151', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
 };
+
