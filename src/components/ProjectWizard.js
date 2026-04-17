@@ -253,9 +253,11 @@ Your job is to rewrite this as a clear, simple 2-3 sentence project description 
 
 Return ONLY the rewritten description. Nothing else.`,
 
-      goal: `You are PM Buddy, a friendly project management coach. Someone wrote this as their project goal: "${value}"
+      goal: `You are PM Buddy, a friendly project management coach. Someone was asked "what does success look like for your project?" and they wrote: "${value}"
 
-Rewrite this as a clear, specific success statement that a non-PM person can understand and work towards. It should answer: what will be different when this project is done? Make it concrete. Avoid vague words like "improve", "enhance" or "be successful". Use simple language.
+They may have described what done looks like rather than a proper goal. Turn this into a clear, measurable project goal that answers: WHO will benefit, WHAT will change or be achieved, and HOW they will know it worked.
+
+Use simple everyday language. No jargon. Write it as one or two sentences starting with "This project will succeed when..." or similar. Make it specific and realistic based on what they wrote.
 
 Return ONLY the rewritten goal. Nothing else.`,
     };
