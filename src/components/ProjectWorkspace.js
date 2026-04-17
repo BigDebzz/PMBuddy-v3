@@ -24,7 +24,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
   const [methodology, setMethodology] = useState(project.methodology || 'Agile');
   const [showMethodPicker, setShowMethodPicker] = useState(false);
   const [tab, setTab] = useState(project._openDoc ? 'Documents' : 'Overview');
-  const [saveStatus, setSaveStatus] = useState('saved'); // 'saved' | 'saving' | 'unsaved'
+  const [saveStatus, setSaveStatus] = useState('saved');
   const saveTimerRef = useRef(null);
 
   const save = useCallback(async (updates) => {
@@ -125,34 +125,29 @@ function CurrentStatusSection({ data, onSave }) {
   const [aiReview, setAiReview] = useState('');
   const [reviewing, setReviewing] = useState(false);
 
-  const saveStatus = () => {
-    onSave({ scope: { ...scope, ...draft } });
-    setEditing(false);
-  };
+  const saveStatus = () => { onSave({ scope: { ...scope, ...draft } }); setEditing(false); };
 
   const getAiReview = async () => {
     setReviewing(true);
     setAiReview('');
-    const prompt = `You are a senior project manager reviewing a project status update.
+    const prompt = `You are PM Buddy, a friendly project management coach. Review this project status and give honest, plain-English feedback.
 
 Project: ${data.name}
 Industry: ${data.industry}
 Goal: ${scope.goal}
+Phase: ${draft.currentPhase || 'Not specified'}
+Done so far: ${draft.completedWork || 'Not specified'}
+Still to do: ${draft.remainingWork || 'Not specified'}
+Blockers: ${draft.blockers || 'None listed'}
+Communication: ${draft.communicationFlow || 'Not specified'}
 
-Current Status:
-- Phase: ${draft.currentPhase || 'Not specified'}
-- What has been done: ${draft.completedWork || 'Not specified'}
-- What is remaining: ${draft.remainingWork || 'Not specified'}
-- Current blockers: ${draft.blockers || 'None listed'}
-- Communication: ${draft.communicationFlow || 'Not specified'}
-
-Give a 3 to 4 sentence honest assessment. What looks good, what is concerning, and what is the single most important thing they should focus on right now. Reference their specific situation. Be direct and practical. Do not use bullet points.`;
+Give 3 to 4 sentences of honest feedback. What looks good, what is concerning, and the single most important thing to focus on right now. Use simple language. No bullet points. No jargon.`;
 
     try {
       const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
       const result = await res.json();
-      setAiReview(result.result || 'Could not get AI feedback right now. Try again.');
-    } catch { setAiReview('Could not get AI feedback right now. Try again.'); }
+      setAiReview(result.result || 'Could not get feedback right now. Try again.');
+    } catch { setAiReview('Could not get feedback right now. Try again.'); }
     setReviewing(false);
   };
 
@@ -174,7 +169,6 @@ Give a 3 to 4 sentence honest assessment. What looks good, what is concerning, a
           )}
         </div>
       </div>
-
       {!editing ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {[
@@ -206,11 +200,94 @@ Give a 3 to 4 sentence honest assessment. What looks good, what is concerning, a
           ))}
         </div>
       )}
-
       {aiReview && (
         <div style={{ marginTop: 16, background: WH, borderRadius: 10, padding: '14px 16px', border: '1px solid #BFDBFE' }}>
-          <p style={{ fontSize: 11, fontWeight: 700, color: BLUE, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>PM Buddy's Assessment</p>
+          <p style={{ fontSize: 11, fontWeight: 700, color: BLUE, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>PM Buddy's Take</p>
           <p style={{ fontSize: 14, color: '#374151', lineHeight: 1.7 }}>{aiReview}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GoalRefineSection({ label, value, field, onAccept }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value || '');
+  const [refining, setRefining] = useState(false);
+  const [suggestion, setSuggestion] = useState('');
+
+  const refine = async () => {
+    if (!draft.trim()) return;
+    setRefining(true);
+    setSuggestion('');
+    const prompts = {
+      goal: `You are PM Buddy, a friendly project management coach. Someone wrote this as their project goal: "${draft}"
+
+Rewrite it as a clear, specific success statement that anyone can understand. Answer: what will be different when this project is done? Keep it concrete and simple. No jargon.
+
+Return ONLY the rewritten goal. Nothing else.`,
+      description: `You are PM Buddy, a friendly project management coach. Someone described their project like this: "${draft}"
+
+Rewrite this as a clear, simple 2-3 sentence description anyone can understand. Explain what the project is, who it is for, and what it will do. No jargon. No corporate speak.
+
+Return ONLY the rewritten description. Nothing else.`,
+    };
+    try {
+      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: prompts[field] || prompts.goal }) });
+      const result = await res.json();
+      const refined = (result.result || '').trim();
+      if (refined) setSuggestion(refined);
+    } catch (err) { console.error(err); }
+    setRefining(false);
+  };
+
+  const accept = () => { onAccept(suggestion); setSuggestion(''); setDraft(suggestion); setEditing(false); };
+  const saveEdit = () => { onAccept(draft); setEditing(false); };
+
+  return (
+    <div style={s.goalCard}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <p style={s.sectionLabel}>{label}</p>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {!editing ? (
+            <>
+              <button style={s.smallEditBtn} onClick={() => { setEditing(true); setDraft(value || ''); }}>Edit</button>
+              <button style={s.smallRefineBtn} onClick={() => { setEditing(true); setDraft(value || ''); setTimeout(refine, 100); }}>AI Refine</button>
+            </>
+          ) : (
+            <>
+              <button style={{ ...s.smallEditBtn, background: BLUE, color: WH, borderColor: BLUE }} onClick={saveEdit}>Save</button>
+              <button style={s.smallEditBtn} onClick={() => { setEditing(false); setSuggestion(''); }}>Cancel</button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {!editing ? (
+        <p style={s.goalText}>{value || 'Not set.'}</p>
+      ) : (
+        <textarea
+          style={{ ...s.textarea, marginBottom: 8, minHeight: 80 }}
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          rows={3}
+        />
+      )}
+
+      {editing && draft.trim().length > 20 && !suggestion && (
+        <button style={s.smallRefineBtn} onClick={refine} disabled={refining}>
+          {refining ? 'PM Buddy is refining...' : 'AI Refine'}
+        </button>
+      )}
+
+      {suggestion && (
+        <div style={s.suggestionBox}>
+          <p style={s.suggestionLabel}>PM Buddy Suggestion</p>
+          <p style={s.suggestionText}>{suggestion}</p>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            <button style={s.acceptBtn} onClick={accept}>Use this</button>
+            <button style={s.dismissBtn} onClick={() => setSuggestion('')}>Keep mine</button>
+          </div>
         </div>
       )}
     </div>
@@ -261,8 +338,21 @@ function OverviewTab({ data, methodology, info, onSave }) {
       </div>
 
       <div style={s.overviewSection}>
-        <p style={s.sectionLabel}>Your Project Goal</p>
-        <div style={s.goalCard}><p style={s.goalText}>{data.scope?.goal || 'No goal defined yet.'}</p></div>
+        <GoalRefineSection
+          label="Your Project Goal"
+          value={data.scope?.goal}
+          field="goal"
+          onAccept={(val) => onSave({ scope: { ...data.scope, goal: val } })}
+        />
+      </div>
+
+      <div style={s.overviewSection}>
+        <GoalRefineSection
+          label="Project Description"
+          value={data.description}
+          field="description"
+          onAccept={(val) => onSave({ description: val })}
+        />
       </div>
 
       {data.scope?.currentPhase !== undefined && (
@@ -301,24 +391,19 @@ function OverviewTab({ data, methodology, info, onSave }) {
 
 function ProgressTab({ data, onSave }) {
   const milestones = data.milestones || [];
-
   const cycleMilestone = (i) => {
     const current = milestones[i].status;
     const next = current === 'pending' ? 'in_progress' : current === 'in_progress' ? 'done' : 'pending';
-    const updated = milestones.map((m, idx) => idx === i ? { ...m, status: next } : m);
-    onSave({ milestones: updated });
+    onSave({ milestones: milestones.map((m, idx) => idx === i ? { ...m, status: next } : m) });
   };
-
   const statusConfig = {
     done: { bg: '#F0FDF4', color: '#15803D', label: 'Done', next: 'Mark Pending' },
     in_progress: { bg: '#FFF7ED', color: '#D97706', label: 'In Progress', next: 'Mark Done' },
     pending: { bg: '#EFF6FF', color: BLUE, label: 'Pending', next: 'Mark In Progress' },
   };
-
   return (
     <div>
       <SectionHead title="Progress" sub="Track where things stand. Click a milestone to cycle through Pending → In Progress → Done." />
-
       <div style={s.timelineRange}>
         <div style={{ flex: 1, textAlign: 'center' }}>
           <p style={s.timelineDateLabel}>Start Date</p>
@@ -330,9 +415,8 @@ function ProgressTab({ data, onSave }) {
           <p style={s.timelineDateVal}>{data.timeline?.end ? formatDate(data.timeline.end) : 'Not set'}</p>
         </div>
       </div>
-
       <p style={s.sectionLabel}>Milestones</p>
-      {milestones.length === 0 && <p style={s.emptyText}>No milestones set. Add them in the project settings.</p>}
+      {milestones.length === 0 && <p style={s.emptyText}>No milestones set.</p>}
       {milestones.map((m, i) => {
         const sc = statusConfig[m.status] || statusConfig.pending;
         return (
@@ -355,37 +439,14 @@ function BacklogTab({ data, onSave }) {
   const [newEpic, setNewEpic] = useState('');
   const [newStory, setNewStory] = useState({});
   const [expandedEpic, setExpandedEpic] = useState(null);
-
-  const addEpic = () => {
-    if (!newEpic.trim()) return;
-    onSave({ backlog: { epics: [...(backlog.epics || []), { title: newEpic.trim(), stories: [] }] } });
-    setNewEpic('');
-  };
-
-  const addStory = (epicIdx) => {
-    if (!newStory[epicIdx]?.trim()) return;
-    const epics = [...(backlog.epics || [])];
-    epics[epicIdx].stories = [...(epics[epicIdx].stories || []), { title: newStory[epicIdx].trim(), status: 'todo' }];
-    onSave({ backlog: { epics } });
-    setNewStory(p => ({ ...p, [epicIdx]: '' }));
-  };
-
-  const toggleStory = (epicIdx, storyIdx) => {
-    const epics = [...(backlog.epics || [])];
-    const story = epics[epicIdx].stories[storyIdx];
-    story.status = story.status === 'done' ? 'todo' : 'done';
-    onSave({ backlog: { epics } });
-  };
-
+  const addEpic = () => { if (!newEpic.trim()) return; onSave({ backlog: { epics: [...(backlog.epics || []), { title: newEpic.trim(), stories: [] }] } }); setNewEpic(''); };
+  const addStory = (epicIdx) => { if (!newStory[epicIdx]?.trim()) return; const epics = [...(backlog.epics || [])]; epics[epicIdx].stories = [...(epics[epicIdx].stories || []), { title: newStory[epicIdx].trim(), status: 'todo' }]; onSave({ backlog: { epics } }); setNewStory(p => ({ ...p, [epicIdx]: '' })); };
+  const toggleStory = (epicIdx, storyIdx) => { const epics = [...(backlog.epics || [])]; const story = epics[epicIdx].stories[storyIdx]; story.status = story.status === 'done' ? 'todo' : 'done'; onSave({ backlog: { epics } }); };
   const removeEpic = (i) => onSave({ backlog: { epics: (backlog.epics || []).filter((_, idx) => idx !== i) } });
-
   return (
     <div>
       <SectionHead title="What We Are Building" sub="Break your project into big areas of work, then list what needs to be built inside each one." />
-      <div style={s.addRow}>
-        <input style={{ ...s.input, flex: 1, marginBottom: 0 }} placeholder="Add a work area e.g. User Authentication" value={newEpic} onChange={e => setNewEpic(e.target.value)} onKeyDown={e => e.key === 'Enter' && addEpic()} />
-        <button style={s.addBtn} onClick={addEpic}>Add</button>
-      </div>
+      <div style={s.addRow}><input style={{ ...s.input, flex: 1, marginBottom: 0 }} placeholder="Add a work area e.g. User Authentication" value={newEpic} onChange={e => setNewEpic(e.target.value)} onKeyDown={e => e.key === 'Enter' && addEpic()} /><button style={s.addBtn} onClick={addEpic}>Add</button></div>
       {(backlog.epics || []).length === 0 && <p style={s.emptyText}>No work areas added yet.</p>}
       {(backlog.epics || []).map((epic, epicIdx) => (
         <div key={epicIdx} style={s.epicCard}>
@@ -407,10 +468,7 @@ function BacklogTab({ data, onSave }) {
                   <span style={{ ...s.storyTitle, textDecoration: story.status === 'done' ? 'line-through' : 'none', color: story.status === 'done' ? '#9CA3AF' : BL }}>{story.title}</span>
                 </div>
               ))}
-              <div style={{ ...s.addRow, marginTop: 12 }}>
-                <input style={{ ...s.input, flex: 1, marginBottom: 0, fontSize: 13 }} placeholder="Add item..." value={newStory[epicIdx] || ''} onChange={e => setNewStory(p => ({ ...p, [epicIdx]: e.target.value }))} onKeyDown={e => e.key === 'Enter' && addStory(epicIdx)} />
-                <button style={s.addBtn} onClick={() => addStory(epicIdx)}>Add</button>
-              </div>
+              <div style={{ ...s.addRow, marginTop: 12 }}><input style={{ ...s.input, flex: 1, marginBottom: 0, fontSize: 13 }} placeholder="Add item..." value={newStory[epicIdx] || ''} onChange={e => setNewStory(p => ({ ...p, [epicIdx]: e.target.value }))} onKeyDown={e => e.key === 'Enter' && addStory(epicIdx)} /><button style={s.addBtn} onClick={() => addStory(epicIdx)}>Add</button></div>
             </div>
           )}
         </div>
@@ -423,20 +481,9 @@ function SprintsTab({ data, onSave }) {
   const sprints = data.sprints || [];
   const [showAdd, setShowAdd] = useState(false);
   const [newSprint, setNewSprint] = useState({ goal: '', duration: '2 weeks', start: '', end: '' });
-
-  const addSprint = () => {
-    if (!newSprint.goal.trim()) return;
-    onSave({ sprints: [...sprints, { ...newSprint, number: sprints.length + 1, status: 'planning', items: [] }] });
-    setNewSprint({ goal: '', duration: '2 weeks', start: '', end: '' });
-    setShowAdd(false);
-  };
-
-  const updateSprintStatus = (i, status) => {
-    onSave({ sprints: sprints.map((sp, idx) => idx === i ? { ...sp, status } : sp) });
-  };
-
+  const addSprint = () => { if (!newSprint.goal.trim()) return; onSave({ sprints: [...sprints, { ...newSprint, number: sprints.length + 1, status: 'planning', items: [] }] }); setNewSprint({ goal: '', duration: '2 weeks', start: '', end: '' }); setShowAdd(false); };
+  const updateSprintStatus = (i, status) => onSave({ sprints: sprints.map((sp, idx) => idx === i ? { ...sp, status } : sp) });
   const statusColors = { planning: { bg: '#EFF6FF', color: BLUE }, active: { bg: '#FFF7ED', color: '#D97706' }, done: { bg: '#F0FDF4', color: '#15803D' } };
-
   return (
     <div>
       <SectionHead title="Work Cycles" sub="A work cycle is a short focused period — typically 1 to 4 weeks — where your team builds a specific set of things." />
@@ -446,9 +493,7 @@ function SprintsTab({ data, onSave }) {
           <label style={s.label}>Goal of this cycle</label>
           <input style={s.input} placeholder="e.g. Complete user login and signup" value={newSprint.goal} onChange={e => setNewSprint(p => ({ ...p, goal: e.target.value }))} />
           <label style={s.label}>Duration</label>
-          <select style={s.select} value={newSprint.duration} onChange={e => setNewSprint(p => ({ ...p, duration: e.target.value }))}>
-            <option>1 week</option><option>2 weeks</option><option>3 weeks</option><option>4 weeks</option>
-          </select>
+          <select style={s.select} value={newSprint.duration} onChange={e => setNewSprint(p => ({ ...p, duration: e.target.value }))}><option>1 week</option><option>2 weeks</option><option>3 weeks</option><option>4 weeks</option></select>
           <div style={{ display: 'flex', gap: 12 }}>
             <div style={{ flex: 1 }}><label style={s.label}>Start</label><input style={s.input} type="date" value={newSprint.start} onChange={e => setNewSprint(p => ({ ...p, start: e.target.value }))} /></div>
             <div style={{ flex: 1 }}><label style={s.label}>End</label><input style={s.input} type="date" value={newSprint.end} onChange={e => setNewSprint(p => ({ ...p, end: e.target.value }))} /></div>
@@ -484,38 +529,24 @@ function RetrospectiveTab({ data, onSave }) {
   const retros = data.retrospectives || [];
   const [showAdd, setShowAdd] = useState(false);
   const [newRetro, setNewRetro] = useState({ cycle: '', wentWell: '', improve: '', lessons: '' });
-
-  const addRetro = () => {
-    if (!newRetro.wentWell.trim()) return;
-    onSave({ retrospectives: [...retros, { ...newRetro, date: new Date().toISOString().split('T')[0] }] });
-    setNewRetro({ cycle: '', wentWell: '', improve: '', lessons: '' });
-    setShowAdd(false);
-  };
-
+  const addRetro = () => { if (!newRetro.wentWell.trim()) return; onSave({ retrospectives: [...retros, { ...newRetro, date: new Date().toISOString().split('T')[0] }] }); setNewRetro({ cycle: '', wentWell: '', improve: '', lessons: '' }); setShowAdd(false); };
   return (
     <div>
       <SectionHead title="What We Learned" sub="After each work cycle, take 30 minutes to reflect. What went well? What needs to change?" />
       <button style={s.primaryBtn} onClick={() => setShowAdd(p => !p)}>+ Add a Reflection</button>
       {showAdd && (
         <div style={s.addCard}>
-          <label style={s.label}>Which cycle?</label>
-          <input style={s.input} placeholder="e.g. Cycle 1" value={newRetro.cycle} onChange={e => setNewRetro(p => ({ ...p, cycle: e.target.value }))} />
-          <label style={s.label}>What went well?</label>
-          <textarea style={s.textarea} rows={3} value={newRetro.wentWell} onChange={e => setNewRetro(p => ({ ...p, wentWell: e.target.value }))} />
-          <label style={s.label}>What needs to improve?</label>
-          <textarea style={s.textarea} rows={3} value={newRetro.improve} onChange={e => setNewRetro(p => ({ ...p, improve: e.target.value }))} />
-          <label style={s.label}>Key lessons learned</label>
-          <textarea style={s.textarea} rows={3} value={newRetro.lessons} onChange={e => setNewRetro(p => ({ ...p, lessons: e.target.value }))} />
+          <label style={s.label}>Which cycle?</label><input style={s.input} placeholder="e.g. Cycle 1" value={newRetro.cycle} onChange={e => setNewRetro(p => ({ ...p, cycle: e.target.value }))} />
+          <label style={s.label}>What went well?</label><textarea style={s.textarea} rows={3} value={newRetro.wentWell} onChange={e => setNewRetro(p => ({ ...p, wentWell: e.target.value }))} />
+          <label style={s.label}>What needs to improve?</label><textarea style={s.textarea} rows={3} value={newRetro.improve} onChange={e => setNewRetro(p => ({ ...p, improve: e.target.value }))} />
+          <label style={s.label}>Key lessons learned</label><textarea style={s.textarea} rows={3} value={newRetro.lessons} onChange={e => setNewRetro(p => ({ ...p, lessons: e.target.value }))} />
           <button style={s.primaryBtn} onClick={addRetro}>Save</button>
         </div>
       )}
-      {retros.length === 0 && !showAdd && <p style={s.emptyText}>No reflections yet. Add one after each work cycle.</p>}
+      {retros.length === 0 && !showAdd && <p style={s.emptyText}>No reflections yet.</p>}
       {retros.map((r, i) => (
         <div key={i} style={s.retroCard}>
-          <div style={s.retroHeader}>
-            <p style={s.retroCycle}>{r.cycle || `Reflection ${i + 1}`}</p>
-            <p style={s.retroDate}>{r.date ? formatDate(r.date) : ''}</p>
-          </div>
+          <div style={s.retroHeader}><p style={s.retroCycle}>{r.cycle || `Reflection ${i + 1}`}</p><p style={s.retroDate}>{r.date ? formatDate(r.date) : ''}</p></div>
           <div style={s.retroSection}><p style={s.retroSectionLabel}>What went well</p><p style={s.retroText}>{r.wentWell}</p></div>
           <div style={s.retroSection}><p style={s.retroSectionLabel}>What needs to improve</p><p style={s.retroText}>{r.improve}</p></div>
           <div style={s.retroSection}><p style={s.retroSectionLabel}>Key lessons</p><p style={s.retroText}>{r.lessons}</p></div>
@@ -527,20 +558,10 @@ function RetrospectiveTab({ data, onSave }) {
 
 function StakeholdersTab({ data, onSave }) {
   const stakeholders = data.stakeholders || [];
-  const [name, setName] = useState('');
-  const [role, setRole] = useState('');
-  const [influence, setInfluence] = useState('high');
-  const [comms, setComms] = useState('');
-
-  const add = () => {
-    if (!name.trim()) return;
-    onSave({ stakeholders: [...stakeholders, { name, role, influence, comms }] });
-    setName(''); setRole(''); setComms('');
-  };
-
+  const [name, setName] = useState(''); const [role, setRole] = useState(''); const [influence, setInfluence] = useState('high'); const [comms, setComms] = useState('');
+  const add = () => { if (!name.trim()) return; onSave({ stakeholders: [...stakeholders, { name, role, influence, comms }] }); setName(''); setRole(''); setComms(''); };
   const remove = (i) => onSave({ stakeholders: stakeholders.filter((_, idx) => idx !== i) });
   const influenceColors = { high: { bg: '#FEF2F2', color: '#DC2626' }, medium: { bg: '#FFFBEB', color: '#D97706' }, low: { bg: '#F0FDF4', color: '#15803D' } };
-
   return (
     <div>
       <SectionHead title="Who Is Involved" sub="List every person or group who has an interest in this project." />
@@ -550,57 +571,27 @@ function StakeholdersTab({ data, onSave }) {
           <div style={{ flex: 1, minWidth: 160 }}><label style={s.label}>Their role</label><input style={s.input} placeholder="e.g. Provide funding" value={role} onChange={e => setRole(e.target.value)} /></div>
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: 160 }}>
-            <label style={s.label}>Influence level</label>
-            <select style={s.select} value={influence} onChange={e => setInfluence(e.target.value)}>
-              <option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
-            </select>
-          </div>
+          <div style={{ flex: 1, minWidth: 160 }}><label style={s.label}>Influence level</label><select style={s.select} value={influence} onChange={e => setInfluence(e.target.value)}><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></div>
           <div style={{ flex: 1, minWidth: 160 }}><label style={s.label}>Communication method</label><input style={s.input} placeholder="e.g. Weekly email" value={comms} onChange={e => setComms(e.target.value)} /></div>
         </div>
         <button style={s.primaryBtn} onClick={add}>Add</button>
       </div>
       {stakeholders.length === 0 && <p style={s.emptyText}>No stakeholders added yet.</p>}
-      {stakeholders.map((st, i) => {
-        const ic = influenceColors[st.influence] || influenceColors.medium;
-        return (
-          <div key={i} style={s.stakeholderCard}>
-            <div style={s.stakeholderLeft}>
-              <div style={s.memberAvatar}>{st.name[0]?.toUpperCase()}</div>
-              <div>
-                <p style={s.memberName}>{st.name}</p>
-                <p style={s.memberRole}>{st.role}</p>
-                {st.comms && <p style={s.stakeholderComms}>{st.comms}</p>}
-              </div>
-            </div>
-            <div style={s.stakeholderRight}>
-              <span style={{ ...s.pill, background: ic.bg, color: ic.color }}>{st.influence} influence</span>
-              <button style={s.removeSmallBtn} onClick={() => remove(i)}>✕</button>
-            </div>
-          </div>
-        );
-      })}
+      {stakeholders.map((st, i) => { const ic = influenceColors[st.influence] || influenceColors.medium; return (
+        <div key={i} style={s.stakeholderCard}>
+          <div style={s.stakeholderLeft}><div style={s.memberAvatar}>{st.name[0]?.toUpperCase()}</div><div><p style={s.memberName}>{st.name}</p><p style={s.memberRole}>{st.role}</p>{st.comms && <p style={s.stakeholderComms}>{st.comms}</p>}</div></div>
+          <div style={s.stakeholderRight}><span style={{ ...s.pill, background: ic.bg, color: ic.color }}>{st.influence} influence</span><button style={s.removeSmallBtn} onClick={() => remove(i)}>✕</button></div>
+        </div>
+      ); })}
     </div>
   );
 }
 
 function ScopeTab({ data, onSave }) {
   const scope = data.scope || {};
-  const [deliverable, setDeliverable] = useState('');
-  const [assumption, setAssumption] = useState('');
-  const [constraint, setConstraint] = useState('');
-  const [excluded, setExcluded] = useState('');
-
-  const addToList = (field, value, setter) => {
-    if (!value.trim()) return;
-    onSave({ scope: { ...scope, [field]: [...(scope[field] || []), value.trim()] } });
-    setter('');
-  };
-
-  const removeFromList = (field, i) => {
-    onSave({ scope: { ...scope, [field]: (scope[field] || []).filter((_, idx) => idx !== i) } });
-  };
-
+  const [deliverable, setDeliverable] = useState(''); const [assumption, setAssumption] = useState(''); const [constraint, setConstraint] = useState(''); const [excluded, setExcluded] = useState('');
+  const addToList = (field, value, setter) => { if (!value.trim()) return; onSave({ scope: { ...scope, [field]: [...(scope[field] || []), value.trim()] } }); setter(''); };
+  const removeFromList = (field, i) => onSave({ scope: { ...scope, [field]: (scope[field] || []).filter((_, idx) => idx !== i) } });
   return (
     <div>
       <SectionHead title="Scope" sub="Define exactly what this project will and will not deliver." />
@@ -613,17 +604,8 @@ function ScopeTab({ data, onSave }) {
       ].map(({ field, label, value, setter, placeholder }) => (
         <div key={field} style={s.scopeSection}>
           <p style={s.scopeLabel}>{label}</p>
-          <div style={s.addRow}>
-            <input style={{ ...s.input, flex: 1, marginBottom: 0 }} placeholder={placeholder} value={value} onChange={e => setter(e.target.value)} onKeyDown={e => e.key === 'Enter' && addToList(field, value, setter)} />
-            <button style={s.addBtn} onClick={() => addToList(field, value, setter)}>Add</button>
-          </div>
-          {(scope[field] || []).map((item, i) => (
-            <div key={i} style={s.scopeItem}>
-              <div style={s.scopeDot} />
-              <span style={s.scopeItemText}>{item}</span>
-              <button style={s.removeSmallBtn} onClick={() => removeFromList(field, i)}>✕</button>
-            </div>
-          ))}
+          <div style={s.addRow}><input style={{ ...s.input, flex: 1, marginBottom: 0 }} placeholder={placeholder} value={value} onChange={e => setter(e.target.value)} onKeyDown={e => e.key === 'Enter' && addToList(field, value, setter)} /><button style={s.addBtn} onClick={() => addToList(field, value, setter)}>Add</button></div>
+          {(scope[field] || []).map((item, i) => (<div key={i} style={s.scopeItem}><div style={s.scopeDot} /><span style={s.scopeItemText}>{item}</span><button style={s.removeSmallBtn} onClick={() => removeFromList(field, i)}>✕</button></div>))}
         </div>
       ))}
     </div>
@@ -646,7 +628,6 @@ function PlanningTab({ data, onSave, methodology }) {
     { key: 'procurement', label: 'What Do You Need to Buy or Hire?', hint: 'External services, tools or contractors.' },
     { key: 'budget', label: 'Budget Overview', hint: 'Total budget and allocation across phases.' },
   ];
-
   return (
     <div>
       <SectionHead title="Planning" sub="Good planning prevents surprises. Fill in each area below." />
@@ -664,92 +645,38 @@ function PlanningTab({ data, onSave, methodology }) {
 function RisksComplianceTab({ data, onSave }) {
   const risks = data.risks || [];
   const compliance = data.compliance || { flags: [], internal: [], external: [] };
-  const [newRisk, setNewRisk] = useState('');
-  const [newLevel, setNewLevel] = useState('medium');
-  const [newInternal, setNewInternal] = useState('');
-  const [newExternal, setNewExternal] = useState('');
-
-  const addRisk = () => {
-    if (!newRisk.trim()) return;
-    onSave({ risks: [...risks, { title: newRisk.trim(), level: newLevel, status: 'open' }] });
-    setNewRisk('');
-  };
-
-  const toggleRisk = (i) => {
-    onSave({ risks: risks.map((r, idx) => idx === i ? { ...r, status: r.status === 'open' ? 'mitigated' : 'open' } : r) });
-  };
-
-  const addCompliance = (type, value, setter) => {
-    if (!value.trim()) return;
-    onSave({ compliance: { ...compliance, [type]: [...(compliance[type] || []), value.trim()] } });
-    setter('');
-  };
-
-  const removeCompliance = (type, i) => {
-    onSave({ compliance: { ...compliance, [type]: (compliance[type] || []).filter((_, idx) => idx !== i) } });
-  };
-
+  const [newRisk, setNewRisk] = useState(''); const [newLevel, setNewLevel] = useState('medium'); const [newInternal, setNewInternal] = useState(''); const [newExternal, setNewExternal] = useState('');
+  const addRisk = () => { if (!newRisk.trim()) return; onSave({ risks: [...risks, { title: newRisk.trim(), level: newLevel, status: 'open' }] }); setNewRisk(''); };
+  const toggleRisk = (i) => onSave({ risks: risks.map((r, idx) => idx === i ? { ...r, status: r.status === 'open' ? 'mitigated' : 'open' } : r) });
+  const addCompliance = (type, value, setter) => { if (!value.trim()) return; onSave({ compliance: { ...compliance, [type]: [...(compliance[type] || []), value.trim()] } }); setter(''); };
+  const removeCompliance = (type, i) => onSave({ compliance: { ...compliance, [type]: (compliance[type] || []).filter((_, idx) => idx !== i) } });
   const levelColors = { high: { bg: '#FEF2F2', color: '#DC2626' }, medium: { bg: '#FFFBEB', color: '#D97706' }, low: { bg: '#F0FDF4', color: '#15803D' } };
-
   return (
     <div>
       <SectionHead title="Risks and Compliance" sub="Know what could go wrong before it happens." />
       <p style={s.scopeLabel}>What Could Go Wrong?</p>
-      <div style={s.addRow}>
-        <input style={{ ...s.input, flex: 1, marginBottom: 0 }} placeholder="Describe a risk..." value={newRisk} onChange={e => setNewRisk(e.target.value)} onKeyDown={e => e.key === 'Enter' && addRisk()} />
-        <select style={s.select} value={newLevel} onChange={e => setNewLevel(e.target.value)}>
-          <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option>
-        </select>
-        <button style={s.addBtn} onClick={addRisk}>Add</button>
-      </div>
+      <div style={s.addRow}><input style={{ ...s.input, flex: 1, marginBottom: 0 }} placeholder="Describe a risk..." value={newRisk} onChange={e => setNewRisk(e.target.value)} onKeyDown={e => e.key === 'Enter' && addRisk()} /><select style={s.select} value={newLevel} onChange={e => setNewLevel(e.target.value)}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select><button style={s.addBtn} onClick={addRisk}>Add</button></div>
       {risks.length === 0 && <p style={s.emptyText}>No risks added yet.</p>}
-      {risks.map((r, i) => {
-        const lc = levelColors[r.level] || levelColors.medium;
-        return (
-          <div key={i} style={s.riskCard}>
-            <span style={{ ...s.pill, background: lc.bg, color: lc.color, flexShrink: 0 }}>{r.level}</span>
-            <p style={{ ...s.riskTitle, textDecoration: r.status === 'mitigated' ? 'line-through' : 'none', color: r.status === 'mitigated' ? '#9CA3AF' : BL }}>{r.title}</p>
-            <button style={s.sprintBtn} onClick={() => toggleRisk(i)}>{r.status === 'mitigated' ? 'Handled' : 'Mark Handled'}</button>
-          </div>
-        );
-      })}
+      {risks.map((r, i) => { const lc = levelColors[r.level] || levelColors.medium; return (
+        <div key={i} style={s.riskCard}><span style={{ ...s.pill, background: lc.bg, color: lc.color, flexShrink: 0 }}>{r.level}</span><p style={{ ...s.riskTitle, textDecoration: r.status === 'mitigated' ? 'line-through' : 'none', color: r.status === 'mitigated' ? '#9CA3AF' : BL }}>{r.title}</p><button style={s.sprintBtn} onClick={() => toggleRisk(i)}>{r.status === 'mitigated' ? 'Handled' : 'Mark Handled'}</button></div>
+      ); })}
       <div style={{ marginTop: 32 }}>
         <p style={s.scopeLabel}>Internal Rules</p>
-        <div style={s.addRow}>
-          <input style={{ ...s.input, flex: 1, marginBottom: 0 }} placeholder="e.g. All features must pass security review" value={newInternal} onChange={e => setNewInternal(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCompliance('internal', newInternal, setNewInternal)} />
-          <button style={s.addBtn} onClick={() => addCompliance('internal', newInternal, setNewInternal)}>Add</button>
-        </div>
-        {(compliance.internal || []).map((item, i) => (
-          <div key={i} style={s.scopeItem}><div style={{ ...s.scopeDot, background: '#7C3AED' }} /><span style={s.scopeItemText}>{item}</span><button style={s.removeSmallBtn} onClick={() => removeCompliance('internal', i)}>✕</button></div>
-        ))}
+        <div style={s.addRow}><input style={{ ...s.input, flex: 1, marginBottom: 0 }} placeholder="e.g. All features must pass security review" value={newInternal} onChange={e => setNewInternal(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCompliance('internal', newInternal, setNewInternal)} /><button style={s.addBtn} onClick={() => addCompliance('internal', newInternal, setNewInternal)}>Add</button></div>
+        {(compliance.internal || []).map((item, i) => (<div key={i} style={s.scopeItem}><div style={{ ...s.scopeDot, background: '#7C3AED' }} /><span style={s.scopeItemText}>{item}</span><button style={s.removeSmallBtn} onClick={() => removeCompliance('internal', i)}>✕</button></div>))}
       </div>
       <div style={{ marginTop: 24 }}>
         <p style={s.scopeLabel}>External Regulations</p>
-        <div style={s.addRow}>
-          <input style={{ ...s.input, flex: 1, marginBottom: 0 }} placeholder="e.g. Must comply with NDPR" value={newExternal} onChange={e => setNewExternal(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCompliance('external', newExternal, setNewExternal)} />
-          <button style={s.addBtn} onClick={() => addCompliance('external', newExternal, setNewExternal)}>Add</button>
-        </div>
-        {(compliance.external || []).map((item, i) => (
-          <div key={i} style={s.scopeItem}><div style={{ ...s.scopeDot, background: '#DC2626' }} /><span style={s.scopeItemText}>{item}</span><button style={s.removeSmallBtn} onClick={() => removeCompliance('external', i)}>✕</button></div>
-        ))}
-        {(compliance.flags || []).length > 0 && (
-          <div style={{ marginTop: 16 }}>
-            <p style={s.scopeHint}>PM Buddy flagged these based on your industry:</p>
-            {compliance.flags.map((f, i) => <div key={i} style={s.scopeItem}><div style={{ ...s.scopeDot, background: '#D97706' }} /><span style={s.scopeItemText}>{f}</span></div>)}
-          </div>
-        )}
+        <div style={s.addRow}><input style={{ ...s.input, flex: 1, marginBottom: 0 }} placeholder="e.g. Must comply with NDPR" value={newExternal} onChange={e => setNewExternal(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCompliance('external', newExternal, setNewExternal)} /><button style={s.addBtn} onClick={() => addCompliance('external', newExternal, setNewExternal)}>Add</button></div>
+        {(compliance.external || []).map((item, i) => (<div key={i} style={s.scopeItem}><div style={{ ...s.scopeDot, background: '#DC2626' }} /><span style={s.scopeItemText}>{item}</span><button style={s.removeSmallBtn} onClick={() => removeCompliance('external', i)}>✕</button></div>))}
+        {(compliance.flags || []).length > 0 && (<div style={{ marginTop: 16 }}><p style={s.scopeHint}>PM Buddy flagged these based on your industry:</p>{compliance.flags.map((f, i) => <div key={i} style={s.scopeItem}><div style={{ ...s.scopeDot, background: '#D97706' }} /><span style={s.scopeItemText}>{f}</span></div>)}</div>)}
       </div>
     </div>
   );
 }
 
 function SectionHead({ title, sub }) {
-  return (
-    <div style={s.sectionHeadWrap}>
-      <h3 style={s.sectionHeadTitle}>{title}</h3>
-      <p style={s.sectionHeadSub}>{sub}</p>
-    </div>
-  );
+  return (<div style={s.sectionHeadWrap}><h3 style={s.sectionHeadTitle}>{title}</h3><p style={s.sectionHeadSub}>{sub}</p></div>);
 }
 
 function formatDate(dateStr) {
@@ -796,6 +723,13 @@ const s = {
   overviewSection: { marginBottom: 20 },
   goalCard: { background: GREY, borderRadius: 12, padding: '14px 16px', marginBottom: 16, border: '1px solid #E5E7EB' },
   goalText: { fontSize: 15, color: BL, lineHeight: 1.7 },
+  smallEditBtn: { padding: '4px 12px', background: WH, color: '#374151', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  smallRefineBtn: { padding: '4px 12px', background: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  suggestionBox: { background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 10, padding: '12px 14px', marginTop: 10 },
+  suggestionLabel: { fontSize: 10, fontWeight: 700, color: '#15803D', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 },
+  suggestionText: { fontSize: 14, color: '#166534', lineHeight: 1.7 },
+  acceptBtn: { padding: '5px 14px', background: '#15803D', color: WH, border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  dismissBtn: { padding: '5px 12px', background: 'none', color: '#6B7280', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
   milestoneRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: GREY, borderRadius: 10, marginBottom: 8, border: '1px solid #E5E7EB' },
   milestoneCard: { display: 'flex', alignItems: 'center', gap: 12, padding: '12px', background: GREY, borderRadius: 10, marginBottom: 8, border: '1px solid #E5E7EB', flexWrap: 'wrap' },
   milestoneCheck: { width: 20, height: 20, borderRadius: '50%', border: '2px solid', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
