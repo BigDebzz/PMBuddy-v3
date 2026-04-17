@@ -105,9 +105,9 @@ export default function TeamTab({ project, currentUser }) {
       </div>
 
       <div style={s.ownerRow}>
-        <div style={s.avatar}>{(currentUser?.user_metadata?.first_name || currentUser?.email || 'O')[0]?.toUpperCase()}</div>
+        <div style={s.avatar}>{(project.user_id === currentUser?.id ? (currentUser?.user_metadata?.first_name || currentUser?.email || 'O') : 'Owner')[0]?.toUpperCase()}</div>
         <div style={s.memberInfo}>
-          <p style={s.memberEmail}>{currentUser?.email || 'Project owner'}</p>
+          <p style={s.memberEmail}>{project.user_id === currentUser?.id ? (currentUser?.email || 'Project owner') : 'Project Owner'}</p>
           <p style={s.memberStatus}>Project owner</p>
         </div>
         <span style={{ ...s.roleBadge, background: '#EFF6FF', color: BLUE }}>Owner</span>
