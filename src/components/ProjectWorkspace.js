@@ -110,7 +110,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
           {tab === 'Risks' && <RisksComplianceTab data={data} onSave={save} />}
           {tab === 'Risks and Compliance' && <RisksComplianceTab data={data} onSave={save} />}
           {tab === 'Documents' && <DocumentGenerator data={data} methodology={methodology} user={project.user_id} openDoc={project._openDoc} />}
-          {tab === 'Team' && <TeamTab project={data} currentUser={project._currentUser} />}
+          {tab === 'Team' && <TeamTab project={data} currentUser={project._currentUser} onSave={save} />}
           {tab === 'Reminders' && <RemindersPanel project={data} onUpdate={(updated) => { setData(updated); onUpdate(updated); }} />}
         </div>
       </div>
@@ -140,7 +140,7 @@ function InsightCard({ title, icon, description, savedValue, savedEdited, onSave
         body: JSON.stringify({ prompt: generatePrompt }),
       });
       const result = await res.json();
-      const text = (result.result || '').trim();
+      const text = (result.result || '').trim().replace(/\*\*/g, '').replace(/\*/g, '').replace(/#{1,6} /g, '').trim();
       if (text) {
         setContent(text);
         setEdited(false);
@@ -249,36 +249,11 @@ ${projectContext}
 Write 3 to 5 sentences covering: what problem it solves, who benefits, what the measurable or visible outcome is, and why it matters. Use plain, simple language. No jargon. No bullet points.`,
     },
     {
-      key: 'communication_plan',
-      title: 'Communication Plan',
-      icon: '◎',
-      description: 'PM Buddy will draft who needs to be kept in the loop, how often, and through what channel.',
-      prompt: `You are PM Buddy, a friendly project management coach. Based on this project, write a simple Communication Plan in plain English.
-
-${projectContext}
-
-Format it as a short table using plain text with columns: Who | What they need to know | How often | How (channel). Include 3 to 5 rows. After the table, add one sentence about the overall communication approach. Keep it simple and practical. No jargon.`,
-    },
-    {
-      key: 'raci',
-      title: 'RACI Chart',
-      icon: '◑',
-      description: 'PM Buddy will map who is Responsible, Accountable, Consulted and Informed for each key activity.',
-      prompt: `You are PM Buddy, a friendly project management coach. Create a simple RACI chart for this project in plain English.
-
-${projectContext}
-
-RACI means: R = Does the work, A = Makes the final call, C = Gives input, I = Kept informed.
-
-Format as plain text rows: Activity | Who does it (R) | Who decides (A) | Who to consult (C) | Who to inform (I).
-List 4 to 6 key activities based on the milestones and project type. If the project is solo, note that one person holds multiple roles. Use plain language. No jargon.`,
-    },
-    {
       key: 'quality_metrics',
-      title: 'Quality Metrics',
+      title: 'Quality Markers',
       icon: '◆',
       description: 'PM Buddy will define how you will know the work is good enough before calling it done.',
-      prompt: `You are PM Buddy, a friendly project management coach. Based on this project, write simple Quality Metrics — clear ways to measure whether the work meets the required standard.
+      prompt: `You are PM Buddy, a friendly project management coach. Based on this project, write simple Quality Markers — clear ways to tell whether the work meets the required standard.
 
 ${projectContext}
 
