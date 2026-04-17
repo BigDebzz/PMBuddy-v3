@@ -21,6 +21,7 @@ function generateToken() {
 export default function TeamTab({ project, currentUser }) {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [ownerEmail, setOwnerEmail] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('editor');
   const [inviting, setSending] = useState(false);
@@ -30,7 +31,15 @@ export default function TeamTab({ project, currentUser }) {
   const isOwner = project.user_id === currentUser?.id ||
     members.some(m => m.user_id === currentUser?.id && m.role === 'owner');
 
-  useEffect(() => { fetchMembers(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchMembers(); fetchOwner(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fetchOwner = async () => {
+    if (project.user_id === currentUser?.id) {
+      setOwnerEmail(currentUser?.email || '');
+    } else {
+      setOwnerEmail(project.owner_email || 'Project Owner');
+    }
+  };
 
   const fetchMembers = async () => {
     setLoading(true);
@@ -105,9 +114,9 @@ export default function TeamTab({ project, currentUser }) {
       </div>
 
       <div style={s.ownerRow}>
-        <div style={s.avatar}>{(project.user_id === currentUser?.id ? (currentUser?.user_metadata?.first_name || currentUser?.email || 'O') : 'Owner')[0]?.toUpperCase()}</div>
+        <div style={s.avatar}>{(ownerEmail || 'O')[0]?.toUpperCase()}</div>
         <div style={s.memberInfo}>
-          <p style={s.memberEmail}>{project.user_id === currentUser?.id ? (currentUser?.email || 'Project owner') : 'Project Owner'}</p>
+          <p style={s.memberEmail}>{ownerEmail || 'Project Owner'}</p>
           <p style={s.memberStatus}>Project owner</p>
         </div>
         <span style={{ ...s.roleBadge, background: '#EFF6FF', color: BLUE }}>Owner</span>
