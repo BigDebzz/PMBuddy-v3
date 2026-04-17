@@ -348,7 +348,6 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
     )}
   </>;
 }
-}
 
 const s = {
   page: { minHeight: '100vh', background: WH, padding: '48px 48px 80px', fontFamily: "'DM Sans', system-ui, sans-serif" },
