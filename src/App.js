@@ -45,7 +45,7 @@ export default function App() {
     const loadInvite = async (tok) => {
       const { data: member } = await supabase
         .from('project_members')
-        .select('*, pm_projects(*)')
+        .select('*')
         .eq('token', tok)
         .single();
       if (!member) {
@@ -57,7 +57,13 @@ export default function App() {
         setScreen(S.DASHBOARD);
         return;
       }
-      setInviteData(member);
+      // Fetch the project separately
+      const { data: project } = await supabase
+        .from('pm_projects')
+        .select('*')
+        .eq('id', member.project_id)
+        .single();
+      setInviteData({ ...member, pm_projects: project });
       setScreen(S.INVITE);
     };
 
