@@ -31,30 +31,21 @@ async function callModel(model, prompt, mode) {
 }
 
 async function callGemini(prompt, mode) {
-  const PRIMARY = 'gemini-1.5-flash';
-  const FALLBACK = 'gemini-1.5-pro';
+  const MODELS = [
+    'gemini-3-flash',
+    'gemini-2.0-flash',
+    'gemini-2.0-flash-lite',
+    'gemini-1.5-flash',
+  ];
 
-  // Try primary model once
-  const primary = await callModel(PRIMARY, prompt, mode);
-  if (primary.text) return primary;
-
-  // If overloaded (503/429), wait briefly and try fallback
-  if (primary.status === 503 || primary.status === 429) {
-    console.log(`${PRIMARY} overloaded, falling back to ${FALLBACK}`);
-    await new Promise(r => setTimeout(r, 2000));
-    const fallback = await callModel(FALLBACK, prompt, mode);
-    if (fallback.text) return fallback;
-
-    // One more retry on fallback
-    await new Promise(r => setTimeout(r, 3000));
-    const fallback2 = await callModel(FALLBACK, prompt, mode);
-    if (fallback2.text) return fallback2;
+  for (const model of MODELS) {
+    console.log(`Trying model: ${model}`);
+    const result = await callModel(model, prompt, mode);
+    if (result.text) return result;
+    console.log(`Model ${model} failed with status ${result.status}`);
+    if (result.status !== 503 && result.status !== 429) break; // Don't try others for non-overload errors
+    await new Promise(r => setTimeout(r, 1000));
   }
-
-  // Try primary one more time as last resort
-  await new Promise(r => setTimeout(r, 3000));
-  const retry = await callModel(PRIMARY, prompt, mode);
-  if (retry.text) return retry;
 
   return { text: null, error: 'AI is currently busy. Please try again in a moment.' };
 }
