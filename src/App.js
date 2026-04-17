@@ -73,7 +73,7 @@ export default function App() {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
+      if (_event === 'SIGNED_IN' && session?.user) {
         setUser(session.user);
         setScreen(S.DASHBOARD);
       }
