@@ -13,6 +13,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   const [invitedProjects, setInvitedProjects] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [viewingDoc, setViewingDoc] = useState(null);
 
   const firstName = user?.user_metadata?.first_name || user?.email?.split('@')[0] || 'there';
   const hour = new Date().getHours();
@@ -289,9 +290,14 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                     </div>
                     <div style={s.docRowActions}>
                       <button style={s.openBtn} onClick={() => {
-                        const project = projects.find(p => p.id === doc.project_id);
-                        if (project) onOpenProject({ ...project, _openDoc: doc });
-                      }}>Open Document</button>
+                        if (doc.type === 'quick' || !doc.project_id) {
+                          setViewingDoc(doc);
+                        } else {
+                          const project = projects.find(p => p.id === doc.project_id);
+                          if (project) onOpenProject({ ...project, _openDoc: doc });
+                          else setViewingDoc(doc);
+                        }
+                      }}>Open</button>
                       <button style={{ ...s.openBtn, background: WH, color: BLUE, border: `1px solid ${BLUE}` }} onClick={() => {
                         const blob = new Blob([doc.content], { type: 'text/html' });
                         const url = URL.createObjectURL(blob);
@@ -313,7 +319,33 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
 
       </div>
     </div>
-  );
+
+    {/* Document Viewer Modal */}
+    {viewingDoc && (
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 24px', overflowY: 'auto' }}>
+        <div style={{ background: WH, borderRadius: 16, width: '100%', maxWidth: 760, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 28px', borderBottom: '1px solid #E5E7EB' }}>
+            <div>
+              <p style={{ fontSize: 11, fontWeight: 700, color: '#C2410C', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Quick Doc</p>
+              <p style={{ fontSize: 16, fontWeight: 700, color: BL }}>{viewingDoc.title}</p>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button style={{ padding: '7px 16px', background: WH, color: BLUE, border: `1px solid ${BLUE}`, borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => {
+                const blob = new Blob([viewingDoc.content], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${viewingDoc.title.replace(/\s+/g, '_')}.html`;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+              }}>Download</button>
+              <button style={{ padding: '7px 16px', background: BL, color: WH, border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setViewingDoc(null)}>Close</button>
+            </div>
+          </div>
+          <div style={{ padding: '32px 40px', fontSize: 15, lineHeight: 1.8, color: '#374151', fontFamily: 'Georgia, serif', maxHeight: '70vh', overflowY: 'auto' }} dangerouslySetInnerHTML={{ __html: viewingDoc.content }} />
+        </div>
+      </div>
+    )}
+  
 }
 
 const s = {
