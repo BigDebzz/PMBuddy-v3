@@ -2,43 +2,59 @@ export const config = {
   api: { bodyParser: true },
 };
 
-async function callGemini(prompt, mode, retries) {
+async function callModel(model, prompt, mode) {
   const API_KEY = process.env.GEMINI_API_KEY;
   const maxTokens = mode === 'document' ? 8000 : 2000;
-  // Documents get fewer retries to avoid timeout — generation itself takes ~20-30s
-  const maxRetries = retries !== undefined ? retries : (mode === 'document' ? 2 : 3);
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.4, maxOutputTokens: maxTokens }
-        })
-      }
-    );
-
-    if (geminiResponse.ok) {
-      const data = await geminiResponse.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      if (text) return { text, error: null };
-      return { text: null, error: 'No response from Gemini' };
+  const geminiResponse = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.4, maxOutputTokens: maxTokens }
+      })
     }
+  );
 
-    if ((geminiResponse.status === 503 || geminiResponse.status === 429) && attempt < maxRetries) {
-      // Short wait: 3s first retry, 5s second retry — keeps us well within 60s limit
-      await new Promise(r => setTimeout(r, 3000 * attempt));
-      continue;
-    }
-
-    const errBody = await geminiResponse.text();
-    return { text: null, error: `${geminiResponse.status}: ${errBody}` };
+  if (geminiResponse.ok) {
+    const data = await geminiResponse.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (text) return { text, error: null };
+    return { text: null, error: 'Empty response' };
   }
 
-  return { text: null, error: 'Gemini is currently overloaded. Please try again in a moment.' };
+  return { text: null, error: geminiResponse.status, status: geminiResponse.status };
+}
+
+async function callGemini(prompt, mode) {
+  const PRIMARY = 'gemini-2.5-flash';
+  const FALLBACK = 'gemini-1.5-flash';
+
+  // Try primary model once
+  const primary = await callModel(PRIMARY, prompt, mode);
+  if (primary.text) return primary;
+
+  // If overloaded (503/429), wait briefly and try fallback
+  if (primary.status === 503 || primary.status === 429) {
+    console.log(`${PRIMARY} overloaded, falling back to ${FALLBACK}`);
+    await new Promise(r => setTimeout(r, 2000));
+    const fallback = await callModel(FALLBACK, prompt, mode);
+    if (fallback.text) return fallback;
+
+    // One more retry on fallback
+    await new Promise(r => setTimeout(r, 3000));
+    const fallback2 = await callModel(FALLBACK, prompt, mode);
+    if (fallback2.text) return fallback2;
+  }
+
+  // Try primary one more time as last resort
+  await new Promise(r => setTimeout(r, 3000));
+  const retry = await callModel(PRIMARY, prompt, mode);
+  if (retry.text) return retry;
+
+  return { text: null, error: 'AI is currently busy. Please try again in a moment.' };
 }
 
 export default async function handler(request, response) {
