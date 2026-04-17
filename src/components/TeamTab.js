@@ -18,7 +18,7 @@ function generateToken() {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
 }
 
-export default function TeamTab({ project, currentUser }) {
+export default function TeamTab({ project, currentUser, onSave }) {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [ownerEmail, setOwnerEmail] = useState('');
@@ -168,6 +168,9 @@ export default function TeamTab({ project, currentUser }) {
       )}
 
       {!isOwner && <div style={s.viewerNote}><p style={s.viewerNoteText}>Only the project owner can invite or remove team members.</p></div>}
+
+      {onSave && <WhoDoesWhat project={project} onSave={onSave} />}
+      {onSave && <CommunicationPlan project={project} onSave={onSave} />}
     </div>
   );
 }
@@ -200,4 +203,125 @@ const s = {
   sendBtn: { padding: '10px 24px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
   viewerNote: { marginTop: 24, padding: '14px', background: GREY, borderRadius: 8 },
   viewerNoteText: { fontSize: 13, color: '#9CA3AF' },
+};
+
+// ─── Who Does What ────────────────────────────────────────────────────────────
+export function WhoDoesWhat({ project, onSave }) {
+  const tasks = project.who_does_what || [];
+  const team = project.team || [];
+  const [newTask, setNewTask] = useState('');
+  const [newOwner, setNewOwner] = useState('');
+  const [newLoop, setNewLoop] = useState('');
+
+  const add = () => {
+    if (!newTask.trim()) return;
+    onSave({ who_does_what: [...tasks, { task: newTask.trim(), owner: newOwner.trim(), loop: newLoop.trim() }] });
+    setNewTask(''); setNewOwner(''); setNewLoop('');
+  };
+
+  const remove = (i) => onSave({ who_does_what: tasks.filter((_, idx) => idx !== i) });
+
+  return (
+    <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid #F3F4F6' }}>
+      <p style={wStyle.label}>Who Does What</p>
+      <p style={wStyle.sub}>For each key task, say who handles it and who just needs to be kept in the loop.</p>
+      <div style={wStyle.formCard}>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <input style={{ ...wStyle.input, flex: 2, minWidth: 140 }} placeholder="Task e.g. Build the app" value={newTask} onChange={e => setNewTask(e.target.value)} />
+          <input style={{ ...wStyle.input, flex: 1, minWidth: 100 }} placeholder="Who does it" value={newOwner} onChange={e => setNewOwner(e.target.value)} list="team-list" />
+          <input style={{ ...wStyle.input, flex: 1, minWidth: 100 }} placeholder="Who to keep in the loop" value={newLoop} onChange={e => setNewLoop(e.target.value)} />
+          <datalist id="team-list">{team.map((m, i) => <option key={i} value={m.name} />)}</datalist>
+        </div>
+        <button style={wStyle.addBtn} onClick={add}>Add</button>
+      </div>
+      {tasks.length === 0 && <p style={wStyle.empty}>No tasks added yet. Add who is responsible for what.</p>}
+      {tasks.map((t, i) => (
+        <div key={i} style={wStyle.row}>
+          <div style={{ flex: 2 }}>
+            <p style={wStyle.taskName}>{t.task}</p>
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={wStyle.metaLabel}>Does it</p>
+            <p style={wStyle.metaVal}>{t.owner || '—'}</p>
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={wStyle.metaLabel}>In the loop</p>
+            <p style={wStyle.metaVal}>{t.loop || '—'}</p>
+          </div>
+          <button style={wStyle.removeBtn} onClick={() => remove(i)}>✕</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Communication Plan ───────────────────────────────────────────────────────
+export function CommunicationPlan({ project, onSave }) {
+  const comms = project.comms_plan || [];
+  const team = project.team || [];
+  const [who, setWho] = useState('');
+  const [what, setWhat] = useState('');
+  const [how, setHow] = useState('');
+  const [when, setWhen] = useState('');
+
+  const add = () => {
+    if (!who.trim()) return;
+    onSave({ comms_plan: [...comms, { who: who.trim(), what: what.trim(), how: how.trim(), when: when.trim() }] });
+    setWho(''); setWhat(''); setHow(''); setWhen('');
+  };
+
+  const remove = (i) => onSave({ comms_plan: comms.filter((_, idx) => idx !== i) });
+
+  return (
+    <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid #F3F4F6' }}>
+      <p style={wStyle.label}>Who Needs to Know What</p>
+      <p style={wStyle.sub}>Keep everyone in the loop without overwhelming anyone. Add one row per person or group.</p>
+      <div style={wStyle.formCard}>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <input style={{ ...wStyle.input, flex: 1, minWidth: 100 }} placeholder="Who e.g. Investors" value={who} onChange={e => setWho(e.target.value)} list="team-list-comms" />
+          <input style={{ ...wStyle.input, flex: 2, minWidth: 140 }} placeholder="What they need to know" value={what} onChange={e => setWhat(e.target.value)} />
+          <input style={{ ...wStyle.input, flex: 1, minWidth: 100 }} placeholder="How e.g. Email, WhatsApp" value={how} onChange={e => setHow(e.target.value)} />
+          <input style={{ ...wStyle.input, flex: 1, minWidth: 100 }} placeholder="How often e.g. Weekly" value={when} onChange={e => setWhen(e.target.value)} />
+          <datalist id="team-list-comms">{team.map((m, i) => <option key={i} value={m.name} />)}</datalist>
+        </div>
+        <button style={wStyle.addBtn} onClick={add}>Add</button>
+      </div>
+      {comms.length === 0 && <p style={wStyle.empty}>No communication plan yet. Add who needs to know what and how often.</p>}
+      {comms.map((c, i) => (
+        <div key={i} style={wStyle.row}>
+          <div style={{ flex: 1 }}>
+            <p style={wStyle.metaLabel}>Who</p>
+            <p style={wStyle.metaVal}>{c.who}</p>
+          </div>
+          <div style={{ flex: 2 }}>
+            <p style={wStyle.metaLabel}>What they need to know</p>
+            <p style={wStyle.metaVal}>{c.what || '—'}</p>
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={wStyle.metaLabel}>How</p>
+            <p style={wStyle.metaVal}>{c.how || '—'}</p>
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={wStyle.metaLabel}>How often</p>
+            <p style={wStyle.metaVal}>{c.when || '—'}</p>
+          </div>
+          <button style={wStyle.removeBtn} onClick={() => remove(i)}>✕</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const wStyle = {
+  label: { fontSize: 14, fontWeight: 700, color: '#0A0A0A', marginBottom: 4 },
+  sub: { fontSize: 13, color: '#6B7280', lineHeight: 1.6, marginBottom: 14 },
+  formCard: { background: '#F8FAFC', borderRadius: 10, padding: '14px', border: '1px solid #E5E7EB', marginBottom: 14 },
+  input: { border: '1.5px solid #E5E7EB', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', color: '#0A0A0A', outline: 'none', background: '#FFFFFF', marginBottom: 10 },
+  addBtn: { padding: '8px 20px', background: '#0284C7', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  row: { display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 0', borderBottom: '1px solid #F3F4F6', flexWrap: 'wrap' },
+  taskName: { fontSize: 14, fontWeight: 600, color: '#0A0A0A' },
+  metaLabel: { fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 },
+  metaVal: { fontSize: 13, color: '#374151' },
+  removeBtn: { background: 'none', border: 'none', color: '#D1D5DB', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit', flexShrink: 0, alignSelf: 'center' },
+  empty: { fontSize: 13, color: '#9CA3AF', padding: '16px 0' },
 };
