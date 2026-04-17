@@ -272,6 +272,8 @@ Return ONLY the rewritten goal. Nothing else.`,
     update(field, suggestions[field]);
     setSuggestions(p => ({ ...p, [field]: '' }));
   };
+
+  const canProceed = () => {
     if (step === 1) return data.name.trim() && data.description.trim() && data.goal.trim() && data.industry;
     if (step === 3 && projectType === 'new') return data.startDate && data.endDate;
     return true;
