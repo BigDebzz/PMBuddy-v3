@@ -11,7 +11,6 @@ const INDUSTRIES = [
   'E-commerce', 'Real Estate', 'Media', 'Government', 'Other'
 ];
 
-// ─── Voice Hook ───────────────────────────────────────────────────────────────
 function useSpeech() {
   const recognitionRef = useRef(null);
   const baseTextRef = useRef('');
@@ -99,13 +98,10 @@ const vs = {
   dot: { width: 8, height: 8, borderRadius: '50%', background: '#DC2626', flexShrink: 0 },
 };
 
-// ─── Milestone Editor ─────────────────────────────────────────────────────────
 function MilestoneEditor({ milestones, onChange, industry, description, isOngoing }) {
   const [suggesting, setSuggesting] = useState(false);
 
-  const addMilestone = () => {
-    onChange([...milestones, { title: '', date: '', status: isOngoing ? 'done' : 'pending' }]);
-  };
+  const addMilestone = () => onChange([...milestones, { title: '', date: '', status: isOngoing ? 'done' : 'pending' }]);
 
   const updateMilestone = (i, field, val) => {
     const updated = [...milestones];
@@ -113,9 +109,7 @@ function MilestoneEditor({ milestones, onChange, industry, description, isOngoin
     onChange(updated);
   };
 
-  const removeMilestone = (i) => {
-    onChange(milestones.filter((_, idx) => idx !== i));
-  };
+  const removeMilestone = (i) => onChange(milestones.filter((_, idx) => idx !== i));
 
   const suggestMilestones = async () => {
     setSuggesting(true);
@@ -125,11 +119,7 @@ Respond with ONLY a raw JSON array. No explanation. No markdown. No code blocks.
 [{"title":"milestone name","status":"pending"},{"title":"milestone name","status":"pending"}]`;
 
     try {
-      const res = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
-      });
+      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
       if (!res.ok) throw new Error('API error');
       const result = await res.json();
       const raw = result.result || result.text || '';
@@ -143,7 +133,6 @@ Respond with ONLY a raw JSON array. No explanation. No markdown. No code blocks.
       onChange(parsed.map(m => ({ title: m.title || '', date: '', status: m.status || 'pending' })));
     } catch (err) {
       console.error('Milestone suggest error:', err);
-      // Fallback — give generic milestones so the user is not left with nothing
       onChange([
         { title: 'Project Kickoff', date: '', status: isOngoing ? 'done' : 'pending' },
         { title: 'Planning Complete', date: '', status: isOngoing ? 'done' : 'pending' },
@@ -159,32 +148,16 @@ Respond with ONLY a raw JSON array. No explanation. No markdown. No code blocks.
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <label style={s.label}>Milestones</label>
-        <button style={s.aiSuggestBtn} onClick={suggestMilestones} disabled={suggesting}>
-          {suggesting ? 'Suggesting...' : 'AI Suggest'}
-        </button>
+        <button style={s.aiSuggestBtn} onClick={suggestMilestones} disabled={suggesting}>{suggesting ? 'Suggesting...' : 'AI Suggest'}</button>
       </div>
       <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 14 }}>
         {isOngoing ? 'Mark milestones as done, in progress or pending to show where you are now.' : 'Add your key project milestones. PM Buddy can suggest them based on your project.'}
       </p>
       {milestones.map((m, i) => (
         <div key={i} style={s.milestoneRow}>
-          <input
-            style={{ ...s.milestoneInput, flex: 2 }}
-            placeholder={`Milestone ${i + 1} e.g. MVP Launch`}
-            value={m.title}
-            onChange={e => updateMilestone(i, 'title', e.target.value)}
-          />
-          <input
-            style={{ ...s.milestoneInput, flex: 1 }}
-            type="date"
-            value={m.date || ''}
-            onChange={e => updateMilestone(i, 'date', e.target.value)}
-          />
-          <select
-            style={s.milestoneStatus}
-            value={m.status}
-            onChange={e => updateMilestone(i, 'status', e.target.value)}
-          >
+          <input style={{ ...s.milestoneInput, flex: 2 }} placeholder={`Milestone ${i + 1} e.g. MVP Launch`} value={m.title} onChange={e => updateMilestone(i, 'title', e.target.value)} />
+          <input style={{ ...s.milestoneInput, flex: 1 }} type="date" value={m.date || ''} onChange={e => updateMilestone(i, 'date', e.target.value)} />
+          <select style={s.milestoneStatus} value={m.status} onChange={e => updateMilestone(i, 'status', e.target.value)}>
             <option value="done">Done</option>
             <option value="in_progress">In Progress</option>
             <option value="pending">Pending</option>
@@ -197,7 +170,6 @@ Respond with ONLY a raw JSON array. No explanation. No markdown. No code blocks.
   );
 }
 
-// ─── Main Wizard ──────────────────────────────────────────────────────────────
 const DRAFT_KEY = 'pmb_wizard_draft';
 
 export default function ProjectWizard({ user, onComplete, onBack }) {
@@ -216,19 +188,14 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
     blockers: '', communicationFlow: '', methodology: '',
   };
 
-  // Load draft from localStorage on mount
   const [data, setData] = useState(() => {
     try {
       const saved = localStorage.getItem(DRAFT_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return { ...defaultData, ...parsed.data };
-      }
+      if (saved) { const parsed = JSON.parse(saved); return { ...defaultData, ...parsed.data }; }
     } catch {}
     return defaultData;
   });
 
-  // Restore step and projectType from draft
   useState(() => {
     try {
       const saved = localStorage.getItem(DRAFT_KEY);
@@ -240,54 +207,27 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
     } catch {}
   });
 
-  // Save draft to localStorage whenever data/step/type changes
   const saveDraft = useCallback((newData, newStep, newType) => {
-    try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify({
-        data: newData, step: newStep, projectType: newType, savedAt: Date.now()
-      }));
-    } catch {}
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ data: newData, step: newStep, projectType: newType, savedAt: Date.now() })); } catch {}
   }, []);
 
-  const clearDraft = () => {
-    try { localStorage.removeItem(DRAFT_KEY); } catch {}
-  };
+  const clearDraft = () => { try { localStorage.removeItem(DRAFT_KEY); } catch {} };
 
   const update = useCallback((key, val) => {
-    setData(p => {
-      const updated = { ...p, [key]: val };
-      saveDraft(updated, step, projectType);
-      return updated;
-    });
+    setData(p => { const updated = { ...p, [key]: val }; saveDraft(updated, step, projectType); return updated; });
   }, [step, projectType, saveDraft]);
 
   const progress = step === 0 ? 0 : ((step - 1) / 4) * 100;
 
-  const next = () => {
-    const newStep = step + 1;
-    setStep(newStep);
-    saveDraft(data, newStep, projectType);
-  };
-
+  const next = () => { const newStep = step + 1; setStep(newStep); saveDraft(data, newStep, projectType); };
   const back = () => {
     if (step === 0) { onBack(); return; }
-    if (step === 1) {
-      setProjectType(null);
-      setStep(0);
-      saveDraft(data, 0, null);
-      return;
-    }
-    const newStep = step - 1;
-    setStep(newStep);
-    saveDraft(data, newStep, projectType);
+    if (step === 1) { setProjectType(null); setStep(0); saveDraft(data, 0, null); return; }
+    const newStep = step - 1; setStep(newStep); saveDraft(data, newStep, projectType);
   };
 
   const addMember = () => setData(p => ({ ...p, teamMembers: [...p.teamMembers, { name: '', role: '' }] }));
-  const updateMember = (i, field, val) => {
-    const members = [...data.teamMembers];
-    members[i][field] = val;
-    setData(p => ({ ...p, teamMembers: members }));
-  };
+  const updateMember = (i, field, val) => { const members = [...data.teamMembers]; members[i][field] = val; setData(p => ({ ...p, teamMembers: members })); };
   const removeMember = (i) => setData(p => ({ ...p, teamMembers: p.teamMembers.filter((_, idx) => idx !== i) }));
 
   const selectType = (type) => {
@@ -310,11 +250,13 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
     setSaving(true);
     setSaveMsg('');
     const userId = typeof user === 'string' ? user : user?.id;
+    const userEmail = typeof user === 'string' ? '' : (user?.email || '');
     if (!userId) { setSaveMsg('You must be logged in.'); setSaving(false); return; }
     const methodology = data.methodology || deriveMethodology(data);
 
     const { data: project, error } = await supabase.from('pm_projects').insert({
       user_id: userId,
+      owner_email: userEmail,
       name: data.name,
       description: data.description,
       industry: data.industry,
@@ -335,10 +277,8 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
     if (error) { setSaveMsg(`Could not save: ${error.message}`); return; }
     if (!project) { setSaveMsg('Something went wrong. Please try again.'); return; }
 
-    // Generate project brief
     clearDraft();
     setGenerating(true);
-    setSaveMsg('');
 
     try {
       const briefPrompt = `You are a professional project manager. Write a concise project brief for this project.
@@ -351,46 +291,26 @@ Goal: ${data.goal}
 Methodology: ${methodology}
 Team: ${data.teamType === 'solo' ? 'Solo project' : data.teamMembers.filter(m => m.name).map(m => `${m.name} (${m.role})`).join(', ')}
 Timeline: ${data.startDate ? `${data.startDate} to ${data.endDate}` : 'Not set'}
-${projectType === 'ongoing' ? `Current Phase: ${data.currentPhase}
-Completed: ${data.completedWork}
-Remaining: ${data.remainingWork}
-Blockers: ${data.blockers}` : ''}
+${projectType === 'ongoing' ? `Current Phase: ${data.currentPhase}\nCompleted: ${data.completedWork}\nRemaining: ${data.remainingWork}\nBlockers: ${data.blockers}` : ''}
 Risks: ${data.topRisks.filter(r => r.trim()).join(', ') || 'None listed'}
 Milestones: ${data.milestones.filter(m => m.title).map(m => m.title).join(', ')}
 
 Write a professional project brief in HTML (h1 for title, h2 for sections, p for paragraphs). No html/head/body tags. Include: Project Overview, Objectives, Scope, Team and Roles, Timeline, Key Risks, Success Metrics. Make it specific to their actual inputs. Minimum 400 words.`;
 
-      const res = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: briefPrompt, mode: 'document' }),
-      });
-
+      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: briefPrompt, mode: 'document' }) });
       if (res.ok) {
         const result = await res.json();
         const content = (result.result || '').replace(/```html|```/g, '').trim();
         if (content && content.length > 100) {
-          // Save the brief as a document
-          await supabase.from('documents').insert({
-            user_id: userId,
-            project_id: project.id,
-            project_name: data.name,
-            type: 'pm',
-            title: `${data.name} — Project Brief`,
-            content,
-          });
+          await supabase.from('documents').insert({ user_id: userId, project_id: project.id, project_name: data.name, type: 'pm', title: `${data.name} — Project Brief`, content });
         }
       }
-    } catch (err) {
-      console.error('Brief generation error:', err);
-      // Don't block — just proceed without the brief
-    }
+    } catch (err) { console.error('Brief generation error:', err); }
 
     setGenerating(false);
     onComplete(project);
   };
 
-  // ─── Type Selection ──────────────────────────────────────────────────────
   if (step === 0) {
     return (
       <div style={s.page}>
@@ -403,17 +323,11 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
               <button style={s.typeCard} onClick={() => selectType('new')}>
                 <div style={s.typeIcon}>◈</div>
-                <div>
-                  <p style={s.typeName}>Starting Fresh</p>
-                  <p style={s.typeDesc}>I am starting this project from scratch. Help me plan it properly from the beginning.</p>
-                </div>
+                <div><p style={s.typeName}>Starting Fresh</p><p style={s.typeDesc}>I am starting this project from scratch. Help me plan it properly from the beginning.</p></div>
               </button>
               <button style={s.typeCard} onClick={() => selectType('ongoing')}>
                 <div style={{ ...s.typeIcon, background: '#EFF6FF', color: BLUE }}>↻</div>
-                <div>
-                  <p style={s.typeName}>Already in Progress</p>
-                  <p style={s.typeDesc}>This project is already running. I want to bring it into PM Buddy to manage it better from here.</p>
-                </div>
+                <div><p style={s.typeName}>Already in Progress</p><p style={s.typeDesc}>This project is already running. I want to bring it into PM Buddy to manage it better from here.</p></div>
               </button>
             </div>
           </div>
@@ -433,15 +347,11 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
         <div style={s.progressTrack}><div style={{ ...s.progressFill, width: `${progress}%` }} /></div>
         <div style={s.steps}>
           {stepLabels.map((label, i) => (
-            <div key={i} style={{ ...s.stepPill, background: step > i ? BLUE : step === i + 1 ? BLUE : '#E5E7EB', color: step >= i + 1 ? WH : '#9CA3AF' }}>
-              {label}
-            </div>
+            <div key={i} style={{ ...s.stepPill, background: step > i ? BLUE : step === i + 1 ? BLUE : '#E5E7EB', color: step >= i + 1 ? WH : '#9CA3AF' }}>{label}</div>
           ))}
         </div>
 
         <div style={s.card}>
-
-          {/* ── STEP 1: Basics (same for both) ── */}
           {step === 1 && (
             <div>
               <p style={s.stepTag}>{projectType === 'ongoing' ? 'Ongoing Project' : 'New Project'} · Step 1 of 5</p>
@@ -462,7 +372,6 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
             </div>
           )}
 
-          {/* ── STEP 2 NEW: Team ── */}
           {step === 2 && projectType === 'new' && (
             <div>
               <p style={s.stepTag}>New Project · Step 2 of 5</p>
@@ -481,8 +390,8 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
                   <label style={s.label}>Team Members</label>
                   {data.teamMembers.map((m, i) => (
                     <div key={i} style={s.memberRow}>
-                      <input style={{ ...s.inputInline }} placeholder="Name" value={m.name} onChange={e => updateMember(i, 'name', e.target.value)} />
-                      <input style={{ ...s.inputInline }} placeholder="Role e.g. Developer" value={m.role} onChange={e => updateMember(i, 'role', e.target.value)} />
+                      <input style={s.inputInline} placeholder="Name" value={m.name} onChange={e => updateMember(i, 'name', e.target.value)} />
+                      <input style={s.inputInline} placeholder="Role e.g. Developer" value={m.role} onChange={e => updateMember(i, 'role', e.target.value)} />
                       {i > 0 && <button style={s.removeBtn} onClick={() => removeMember(i)}>✕</button>}
                     </div>
                   ))}
@@ -492,38 +401,21 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
             </div>
           )}
 
-          {/* ── STEP 2 ONGOING: Current Status ── */}
           {step === 2 && projectType === 'ongoing' && (
             <div>
               <p style={s.stepTag}>Ongoing Project · Step 2 of 5</p>
               <h2 style={s.stepTitle}>Where are you right now?</h2>
               <p style={s.stepSub}>Help PM Buddy understand what has already happened and what is still to come.</p>
-
               <label style={s.label}>What phase or stage is the project in?</label>
-              <div style={{ marginBottom: 20 }}>
-                <VoiceInput value={data.currentPhase} onChange={v => update('currentPhase', v)} placeholder="e.g. Planning, Development, Testing, Launch Preparation" />
-              </div>
-
+              <div style={{ marginBottom: 20 }}><VoiceInput value={data.currentPhase} onChange={v => update('currentPhase', v)} placeholder="e.g. Planning, Development, Testing, Launch Preparation" /></div>
               <label style={s.label}>What has already been done?</label>
-              <div style={{ marginBottom: 20 }}>
-                <VoiceTextarea value={data.completedWork} onChange={v => update('completedWork', v)} placeholder="List what has been completed so far. Be specific." rows={3} />
-              </div>
-
+              <div style={{ marginBottom: 20 }}><VoiceTextarea value={data.completedWork} onChange={v => update('completedWork', v)} placeholder="List what has been completed so far. Be specific." rows={3} /></div>
               <label style={s.label}>What is still left to do?</label>
-              <div style={{ marginBottom: 20 }}>
-                <VoiceTextarea value={data.remainingWork} onChange={v => update('remainingWork', v)} placeholder="What work remains before this project is done?" rows={3} />
-              </div>
-
+              <div style={{ marginBottom: 20 }}><VoiceTextarea value={data.remainingWork} onChange={v => update('remainingWork', v)} placeholder="What work remains before this project is done?" rows={3} /></div>
               <label style={s.label}>What are the current blockers or challenges?</label>
-              <div style={{ marginBottom: 20 }}>
-                <VoiceTextarea value={data.blockers} onChange={v => update('blockers', v)} placeholder="What is slowing things down or could cause problems?" rows={3} />
-              </div>
-
+              <div style={{ marginBottom: 20 }}><VoiceTextarea value={data.blockers} onChange={v => update('blockers', v)} placeholder="What is slowing things down or could cause problems?" rows={3} /></div>
               <label style={s.label}>How does the team currently communicate?</label>
-              <div style={{ marginBottom: 20 }}>
-                <VoiceInput value={data.communicationFlow} onChange={v => update('communicationFlow', v)} placeholder="e.g. WhatsApp group, weekly meetings, email updates" />
-              </div>
-
+              <div style={{ marginBottom: 20 }}><VoiceInput value={data.communicationFlow} onChange={v => update('communicationFlow', v)} placeholder="e.g. WhatsApp group, weekly meetings, email updates" /></div>
               <label style={s.label}>What approach are you using to manage this project?</label>
               <div style={s.methodGrid}>
                 {[
@@ -541,7 +433,6 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
             </div>
           )}
 
-          {/* ── STEP 3 NEW: Timeline ── */}
           {step === 3 && projectType === 'new' && (
             <div>
               <p style={s.stepTag}>New Project · Step 3 of 5</p>
@@ -564,7 +455,6 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
             </div>
           )}
 
-          {/* ── STEP 3 ONGOING: Team ── */}
           {step === 3 && projectType === 'ongoing' && (
             <div>
               <p style={s.stepTag}>Ongoing Project · Step 3 of 5</p>
@@ -597,23 +487,15 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
             </div>
           )}
 
-          {/* ── STEP 4: Milestones (both) ── */}
           {step === 4 && (
             <div>
               <p style={s.stepTag}>{projectType === 'ongoing' ? 'Ongoing' : 'New'} Project · Step 4 of 5</p>
               <h2 style={s.stepTitle}>Project Milestones</h2>
               <p style={s.stepSub}>{projectType === 'ongoing' ? 'Show where you are now. Mark completed milestones as done, current ones as in progress.' : 'Set the key checkpoints for your project. Use AI Suggest to get milestone ideas.'}</p>
-              <MilestoneEditor
-                milestones={data.milestones}
-                onChange={v => update('milestones', v)}
-                industry={data.industry}
-                description={data.description}
-                isOngoing={projectType === 'ongoing'}
-              />
+              <MilestoneEditor milestones={data.milestones} onChange={v => update('milestones', v)} industry={data.industry} description={data.description} isOngoing={projectType === 'ongoing'} />
             </div>
           )}
 
-          {/* ── STEP 5: Review ── */}
           {step === 5 && (
             <div>
               <p style={s.stepTag}>Step 5 of 5</p>
@@ -657,7 +539,6 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
   );
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 function ReviewItem({ label, value }) {
   return (
     <div style={s.reviewItem}>
@@ -687,12 +568,7 @@ function getComplianceFlags(industry) {
 }
 
 function getComplianceText(industry) {
-  const texts = {
-    Fintech: 'As a fintech project you need to be aware of CBN regulations, NDPR data protection requirements and KYC obligations.',
-    Health: 'Health projects must handle patient data with strict privacy controls.',
-    Education: 'Ensure any student data you collect is protected and content is properly licensed.',
-    Government: 'Government projects require formal procurement processes and public data policies.',
-  };
+  const texts = { Fintech: 'As a fintech project you need to be aware of CBN regulations, NDPR data protection requirements and KYC obligations.', Health: 'Health projects must handle patient data with strict privacy controls.', Education: 'Ensure any student data you collect is protected and content is properly licensed.', Government: 'Government projects require formal procurement processes and public data policies.' };
   return texts[industry] || `Research regulatory requirements specific to ${industry} in your target market.`;
 }
 
