@@ -24,9 +24,9 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
     setLoading(true);
     const [{ data: v }, { data: p }, { data: d }, { data: members }] = await Promise.all([
       supabase.from('projects').select('*').order('updated_at', { ascending: false }),
-      supabase.from('pm_projects').select('*').order('updated_at', { ascending: false }),
+      supabase.from('pm_projects').select('*').eq('user_id', user.id).order('updated_at', { ascending: false }),
       supabase.from('documents').select('*').order('updated_at', { ascending: false }),
-      supabase.from('project_members').select('*').eq('email', user.email).eq('status', 'accepted'),
+      supabase.from('project_members').select('*').eq('user_id', user.id).eq('status', 'accepted'),
     ]);
     setValidations(v || []);
     setProjects(p || []);
