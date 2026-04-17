@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-
 const BLUE = '#0284C7';
 const BL = '#0A0A0A';
 const WH = '#FFFFFF';
@@ -323,30 +322,114 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
 
     {/* Document Viewer Modal */}
     {viewingDoc && (
-      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 24px', overflowY: 'auto' }}>
-        <div style={{ background: WH, borderRadius: 16, width: '100%', maxWidth: 760, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 28px', borderBottom: '1px solid #E5E7EB' }}>
-            <div>
-              <p style={{ fontSize: 11, fontWeight: 700, color: '#C2410C', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Quick Doc</p>
-              <p style={{ fontSize: 16, fontWeight: 700, color: BL }}>{viewingDoc.title}</p>
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button style={{ padding: '7px 16px', background: WH, color: BLUE, border: `1px solid ${BLUE}`, borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => {
-                const blob = new Blob([viewingDoc.content], { type: 'text/html' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${viewingDoc.title.replace(/\s+/g, '_')}.html`;
-                document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-              }}>Download</button>
-              <button style={{ padding: '7px 16px', background: BL, color: WH, border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setViewingDoc(null)}>Close</button>
-            </div>
-          </div>
-          <div style={{ padding: '32px 40px', fontSize: 15, lineHeight: 1.8, color: '#374151', fontFamily: 'Georgia, serif', maxHeight: '70vh', overflowY: 'auto' }} dangerouslySetInnerHTML={{ __html: viewingDoc.content }} />
-        </div>
-      </div>
+      <DocViewerModal doc={viewingDoc} onClose={() => setViewingDoc(null)} onUpdate={(updated) => {
+        setViewingDoc(updated);
+        setDocuments(docs => docs.map(d => d.id === updated.id ? updated : d));
+      }} />
     )}
   </>
+  );
+}
+
+function DocViewerModal({ doc, onClose, onUpdate }) {
+  const [content, setContent] = useState(doc.content);
+  const [updateInput, setUpdateInput] = useState('');
+  const [updating, setUpdating] = useState(false);
+  const [updateMsg, setUpdateMsg] = useState('');
+
+  const download = () => {
+    const blob = new Blob([content], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${doc.title.replace(/\s+/g, '_')}.html`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  };
+
+  const updateDoc = async () => {
+    if (!updateInput.trim()) return;
+    setUpdating(true);
+    setUpdateMsg('');
+    const prompt = `You are editing a professional document. The user has a specific change request.
+
+CURRENT DOCUMENT:
+${content}
+
+USER'S REQUEST: "${updateInput}"
+
+INSTRUCTIONS:
+- Make ONLY the changes the user asked for. Do not rewrite sections they did not mention.
+- If they ask to add something, add it in the right place.
+- If they ask to fix or change something small, fix only that.
+- If they explicitly ask to rewrite or restructure a whole section, do that section only.
+- If they ask to rewrite the whole document, rewrite everything.
+- Keep all other sections exactly as they are.
+- Return the COMPLETE document in HTML with your changes applied (h1, h2, p, ul/li). No html/head/body tags. No markdown.`;
+
+    try {
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, mode: 'document' }),
+      });
+      const result = await res.json();
+      const updated = (result.result || '').replace(/```html|```/g, '').trim();
+      if (updated && updated.length > 100) {
+        setContent(updated);
+        // Save to Supabase
+        await supabase.from('documents').update({ content: updated, updated_at: new Date().toISOString() }).eq('id', doc.id);
+        onUpdate({ ...doc, content: updated });
+        setUpdateInput('');
+        setUpdateMsg('Document updated.');
+      } else {
+        setUpdateMsg('Could not update. Please try again.');
+      }
+    } catch (err) {
+      setUpdateMsg('Something went wrong. Please try again.');
+    }
+    setUpdating(false);
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px', overflowY: 'auto' }}>
+      <div style={{ background: '#FFFFFF', borderRadius: 16, width: '100%', maxWidth: 800, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 28px', borderBottom: '1px solid #E5E7EB' }}>
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 700, color: '#C2410C', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Quick Doc</p>
+            <p style={{ fontSize: 16, fontWeight: 700, color: '#0A0A0A' }}>{doc.title}</p>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button style={{ padding: '7px 16px', background: '#FFFFFF', color: '#0284C7', border: '1px solid #0284C7', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={download}>Download</button>
+            <button style={{ padding: '7px 16px', background: '#0A0A0A', color: '#FFFFFF', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={onClose}>Close</button>
+          </div>
+        </div>
+
+        {/* Update bar */}
+        <div style={{ padding: '14px 28px', borderBottom: '1px solid #E5E7EB', background: '#F8FAFC' }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <input
+              style={{ flex: 1, border: '1.5px solid #E5E7EB', borderRadius: 8, padding: '10px 14px', fontSize: 13, fontFamily: 'inherit', outline: 'none', background: '#FFFFFF' }}
+              placeholder="Want to change something? e.g. Add a budget section, make it shorter, add more detail on risks..."
+              value={updateInput}
+              onChange={e => setUpdateInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && updateDoc()}
+            />
+            <button
+              style={{ padding: '10px 20px', background: '#0284C7', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: !updateInput.trim() || updating ? 0.5 : 1, whiteSpace: 'nowrap' }}
+              onClick={updateDoc}
+              disabled={!updateInput.trim() || updating}
+            >
+              {updating ? 'Updating...' : 'Update'}
+            </button>
+          </div>
+          {updateMsg && <p style={{ fontSize: 12, color: updating ? '#D97706' : '#15803D', marginTop: 6 }}>{updateMsg}</p>}
+        </div>
+
+        {/* Document content */}
+        <div style={{ padding: '32px 40px', fontSize: 15, lineHeight: 1.8, color: '#374151', fontFamily: 'Georgia, serif', maxHeight: '65vh', overflowY: 'auto' }} dangerouslySetInnerHTML={{ __html: content }} />
+      </div>
+    </div>
   );
 }
 
