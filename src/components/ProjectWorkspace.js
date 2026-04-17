@@ -221,9 +221,11 @@ function GoalRefineSection({ label, value, field, onAccept }) {
     setRefining(true);
     setSuggestion('');
     const prompts = {
-      goal: `You are PM Buddy, a friendly project management coach. Someone wrote this as their project goal: "${draft}"
+      goal: `You are PM Buddy, a friendly project management coach. Someone was asked "what does success look like for your project?" and they wrote: "${draft}"
 
-Rewrite it as a clear, specific success statement that anyone can understand. Answer: what will be different when this project is done? Keep it concrete and simple. No jargon.
+They may have described what done looks like rather than a proper goal. Your job is to turn this into a clear, measurable project goal that answers: WHO will benefit, WHAT will change or be achieved, and HOW they will know it worked.
+
+Use simple, everyday language. No jargon. Write it as one or two sentences starting with "This project will succeed when..." or similar. Make it specific and realistic based on what they wrote.
 
 Return ONLY the rewritten goal. Nothing else.`,
       description: `You are PM Buddy, a friendly project management coach. Someone described their project like this: "${draft}"
