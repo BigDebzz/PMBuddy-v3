@@ -240,7 +240,38 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
     setStep(1);
   };
 
-  const canProceed = () => {
+  const [refining, setRefining] = useState({ description: false, goal: false });
+  const [suggestions, setSuggestions] = useState({ description: '', goal: '' });
+
+  const refineField = async (field, value) => {
+    if (!value.trim()) return;
+    setRefining(p => ({ ...p, [field]: true }));
+    const prompts = {
+      description: `You are PM Buddy, a friendly project management coach helping everyday people plan their projects better. Someone described their project like this: "${value}"
+
+Your job is to rewrite this as a clear, simple 2-3 sentence project description that anyone can understand. No jargon. No corporate speak. Just plain English that explains what the project is, who it is for, and what it will do. Keep the person's original idea — just make it cleaner and clearer.
+
+Return ONLY the rewritten description. Nothing else.`,
+
+      goal: `You are PM Buddy, a friendly project management coach. Someone wrote this as their project goal: "${value}"
+
+Rewrite this as a clear, specific success statement that a non-PM person can understand and work towards. It should answer: what will be different when this project is done? Make it concrete. Avoid vague words like "improve", "enhance" or "be successful". Use simple language.
+
+Return ONLY the rewritten goal. Nothing else.`,
+    };
+    try {
+      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: prompts[field] }) });
+      const result = await res.json();
+      const refined = (result.result || '').trim();
+      if (refined) setSuggestions(p => ({ ...p, [field]: refined }));
+    } catch (err) { console.error(err); }
+    setRefining(p => ({ ...p, [field]: false }));
+  };
+
+  const acceptSuggestion = (field) => {
+    update(field, suggestions[field]);
+    setSuggestions(p => ({ ...p, [field]: '' }));
+  };
     if (step === 1) return data.name.trim() && data.description.trim() && data.goal.trim() && data.industry;
     if (step === 3 && projectType === 'new') return data.startDate && data.endDate;
     return true;
@@ -360,9 +391,45 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
               <label style={s.label}>Project Name</label>
               <div style={{ marginBottom: 20 }}><VoiceInput value={data.name} onChange={v => update('name', v)} placeholder="e.g. Product Launch, Community Training, App Development" /></div>
               <label style={s.label}>What is this project about?</label>
-              <div style={{ marginBottom: 20 }}><VoiceTextarea value={data.description} onChange={v => update('description', v)} placeholder="Describe what this project is and what it is trying to achieve." rows={3} /></div>
+              <div style={{ marginBottom: suggestions.description ? 8 : 20 }}>
+                <VoiceTextarea value={data.description} onChange={v => update('description', v)} placeholder="Describe what this project is and what it is trying to achieve." rows={3} />
+              </div>
+              {data.description.trim().length > 20 && !suggestions.description && (
+                <button style={s.refineBtn} onClick={() => refineField('description', data.description)} disabled={refining.description}>
+                  {refining.description ? 'Refining...' : 'AI Refine'}
+                </button>
+              )}
+              {suggestions.description && (
+                <div style={s.suggestionBox}>
+                  <p style={s.suggestionLabel}>AI Suggestion</p>
+                  <p style={s.suggestionText}>{suggestions.description}</p>
+                  <div style={s.suggestionActions}>
+                    <button style={s.acceptBtn} onClick={() => acceptSuggestion('description')}>Use this</button>
+                    <button style={s.dismissBtn} onClick={() => setSuggestions(p => ({ ...p, description: '' }))}>Keep mine</button>
+                  </div>
+                </div>
+              )}
+              <div style={{ marginBottom: 20 }} />
               <label style={s.label}>What does success look like?</label>
-              <div style={{ marginBottom: 20 }}><VoiceTextarea value={data.goal} onChange={v => update('goal', v)} placeholder="What outcome are you trying to achieve? Be specific." rows={3} /></div>
+              <div style={{ marginBottom: suggestions.goal ? 8 : 20 }}>
+                <VoiceTextarea value={data.goal} onChange={v => update('goal', v)} placeholder="What outcome are you trying to achieve? Be specific." rows={3} />
+              </div>
+              {data.goal.trim().length > 20 && !suggestions.goal && (
+                <button style={s.refineBtn} onClick={() => refineField('goal', data.goal)} disabled={refining.goal}>
+                  {refining.goal ? 'Refining...' : 'AI Refine'}
+                </button>
+              )}
+              {suggestions.goal && (
+                <div style={s.suggestionBox}>
+                  <p style={s.suggestionLabel}>AI Suggestion</p>
+                  <p style={s.suggestionText}>{suggestions.goal}</p>
+                  <div style={s.suggestionActions}>
+                    <button style={s.acceptBtn} onClick={() => acceptSuggestion('goal')}>Use this</button>
+                    <button style={s.dismissBtn} onClick={() => setSuggestions(p => ({ ...p, goal: '' }))}>Keep mine</button>
+                  </div>
+                </div>
+              )}
+              <div style={{ marginBottom: 20 }} />
               <label style={s.label}>Industry</label>
               <div style={s.industryGrid}>
                 {INDUSTRIES.map(ind => (
@@ -617,6 +684,13 @@ const s = {
   milestoneInput: { border: '1.5px solid #E5E7EB', borderRadius: 8, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', background: WH, minWidth: 80 },
   milestoneStatus: { border: '1.5px solid #E5E7EB', borderRadius: 8, padding: '10px 8px', fontSize: 12, fontFamily: 'inherit', color: BL, background: WH, cursor: 'pointer' },
   aiSuggestBtn: { padding: '6px 14px', background: BLUE, color: WH, border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  refineBtn: { padding: '6px 14px', background: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 12, display: 'inline-block' },
+  suggestionBox: { background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 10, padding: '14px 16px', marginBottom: 12 },
+  suggestionLabel: { fontSize: 10, fontWeight: 700, color: '#15803D', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 },
+  suggestionText: { fontSize: 14, color: '#166534', lineHeight: 1.7, marginBottom: 12 },
+  suggestionActions: { display: 'flex', gap: 8 },
+  acceptBtn: { padding: '6px 16px', background: '#15803D', color: WH, border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  dismissBtn: { padding: '6px 14px', background: 'none', color: '#6B7280', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
   timelineWarn: { background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#DC2626', lineHeight: 1.6, marginTop: 8 },
   timelineOk: { background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: BLUE, lineHeight: 1.6, marginTop: 8 },
   reviewGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 },
