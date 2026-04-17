@@ -2,11 +2,13 @@ export const config = {
   api: { bodyParser: true },
 };
 
-async function callGemini(prompt, mode, retries = 3) {
+async function callGemini(prompt, mode, retries) {
   const API_KEY = process.env.GEMINI_API_KEY;
   const maxTokens = mode === 'document' ? 8000 : 2000;
+  // Documents get fewer retries to avoid timeout — generation itself takes ~20-30s
+  const maxRetries = retries !== undefined ? retries : (mode === 'document' ? 2 : 3);
 
-  for (let attempt = 1; attempt <= retries; attempt++) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
     const geminiResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
       {
@@ -26,8 +28,9 @@ async function callGemini(prompt, mode, retries = 3) {
       return { text: null, error: 'No response from Gemini' };
     }
 
-    if ((geminiResponse.status === 503 || geminiResponse.status === 429) && attempt < retries) {
-      await new Promise(r => setTimeout(r, 8000 * attempt));
+    if ((geminiResponse.status === 503 || geminiResponse.status === 429) && attempt < maxRetries) {
+      // Short wait: 3s first retry, 5s second retry — keeps us well within 60s limit
+      await new Promise(r => setTimeout(r, 3000 * attempt));
       continue;
     }
 
@@ -35,7 +38,7 @@ async function callGemini(prompt, mode, retries = 3) {
     return { text: null, error: `${geminiResponse.status}: ${errBody}` };
   }
 
-  return { text: null, error: 'All retries failed. Gemini is currently overloaded. Please try again in a few minutes.' };
+  return { text: null, error: 'Gemini is currently overloaded. Please try again in a moment.' };
 }
 
 export default async function handler(request, response) {
