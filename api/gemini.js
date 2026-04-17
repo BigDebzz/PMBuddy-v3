@@ -31,8 +31,8 @@ async function callModel(model, prompt, mode) {
 }
 
 async function callGemini(prompt, mode) {
-  const PRIMARY = 'gemini-2.5-flash-preview-04-17';
-  const FALLBACK = 'gemini-1.5-flash-latest';
+  const PRIMARY = 'gemini-1.5-flash';
+  const FALLBACK = 'gemini-1.5-pro';
 
   // Try primary model once
   const primary = await callModel(PRIMARY, prompt, mode);
