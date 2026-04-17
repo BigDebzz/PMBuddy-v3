@@ -26,17 +26,24 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
       supabase.from('projects').select('*').order('updated_at', { ascending: false }),
       supabase.from('pm_projects').select('*').order('updated_at', { ascending: false }),
       supabase.from('documents').select('*').order('updated_at', { ascending: false }),
-      supabase.from('project_members').select('*, pm_projects(*)').eq('email', user.email).eq('status', 'accepted'),
+      supabase.from('project_members').select('*').eq('email', user.email).eq('status', 'accepted'),
     ]);
     setValidations(v || []);
     setProjects(p || []);
     setDocuments(d || []);
-    // Extract invited projects — exclude ones the user already owns
-    const ownedIds = new Set((p || []).map(proj => proj.id));
-    const invited = (members || [])
-      .filter(m => m.pm_projects && !ownedIds.has(m.pm_projects.id))
-      .map(m => ({ ...m.pm_projects, _inviteRole: m.role }));
-    setInvitedProjects(invited);
+    // Fetch invited projects separately
+    if (members && members.length > 0) {
+      const ownedIds = new Set((p || []).map(proj => proj.id));
+      const projectIds = members.filter(m => !ownedIds.has(m.project_id)).map(m => m.project_id);
+      if (projectIds.length > 0) {
+        const { data: invProjects } = await supabase.from('pm_projects').select('*').in('id', projectIds);
+        const invited = (invProjects || []).map(proj => {
+          const member = members.find(m => m.project_id === proj.id);
+          return { ...proj, _inviteRole: member?.role };
+        });
+        setInvitedProjects(invited);
+      }
+    }
     setLoading(false);
   };
 
