@@ -32,10 +32,9 @@ async function callModel(model, prompt, mode) {
 
 async function callGemini(prompt, mode) {
   const MODELS = [
-    'gemini-3-flash',
+    'gemini-3-flash-preview',
+    'gemini-2.5-flash',
     'gemini-2.0-flash',
-    'gemini-2.0-flash-lite',
-    'gemini-1.5-flash',
   ];
 
   for (const model of MODELS) {
