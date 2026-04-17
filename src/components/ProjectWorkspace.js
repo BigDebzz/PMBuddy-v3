@@ -19,6 +19,24 @@ const METHODOLOGY_INFO = {
   Hybrid: { color: '#0369A1', bg: '#E0F2FE', label: 'Hybrid', reason: 'A mix of both. You plan the big picture upfront but stay flexible on how you execute each part.' },
 };
 
+async function notify(type, project, data) {
+  try {
+    await fetch('/api/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type,
+        projectId: project.id,
+        projectName: project.name,
+        ownerEmail: project.owner_email,
+        data,
+      }),
+    });
+  } catch (err) {
+    console.error('Notify error:', err);
+  }
+}
+
 export default function ProjectWorkspace({ project, onBack, onUpdate }) {
   const [data, setData] = useState(project);
   const [methodology, setMethodology] = useState(project.methodology || 'Agile');
@@ -308,7 +326,13 @@ function CurrentStatusSection({ data, onSave }) {
   const [aiReview, setAiReview] = useState('');
   const [reviewing, setReviewing] = useState(false);
 
-  const saveStatus = () => { onSave({ scope: { ...scope, ...draft } }); setEditing(false); };
+  const saveStatus = () => {
+    onSave({ scope: { ...scope, ...draft } });
+    if (draft.blockers && draft.blockers !== scope.blockers) {
+      notify('blocker_added', data, { blocker: draft.blockers });
+    }
+    setEditing(false);
+  };
 
   const getAiReview = async () => {
     setReviewing(true);
@@ -513,11 +537,17 @@ function OverviewTab({ data, methodology, info, onSave }) {
       </div>
 
       <div style={s.overviewSection}>
-        <GoalRefineSection label="Your Project Goal" value={data.scope?.goal} field="goal" onAccept={(val) => onSave({ scope: { ...data.scope, goal: val } })} />
+        <GoalRefineSection label="Your Project Goal" value={data.scope?.goal} field="goal" onAccept={(val) => {
+          onSave({ scope: { ...data.scope, goal: val } });
+          notify('goal_updated', data, { goal: val });
+        }} />
       </div>
 
       <div style={s.overviewSection}>
-        <GoalRefineSection label="Project Description" value={data.description} field="description" onAccept={(val) => onSave({ description: val })} />
+        <GoalRefineSection label="Project Description" value={data.description} field="description" onAccept={(val) => {
+          onSave({ description: val });
+          notify('description_updated', data, {});
+        }} />
       </div>
 
       {data.scope?.currentPhase !== undefined && (
@@ -567,6 +597,8 @@ function ProgressTab({ data, onSave }) {
     const current = milestones[i].status;
     const next = current === 'pending' ? 'in_progress' : current === 'in_progress' ? 'done' : 'pending';
     onSave({ milestones: milestones.map((m, idx) => idx === i ? { ...m, status: next } : m) });
+    if (next === 'done') notify('milestone_done', data, { milestone: milestones[i].title });
+    if (next === 'in_progress') notify('milestone_in_progress', data, { milestone: milestones[i].title });
   };
 
   const startEdit = (i) => { setEditingIdx(i); setEditDraft({ ...milestones[i] }); };
@@ -897,7 +929,13 @@ function RisksComplianceTab({ data, onSave }) {
   const risks = data.risks || [];
   const compliance = data.compliance || { flags: [], internal: [], external: [] };
   const [newRisk, setNewRisk] = useState(''); const [newLevel, setNewLevel] = useState('medium'); const [newInternal, setNewInternal] = useState(''); const [newExternal, setNewExternal] = useState('');
-  const addRisk = () => { if (!newRisk.trim()) return; onSave({ risks: [...risks, { title: newRisk.trim(), level: newLevel, status: 'open' }] }); setNewRisk(''); };
+  const addRisk = () => {
+    if (!newRisk.trim()) return;
+    onSave({ risks: [...risks, { title: newRisk.trim(), level: newLevel, status: 'open' }] });
+    if (newLevel === 'high') notify('risk_high', data, { risk: newRisk.trim(), level: newLevel });
+    else notify('risk_added', data, { risk: newRisk.trim(), level: newLevel });
+    setNewRisk('');
+  };
   const toggleRisk = (i) => onSave({ risks: risks.map((r, idx) => idx === i ? { ...r, status: r.status === 'open' ? 'mitigated' : 'open' } : r) });
   const addCompliance = (type, value, setter) => { if (!value.trim()) return; onSave({ compliance: { ...compliance, [type]: [...(compliance[type] || []), value.trim()] } }); setter(''); };
   const removeCompliance = (type, i) => onSave({ compliance: { ...compliance, [type]: (compliance[type] || []).filter((_, idx) => idx !== i) } });
