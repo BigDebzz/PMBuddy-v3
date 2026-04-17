@@ -59,6 +59,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   };
 
   return (
+    <>
     <div style={s.page}>
       <div style={s.wrap}>
 
@@ -345,7 +346,8 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
         </div>
       </div>
     )}
-  
+  </>;
+}
 }
 
 const s = {
