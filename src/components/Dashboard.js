@@ -346,7 +346,8 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
         </div>
       </div>
     )}
-  </>;
+  </>
+  );
 }
 
 const s = {
