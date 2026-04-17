@@ -3,13 +3,13 @@
   "outputDirectory": "build",
   "framework": "create-react-app",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "functions": {
     "api/gemini.js": { "maxDuration": 60 },
     "api/send-reminder.js": { "maxDuration": 15 },
-    "api/check-milestones.js": { "maxDuration": 60 }
+    "api/check-milestones.js": { "maxDuration": 60 },
+    "api/notify.js": { "maxDuration": 15 }
   },
   "crons": [
     {
@@ -18,3 +18,4 @@
     }
   ]
 }
+
