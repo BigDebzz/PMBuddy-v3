@@ -98,6 +98,22 @@ export default function App() {
       status: 'accepted',
       user_id: user.id,
     }).eq('id', inviteData.id);
+
+    // Notify project team
+    try {
+      await fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'member_joined',
+          projectId: inviteData.project_id,
+          projectName: inviteData.pm_projects?.name || 'your project',
+          ownerEmail: inviteData.pm_projects?.owner_email,
+          data: { email: user.email, name: user.user_metadata?.first_name || user.email, role: inviteData.role },
+        }),
+      });
+    } catch (err) { console.error('Notify error:', err); }
+
     setInviteAccepting(false);
     setScreen(S.DASHBOARD);
   };
@@ -201,3 +217,4 @@ const nav = {
   loginBtn: { padding: '6px 14px', background: 'none', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 500, color: '#6B7280', cursor: 'pointer', fontFamily: 'inherit' },
   signupBtn: { padding: '6px 14px', background: '#0A0A0A', color: '#FFFFFF', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
 };
+
