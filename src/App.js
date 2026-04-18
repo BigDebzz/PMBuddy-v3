@@ -79,9 +79,10 @@ export default function App() {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (_event === 'SIGNED_IN' && session?.user) {
+      if (session?.user && (_event === 'SIGNED_IN' || _event === 'TOKEN_REFRESHED' || _event === 'INITIAL_SESSION')) {
         setUser(session.user);
-        setScreen(S.DASHBOARD);
+        // Don't override invite screen
+        setScreen(prev => prev === S.INVITE ? S.INVITE : S.DASHBOARD);
       }
       if (_event === 'SIGNED_OUT') {
         setUser(null);
