@@ -67,7 +67,7 @@ export default function App() {
     const handleAuth = async () => {
       // First try to get session from URL hash (Google OAuth redirect)
       if (window.location.hash && window.location.hash.includes('access_token')) {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           setUser(session.user);
           window.history.replaceState(null, '', window.location.pathname);
