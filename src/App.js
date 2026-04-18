@@ -38,9 +38,6 @@ export default function App() {
     if (token) {
       window.history.replaceState(null, '', window.location.pathname);
     }
-    if (window.location.hash) {
-      window.history.replaceState(null, '', window.location.pathname);
-    }
 
     const loadInvite = async (tok) => {
       const { data: member } = await supabase
@@ -57,7 +54,6 @@ export default function App() {
         setScreen(S.DASHBOARD);
         return;
       }
-      // Fetch the project separately
       const { data: project } = await supabase
         .from('pm_projects')
         .select('*')
@@ -67,7 +63,21 @@ export default function App() {
       setScreen(S.INVITE);
     };
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Handle Google OAuth redirect — session is in the URL hash
+    const handleAuth = async () => {
+      // First try to get session from URL hash (Google OAuth redirect)
+      if (window.location.hash && window.location.hash.includes('access_token')) {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (session?.user) {
+          setUser(session.user);
+          window.history.replaceState(null, '', window.location.pathname);
+          setScreen(S.DASHBOARD);
+          return;
+        }
+      }
+
+      // Normal session check
+      const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         setUser(session.user);
         if (token) {
@@ -76,12 +86,13 @@ export default function App() {
           setScreen(S.DASHBOARD);
         }
       }
-    });
+    };
+
+    handleAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user && (_event === 'SIGNED_IN' || _event === 'TOKEN_REFRESHED' || _event === 'INITIAL_SESSION')) {
         setUser(session.user);
-        // Don't override invite screen
         setScreen(prev => prev === S.INVITE ? S.INVITE : S.DASHBOARD);
       }
       if (_event === 'SIGNED_OUT') {
@@ -218,5 +229,4 @@ const nav = {
   loginBtn: { padding: '6px 14px', background: 'none', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 500, color: '#6B7280', cursor: 'pointer', fontFamily: 'inherit' },
   signupBtn: { padding: '6px 14px', background: '#0A0A0A', color: '#FFFFFF', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
 };
-
 
