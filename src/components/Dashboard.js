@@ -299,7 +299,6 @@ function ProjectCard({ p, onOpen, onDelete, isCampaign }) {
   const end = p.timeline?.end ? new Date(p.timeline.end) : null;
   const start = p.timeline?.start ? new Date(p.timeline.start) : null;
   const today = new Date();
-  const totalDays = start && end ? Math.ceil((end - start) / 86400000) : 0;
   const daysLeft = end ? Math.ceil((end - today) / 86400000) : null;
   const openRisks = (p.risks || []).filter(r => r.status === 'open').length;
   const doneMilestones = (p.milestones || []).filter(m => m.status === 'done').length;
