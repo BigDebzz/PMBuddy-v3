@@ -297,7 +297,6 @@ function downloadDoc(doc) {
 
 function ProjectCard({ p, onOpen, onDelete, isCampaign }) {
   const end = p.timeline?.end ? new Date(p.timeline.end) : null;
-  const start = p.timeline?.start ? new Date(p.timeline.start) : null;
   const today = new Date();
   const daysLeft = end ? Math.ceil((end - today) / 86400000) : null;
   const openRisks = (p.risks || []).filter(r => r.status === 'open').length;
