@@ -308,7 +308,7 @@ function ProjectCard({ p, onOpen, onDelete, isCampaign }) {
   return (
     <div style={s.projectCard}>
       <div style={s.projectBadges}>
-        <span style={{ ...s.industryBadge, background: isCampaign ? '#FFF7ED', color: isCampaign ? '#C2410C' : BLUE }}>{isCampaign ? 'Campaign' : p.industry}</span>
+        <span style={{ ...s.industryBadge, background: isCampaign ? '#FFF7ED' : '#EFF6FF', color: isCampaign ? '#C2410C' : BLUE }}>{isCampaign ? 'Campaign' : p.industry}</span>
         <span style={s.methodBadge}>{p.methodology}</span>
       </div>
       <p style={s.projectName}>{p.name}</p>
