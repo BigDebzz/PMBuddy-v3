@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 const BLUE = '#0284C7';
@@ -6,8 +6,10 @@ const BL = '#0A0A0A';
 const WH = '#FFFFFF';
 const GREY = '#F8FAFC';
 
+const DRAFT_KEY = 'pmbuddy_campaign_draft';
+
 const STEPS = [
-  { num: 1, label: 'Entities' },
+  { num: 1, label: 'About' },
   { num: 2, label: 'Concept' },
   { num: 3, label: 'Details' },
   { num: 4, label: 'AI Review' },
@@ -107,35 +109,62 @@ const vs = {
   dot: { width: 8, height: 8, borderRadius: '50%', background: '#DC2626', flexShrink: 0 },
 };
 
+const EMPTY_DATA = {
+  campaignName: '',
+  leadOrg: '',
+  collaborator: '',
+  targetAudience: '',
+  conceptNote: '',
+  objective: '',
+  startDate: '',
+  endDate: '',
+  teamLead: '',
+  teamMembers: '',
+  successMetrics: '',
+  whatYouNeed: '',
+  risks: '',
+};
+
 export default function CampaignWizard({ user, onComplete, onBack }) {
   const [step, setStep] = useState(1);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiReview, setAiReview] = useState(null);
+  const [aiError, setAiError] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
   const [conceptFile, setConceptFile] = useState(null);
+  const [draftRestored, setDraftRestored] = useState(false);
   const fileRef = useRef(null);
 
-  const [data, setData] = useState({
-    campaignName: '',
-    leadOrg: '',
-    partnerOrg: '',
-    targetAudience: '',
-    conceptNote: '',
-    objective: '',
-    startDate: '',
-    endDate: '',
-    teamLead: '',
-    teamMembers: '',
-    successMetrics: '',
-    whatYouNeed: '',
-    risks: '',
-  });
+  const [data, setData] = useState(EMPTY_DATA);
+
+  // Restore draft on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.data && parsed.data.campaignName) {
+          setData(parsed.data);
+          setDraftRestored(true);
+          setTimeout(() => setDraftRestored(false), 4000);
+        }
+      }
+    } catch {}
+  }, []);
+
+  // Save draft whenever data changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ data }));
+    } catch {}
+  }, [data]);
 
   const update = useCallback((key, val) => setData(p => ({ ...p, [key]: val })), []);
 
   const onChangeCampaignName = useCallback((val) => update('campaignName', val), [update]);
   const onChangeLeadOrg = useCallback((val) => update('leadOrg', val), [update]);
-  const onChangePartnerOrg = useCallback((val) => update('partnerOrg', val), [update]);
+  const onChangeCollaborator = useCallback((val) => update('collaborator', val), [update]);
   const onChangeTargetAudience = useCallback((val) => update('targetAudience', val), [update]);
   const onChangeConceptNote = useCallback((val) => update('conceptNote', val), [update]);
   const onChangeObjective = useCallback((val) => update('objective', val), [update]);
@@ -167,64 +196,73 @@ export default function CampaignWizard({ user, onComplete, onBack }) {
   const runAiReview = async () => {
     setAiLoading(true);
     setAiReview(null);
+    setAiError(false);
 
-    const prompt = `You are a senior project manager and partnership specialist. You are reviewing a short-term campaign or partnership project.
+    // Simplified prompt — no "research organisations" instruction which caused slowness
+    const prompt = `You are a senior project manager reviewing a short campaign or initiative. Be direct and specific.
 
-Here are the details:
+Details:
+- Name: ${data.campaignName}
+- Led by: ${data.leadOrg}
+- Collaborator: ${data.collaborator || 'None'}
+- Audience: ${data.targetAudience}
+- Objective / Concept: ${data.objective || data.conceptNote}
+- Timeline: ${data.startDate} to ${data.endDate}
+- Team Lead: ${data.teamLead}
+- Team: ${data.teamMembers || 'Not specified'}
+- Success Metrics: ${data.successMetrics || 'Not specified'}
+- What they need: ${data.whatYouNeed || 'Not specified'}
+- Risks: ${data.risks || 'Not specified'}
 
-Campaign Name: ${data.campaignName}
-Lead Organisation: ${data.leadOrg}
-Partner Organisation: ${data.partnerOrg || 'Not specified'}
-Target Audience: ${data.targetAudience}
-Concept Note or Objective: ${data.conceptNote || data.objective}
-Start Date: ${data.startDate}
-End Date: ${data.endDate}
-Team Lead: ${data.teamLead}
-Team Members: ${data.teamMembers || 'Not specified'}
-Success Metrics: ${data.successMetrics || 'Not specified'}
-What They Need to Succeed: ${data.whatYouNeed || 'Not specified'}
-Risks: ${data.risks || 'Not specified'}
-
-Research what you know about the organisations mentioned if they are known entities. Then provide a structured review in this exact JSON format with no markdown no code blocks just raw JSON:
+Respond ONLY with raw JSON, no markdown, no code blocks:
 
 {
-  "orgContext": "1-2 sentences about the lead organisation and partner if known. If unknown say so.",
-  "conceptStrength": "1-2 sentences on what is strong about this campaign concept.",
-  "gaps": ["gap 1 in one sentence", "gap 2 in one sentence", "gap 3 in one sentence"],
-  "keyQuestions": ["question the team should answer before launching", "another key question", "another key question"],
+  "conceptStrength": "1-2 sentences on what is genuinely strong about this plan.",
+  "gaps": ["gap 1 in plain English", "gap 2", "gap 3"],
+  "keyQuestions": ["question the team must answer before launching", "another critical question", "one more"],
   "successFactors": ["factor 1", "factor 2", "factor 3"],
-  "recommendation": "1-2 sentence honest recommendation on how to make this campaign succeed."
-}
-
-Keep the entire response under 600 tokens. Be specific and direct.`;
+  "recommendation": "1-2 sentence direct recommendation on how to make this succeed."
+}`;
 
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 25000);
+
       const response = await fetch('/api/gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
+        body: JSON.stringify({ prompt }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
+
       const result = await response.json();
       if (result.result) {
         const clean = result.result.replace(/```json|```/g, '').trim();
         const lastBrace = clean.lastIndexOf('}');
         const fixed = lastBrace !== -1 ? clean.substring(0, lastBrace + 1) : clean;
         setAiReview(JSON.parse(fixed));
+      } else {
+        setAiError(true);
       }
     } catch (err) {
       console.error('AI review error:', err);
+      setAiError(true);
     }
     setAiLoading(false);
   };
 
   const save = async () => {
     setSaving(true);
-    const start = new Date(data.startDate);
-    const end = new Date(data.endDate);
-    const days = Math.ceil((end - start) / 86400000);
+    setSaveError(null);
+
+    const startDate = new Date(data.startDate);
+    const endDate = new Date(data.endDate);
+    const days = Math.ceil((endDate - startDate) / 86400000);
 
     const { data: project, error } = await supabase.from('pm_projects').insert({
       user_id: user.id,
+      owner_email: user.email,
       name: data.campaignName,
       description: data.conceptNote || data.objective,
       industry: 'Campaign',
@@ -234,7 +272,7 @@ Keep the entire response under 600 tokens. Be specific and direct.`;
       scope: {
         goal: data.objective,
         leadOrg: data.leadOrg,
-        partnerOrg: data.partnerOrg,
+        collaborator: data.collaborator,
         targetAudience: data.targetAudience,
         conceptNote: data.conceptNote,
         successMetrics: data.successMetrics,
@@ -254,7 +292,17 @@ Keep the entire response under 600 tokens. Be specific and direct.`;
     }).select().single();
 
     setSaving(false);
-    if (!error && project) onComplete(project);
+
+    if (error) {
+      console.error('Save error:', error);
+      setSaveError(error.message || 'Something went wrong saving your campaign. Please try again.');
+      return;
+    }
+
+    // Clear the draft now that it's saved
+    try { localStorage.removeItem(DRAFT_KEY); } catch {}
+
+    if (project) onComplete(project);
   };
 
   const progress = ((step - 1) / 4) * 100;
@@ -264,9 +312,15 @@ Keep the entire response under 600 tokens. Be specific and direct.`;
       <div style={s.wrap}>
         <button style={s.backBtn} onClick={back}>← Back</button>
 
+        {draftRestored && (
+          <div style={s.draftBanner}>
+            ✓ Draft restored — your previous progress has been loaded.
+          </div>
+        )}
+
         <div style={s.header}>
-          <span style={s.typeBadge}>Campaign / Short-Term Project</span>
-          <p style={s.headerSub}>For partnerships, campaigns and short-duration team efforts</p>
+          <span style={s.typeBadge}>Campaign / Initiative / Short Project</span>
+          <p style={s.headerSub}>For campaigns, events, community initiatives and short-duration projects — with or without collaborators.</p>
         </div>
 
         <div style={s.progressTrack}><div style={{ ...s.progressFill, width: `${progress}%` }} /></div>
@@ -284,75 +338,78 @@ Keep the entire response under 600 tokens. Be specific and direct.`;
 
         <div style={s.card}>
 
+          {/* ── STEP 1 ── */}
           {step === 1 && (
             <div>
               <p style={s.stepTag}>Step 1 of 5</p>
-              <h2 style={s.stepTitle}>Who Is Involved?</h2>
-              <p style={s.stepSub}>Tell us who is leading this, who the partners are and who this is for. PM Buddy will use this context to give you better guidance.</p>
+              <h2 style={s.stepTitle}>What Is This and Who Is It For?</h2>
+              <p style={s.stepSub}>Give PM Buddy enough context to guide you properly. This could be a solo initiative, a team effort, or something involving an external collaborator.</p>
 
-              <label style={s.label}>Campaign or Project Name</label>
+              <label style={s.label}>Campaign or Project Name *</label>
               <div style={{ marginBottom: 20 }}>
-                <VoiceInput value={data.campaignName} onChange={onChangeCampaignName} placeholder="e.g. Q2 Digital Skills Partnership Drive" />
+                <VoiceInput value={data.campaignName} onChange={onChangeCampaignName} placeholder="e.g. Community Clean-Up Day, Product Launch Sprint, School Outreach Drive" />
               </div>
 
-              <label style={s.label}>Your Organisation (Lead)</label>
+              <label style={s.label}>Your Name or Organisation (Lead) *</label>
               <div style={{ marginBottom: 20 }}>
-                <VoiceInput value={data.leadOrg} onChange={onChangeLeadOrg} placeholder="e.g. Your organisation or team name" />
+                <VoiceInput value={data.leadOrg} onChange={onChangeLeadOrg} placeholder="e.g. Your name, your team or your organisation" />
               </div>
 
-              <label style={s.label}>Partner Organisation (if any)</label>
+              <label style={s.label}>Collaborator or Partner (if any)</label>
               <div style={{ marginBottom: 20 }}>
-                <VoiceInput value={data.partnerOrg} onChange={onChangePartnerOrg} placeholder="e.g. Coursera, Microsoft Learn, uLesson" />
+                <VoiceInput value={data.collaborator} onChange={onChangeCollaborator} placeholder="e.g. Another organisation, individual, or sponsor — leave blank if none" />
               </div>
 
-              <label style={s.label}>Target Audience</label>
+              <label style={s.label}>Target Audience *</label>
               <div style={{ marginBottom: 8 }}>
-                <VoiceInput value={data.targetAudience} onChange={onChangeTargetAudience} placeholder="e.g. Young professionals in Lagos, approximately 300 people" />
+                <VoiceInput value={data.targetAudience} onChange={onChangeTargetAudience} placeholder="e.g. Local residents in the area, around 50 people" />
               </div>
-              <p style={s.fieldHint}>Be specific about who you are trying to reach and approximately how many people.</p>
+              <p style={s.fieldHint}>Be specific — who exactly is this for and roughly how many people?</p>
             </div>
           )}
 
+          {/* ── STEP 2 ── */}
           {step === 2 && (
             <div>
               <p style={s.stepTag}>Step 2 of 5</p>
               <h2 style={s.stepTitle}>What Is This About?</h2>
-              <p style={s.stepSub}>Describe the concept. You can type, speak or upload a concept note document. The more context you give the better PM Buddy can help you plan.</p>
+              <p style={s.stepSub}>Describe what you are doing and why it matters. Type, speak, or upload a concept note if you have one. The more you share, the better PM Buddy can help.</p>
 
-              <label style={s.label}>Campaign Objective</label>
+              <label style={s.label}>What Are You Trying to Achieve?</label>
               <div style={{ marginBottom: 20 }}>
-                <VoiceTextarea value={data.objective} onChange={onChangeObjective} placeholder="What are you trying to achieve with this campaign? What changes for your target audience when this succeeds?" rows={3} />
+                <VoiceTextarea value={data.objective} onChange={onChangeObjective} placeholder="What changes or improves when this project succeeds? What does success actually look like?" rows={3} />
               </div>
 
-              <label style={s.label}>Concept Note</label>
+              <label style={s.label}>Concept Note or Description</label>
               <div style={{ marginBottom: 12 }}>
-                <VoiceTextarea value={data.conceptNote} onChange={onChangeConceptNote} placeholder="Paste or speak your concept note here. Include background, rationale, approach and expected outcomes." rows={6} />
+                <VoiceTextarea value={data.conceptNote} onChange={onChangeConceptNote} placeholder="Background, approach, and what you plan to do. The more detail the better." rows={6} />
               </div>
 
               <div style={s.uploadRow}>
                 <button style={s.uploadBtn} onClick={() => fileRef.current.click()}>
-                  Upload concept note document
+                  Upload a concept note
                 </button>
                 {conceptFile && <span style={s.fileName}>{conceptFile}</span>}
                 <input ref={fileRef} type="file" accept=".txt,.doc,.docx,.pdf" style={{ display: 'none' }} onChange={handleFileUpload} />
               </div>
-              <p style={s.fieldHint}>Accepted formats: .txt, .doc, .docx, .pdf. Max content used: first 3000 characters.</p>
+              <p style={s.fieldHint}>Accepted: .txt, .doc, .docx, .pdf — first 3000 characters will be used.</p>
             </div>
           )}
 
+          {/* ── STEP 3 ── */}
           {step === 3 && (
             <div>
               <p style={s.stepTag}>Step 3 of 5</p>
               <h2 style={s.stepTitle}>Timeline, Team and What You Need</h2>
-              <p style={s.stepSub}>Short campaigns still need clear ownership and timelines. Get this right now and save yourself a lot of confusion later.</p>
+              <p style={s.stepSub}>Short projects still need clear ownership and a realistic timeline. Getting this right now saves a lot of confusion later.</p>
 
               <div style={s.twoCol}>
                 <div>
-                  <label style={s.label}>Start Date</label>
+                  <label style={s.label}>Start Date *</label>
                   <input style={s.input} type="date" value={data.startDate} onChange={e => update('startDate', e.target.value)} />
                 </div>
                 <div>
-                  <label style={s.label}>End Date</label>
+                  <label style={s.label}>End Date *</label>
                   <input style={s.input} type="date" value={data.endDate} onChange={e => update('endDate', e.target.value)} />
                 </div>
               </div>
@@ -360,93 +417,96 @@ Keep the entire response under 600 tokens. Be specific and direct.`;
               {data.startDate && data.endDate && (() => {
                 const days = Math.ceil((new Date(data.endDate) - new Date(data.startDate)) / 86400000);
                 if (days < 0) return <div style={s.timelineWarn}>End date is before start date.</div>;
-                if (days <= 30) return <div style={s.timelineOk}>This is a {days} day campaign. Keep the scope tight and the team focused.</div>;
-                return <div style={s.timelineOk}>You have {days} days. Make sure your milestones are spread across this timeline.</div>;
+                if (days <= 30) return <div style={s.timelineOk}>This is a {days}-day project. Keep scope tight and focus sharp.</div>;
+                return <div style={s.timelineOk}>You have {days} days. Make sure your milestones are spread realistically across this timeline.</div>;
               })()}
 
-              <label style={{ ...s.label, marginTop: 20 }}>Team Lead</label>
+              <label style={{ ...s.label, marginTop: 20 }}>Who Is Leading This? *</label>
               <div style={{ marginBottom: 16 }}>
-                <VoiceInput value={data.teamLead} onChange={onChangeTeamLead} placeholder="Who is responsible for this campaign end to end?" />
+                <VoiceInput value={data.teamLead} onChange={onChangeTeamLead} placeholder="Who is accountable for this end to end?" />
               </div>
 
-              <label style={s.label}>Other Team Members</label>
+              <label style={s.label}>Other People Involved</label>
               <div style={{ marginBottom: 16 }}>
-                <VoiceInput value={data.teamMembers} onChange={onChangeTeamMembers} placeholder="Names separated by commas e.g. Amaka, Tunde, Fatima" />
+                <VoiceInput value={data.teamMembers} onChange={onChangeTeamMembers} placeholder="Names separated by commas" />
               </div>
 
-              <label style={s.label}>How Will You Measure Success?</label>
+              <label style={s.label}>How Will You Know It Worked?</label>
               <div style={{ marginBottom: 16 }}>
-                <VoiceTextarea value={data.successMetrics} onChange={onChangeSuccessMetrics} placeholder="e.g. 200 fellows registered on the platform, 80 percent completion rate, 3 testimonials collected" rows={3} />
+                <VoiceTextarea value={data.successMetrics} onChange={onChangeSuccessMetrics} placeholder="e.g. 100 people attended, 3 media mentions, product page live and getting traffic" rows={3} />
               </div>
 
-              <label style={s.label}>What Do You Need to Make This Succeed?</label>
+              <label style={s.label}>What Do You Need to Make This Happen?</label>
               <div style={{ marginBottom: 16 }}>
-                <VoiceTextarea value={data.whatYouNeed} onChange={onChangeWhatYouNeed} placeholder="e.g. Access to partner platform, communication budget, dedicated WhatsApp group admin, approval from programme lead" rows={3} />
+                <VoiceTextarea value={data.whatYouNeed} onChange={onChangeWhatYouNeed} placeholder="e.g. Budget approval, a venue, a graphic designer, access to a mailing list" rows={3} />
               </div>
 
               <label style={s.label}>What Could Go Wrong?</label>
               <div style={{ marginBottom: 8 }}>
-                <VoiceTextarea value={data.risks} onChange={onChangeRisks} placeholder="e.g. Low fellow engagement, partner platform access issues, timeline conflicts with other programme activities" rows={3} />
+                <VoiceTextarea value={data.risks} onChange={onChangeRisks} placeholder="e.g. Low turnout, budget not confirmed, key person unavailable, timeline too tight" rows={3} />
               </div>
             </div>
           )}
 
+          {/* ── STEP 4 ── */}
           {step === 4 && (
             <div>
               <p style={s.stepTag}>Step 4 of 5</p>
               <h2 style={s.stepTitle}>AI Review</h2>
-              <p style={s.stepSub}>Gemini will review your campaign details, research the organisations involved and give you targeted feedback before you finalise your plan.</p>
+              <p style={s.stepSub}>PM Buddy will review your plan and flag gaps, ask the questions your team needs to answer, and give you a direct recommendation before you finalise.</p>
 
-              {!aiReview && !aiLoading && (
+              {!aiReview && !aiLoading && !aiError && (
                 <div style={s.aiPromptBox}>
-                  <p style={s.aiPromptText}>PM Buddy will now review everything you have entered. It will look at the organisations involved, assess the concept and ask the questions your team needs to answer before launching.</p>
+                  <p style={s.aiPromptText}>PM Buddy will look at everything you have entered, assess the concept and surface the questions your team needs to answer before you launch.</p>
                   <button style={s.aiBtn} onClick={runAiReview}>Run AI Review</button>
+                  <p style={s.aiSkipNote}>Takes around 10 seconds. You can skip if you prefer.</p>
                 </div>
               )}
 
               {aiLoading && (
                 <div style={s.aiLoading}>
                   <div style={s.aiSpinner} />
-                  <p style={s.aiLoadingText}>Gemini is reviewing your campaign and researching the organisations involved...</p>
-                  <p style={s.aiLoadingSub}>This takes about 15 seconds</p>
+                  <p style={s.aiLoadingText}>Reviewing your plan...</p>
+                  <p style={s.aiLoadingSub}>This usually takes around 10 seconds</p>
+                </div>
+              )}
+
+              {aiError && (
+                <div style={s.aiErrorBox}>
+                  <p style={s.aiErrorText}>The AI review didn't come back. You can try again or skip and continue to your plan.</p>
+                  <button style={s.aiBtn} onClick={runAiReview}>Try Again</button>
                 </div>
               )}
 
               {aiReview && (
                 <div>
-                  {aiReview.orgContext && (
-                    <div style={s.reviewBlock}>
-                      <p style={s.reviewBlockLabel}>About the organisations</p>
-                      <p style={s.reviewBlockText}>{aiReview.orgContext}</p>
-                    </div>
-                  )}
                   {aiReview.conceptStrength && (
                     <div style={{ ...s.reviewBlock, borderLeftColor: '#15803D', background: '#F0FDF4' }}>
-                      <p style={{ ...s.reviewBlockLabel, color: '#15803D' }}>What is strong</p>
+                      <p style={{ ...s.reviewBlockLabel, color: '#15803D' }}>What Is Strong</p>
                       <p style={s.reviewBlockText}>{aiReview.conceptStrength}</p>
                     </div>
                   )}
                   {aiReview.gaps?.length > 0 && (
                     <div style={{ ...s.reviewBlock, borderLeftColor: '#DC2626', background: '#FEF2F2' }}>
-                      <p style={{ ...s.reviewBlockLabel, color: '#DC2626' }}>Gaps to address</p>
+                      <p style={{ ...s.reviewBlockLabel, color: '#DC2626' }}>Gaps to Address</p>
                       {aiReview.gaps.map((g, i) => <p key={i} style={{ ...s.reviewBlockText, marginBottom: 6 }}>· {g}</p>)}
                     </div>
                   )}
                   {aiReview.keyQuestions?.length > 0 && (
                     <div style={{ ...s.reviewBlock, borderLeftColor: BLUE, background: '#EFF6FF' }}>
-                      <p style={{ ...s.reviewBlockLabel, color: BLUE }}>Questions to answer before you launch</p>
+                      <p style={{ ...s.reviewBlockLabel, color: BLUE }}>Questions to Answer Before You Launch</p>
                       {aiReview.keyQuestions.map((q, i) => <p key={i} style={{ ...s.reviewBlockText, marginBottom: 6 }}>· {q}</p>)}
                     </div>
                   )}
                   {aiReview.successFactors?.length > 0 && (
                     <div style={s.reviewBlock}>
-                      <p style={s.reviewBlockLabel}>Key success factors</p>
+                      <p style={s.reviewBlockLabel}>Key Success Factors</p>
                       {aiReview.successFactors.map((f, i) => <p key={i} style={{ ...s.reviewBlockText, marginBottom: 6 }}>· {f}</p>)}
                     </div>
                   )}
                   {aiReview.recommendation && (
                     <div style={{ ...s.reviewBlock, borderLeftColor: BL, background: BL }}>
-                      <p style={{ ...s.reviewBlockLabel, color: BLUE }}>PM Buddy's recommendation</p>
+                      <p style={{ ...s.reviewBlockLabel, color: BLUE }}>PM Buddy's Recommendation</p>
                       <p style={{ ...s.reviewBlockText, color: WH }}>{aiReview.recommendation}</p>
                     </div>
                   )}
@@ -456,24 +516,25 @@ Keep the entire response under 600 tokens. Be specific and direct.`;
             </div>
           )}
 
+          {/* ── STEP 5 ── */}
           {step === 5 && (
             <div>
               <p style={s.stepTag}>Step 5 of 5</p>
-              <h2 style={s.stepTitle}>Your Campaign Plan</h2>
-              <p style={s.stepSub}>Review your campaign summary before launching. PM Buddy will create your project workspace with milestones and a concept document.</p>
+              <h2 style={s.stepTitle}>Your Plan Summary</h2>
+              <p style={s.stepSub}>Review your campaign summary before launching. PM Buddy will create your project workspace with milestones ready to track.</p>
 
               <div style={s.summaryGrid}>
-                <SummaryItem label="Campaign" value={data.campaignName} />
-                <SummaryItem label="Lead Org" value={data.leadOrg} />
-                <SummaryItem label="Partner" value={data.partnerOrg || 'None'} />
+                <SummaryItem label="Name" value={data.campaignName} />
+                <SummaryItem label="Led By" value={data.leadOrg} />
+                {data.collaborator && <SummaryItem label="Collaborator" value={data.collaborator} />}
                 <SummaryItem label="Audience" value={data.targetAudience} />
                 <SummaryItem label="Timeline" value={data.startDate && data.endDate ? `${fmtDate(data.startDate)} to ${fmtDate(data.endDate)}` : 'Not set'} />
-                <SummaryItem label="Team Lead" value={data.teamLead} />
+                <SummaryItem label="Lead" value={data.teamLead} />
               </div>
 
               {data.successMetrics && (
                 <div style={s.summaryNote}>
-                  <p style={s.summaryNoteLabel}>Success Metrics</p>
+                  <p style={s.summaryNoteLabel}>How You'll Know It Worked</p>
                   <p style={s.summaryNoteText}>{data.successMetrics}</p>
                 </div>
               )}
@@ -496,18 +557,39 @@ Keep the entire response under 600 tokens. Be specific and direct.`;
                   </div>
                 ))}
               </div>
+
+              {saveError && (
+                <div style={s.saveErrorBox}>
+                  <p style={s.saveErrorText}>⚠ Could not save: {saveError}</p>
+                  <p style={{ fontSize: 13, color: '#991B1B', marginTop: 4 }}>Check your connection and try again.</p>
+                </div>
+              )}
             </div>
           )}
 
+          {/* ── FOOTER NAV ── */}
           <div style={s.footer}>
             {step < 4 ? (
-              <button style={{ ...s.nextBtn, opacity: canProceed() ? 1 : 0.5 }} onClick={next} disabled={!canProceed()}>Continue</button>
-            ) : step === 4 ? (
-              <button style={{ ...s.nextBtn, opacity: aiReview ? 1 : 0.5 }} onClick={next} disabled={!aiReview}>
-                {aiReview ? 'Continue to Plan' : 'Complete the AI Review first'}
+              <button style={{ ...s.nextBtn, opacity: canProceed() ? 1 : 0.5 }} onClick={next} disabled={!canProceed()}>
+                Continue
               </button>
+            ) : step === 4 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <button
+                  style={{ ...s.nextBtn, opacity: aiLoading ? 0.6 : 1 }}
+                  onClick={next}
+                  disabled={aiLoading}
+                >
+                  {aiLoading ? 'AI Review Running...' : aiReview ? 'Continue to Plan' : 'Skip and Continue'}
+                </button>
+                {!aiReview && !aiLoading && (
+                  <p style={{ textAlign: 'center', fontSize: 12, color: '#9CA3AF', margin: 0 }}>
+                    The review helps you catch gaps early — but you can skip it if you prefer.
+                  </p>
+                )}
+              </div>
             ) : (
-              <button style={s.nextBtn} onClick={save} disabled={saving}>
+              <button style={{ ...s.nextBtn, opacity: saving ? 0.7 : 1 }} onClick={save} disabled={saving}>
                 {saving ? 'Setting Up Your Campaign...' : 'Launch Campaign Project'}
               </button>
             )}
@@ -532,15 +614,15 @@ function generateCampaignMilestones(data) {
   const start = new Date(data.startDate);
   const end = new Date(data.endDate);
   const total = end - start;
-  const m1 = new Date(start.getTime() + total * 0.2).toISOString().split('T')[0];
+  const m1 = new Date(start.getTime() + total * 0.25).toISOString().split('T')[0];
   const m2 = new Date(start.getTime() + total * 0.5).toISOString().split('T')[0];
-  const m3 = new Date(start.getTime() + total * 0.8).toISOString().split('T')[0];
+  const m3 = new Date(start.getTime() + total * 0.75).toISOString().split('T')[0];
   return [
-    { title: 'Campaign Kickoff', date: data.startDate, status: 'pending' },
-    { title: 'Initial Outreach Complete', date: m1, status: 'pending' },
-    { title: 'Midpoint Check-in', date: m2, status: 'pending' },
-    { title: 'Final Push and Follow-up', date: m3, status: 'pending' },
-    { title: 'Campaign Wrap and Report', date: data.endDate, status: 'pending' },
+    { title: 'Kickoff', date: data.startDate, status: 'pending' },
+    { title: 'First Phase Complete', date: m1, status: 'pending' },
+    { title: 'Midpoint Review', date: m2, status: 'pending' },
+    { title: 'Final Phase', date: m3, status: 'pending' },
+    { title: 'Wrap-up and Review', date: data.endDate, status: 'pending' },
   ];
 }
 
@@ -574,6 +656,7 @@ const s = {
   header: { marginBottom: 24 },
   typeBadge: { display: 'inline-block', fontSize: 11, fontWeight: 800, color: BLUE, textTransform: 'uppercase', letterSpacing: '0.12em', background: '#EFF6FF', padding: '4px 12px', borderRadius: 100, marginBottom: 8 },
   headerSub: { fontSize: 13, color: '#6B7280' },
+  draftBanner: { background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: '#15803D', fontWeight: 600, marginBottom: 20 },
   progressTrack: { height: 4, background: '#E5E7EB', borderRadius: 2, overflow: 'hidden', marginBottom: 16 },
   progressFill: { height: '100%', background: BLUE, borderRadius: 2, transition: 'width 0.4s ease' },
   steps: { display: 'flex', gap: 16, marginBottom: 28, justifyContent: 'space-between' },
@@ -593,11 +676,14 @@ const s = {
   fileName: { fontSize: 12, color: '#6B7280', fontWeight: 500 },
   aiPromptBox: { background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 14, padding: '28px', textAlign: 'center' },
   aiPromptText: { fontSize: 14, color: '#374151', lineHeight: 1.7, marginBottom: 20 },
+  aiSkipNote: { fontSize: 12, color: '#9CA3AF', marginTop: 12 },
   aiBtn: { padding: '12px 28px', background: BLUE, color: WH, border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
   aiLoading: { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '48px 20px', gap: 14 },
   aiSpinner: { width: 36, height: 36, border: '3px solid #F3F4F6', borderTop: `3px solid ${BLUE}`, borderRadius: '50%', animation: 'spin 0.8s linear infinite' },
   aiLoadingText: { fontSize: 15, fontWeight: 600, color: '#374151', textAlign: 'center' },
   aiLoadingSub: { fontSize: 13, color: '#9CA3AF' },
+  aiErrorBox: { background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 14, padding: '24px', textAlign: 'center' },
+  aiErrorText: { fontSize: 14, color: '#991B1B', lineHeight: 1.7, marginBottom: 16 },
   reviewBlock: { borderLeft: '3px solid #E5E7EB', padding: '14px 16px', marginBottom: 12, borderRadius: '0 10px 10px 0', background: GREY },
   reviewBlockLabel: { fontSize: 11, fontWeight: 800, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 },
   reviewBlockText: { fontSize: 14, color: '#374151', lineHeight: 1.7 },
@@ -615,6 +701,9 @@ const s = {
   milestoneDot: { width: 8, height: 8, borderRadius: '50%', background: BLUE, flexShrink: 0, marginTop: 5 },
   milestoneTitle: { fontSize: 14, fontWeight: 600, color: BL },
   milestoneDate: { fontSize: 12, color: '#6B7280' },
+  saveErrorBox: { background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '14px 16px', marginTop: 16 },
+  saveErrorText: { fontSize: 14, fontWeight: 700, color: '#991B1B' },
   footer: { marginTop: 32, paddingTop: 24, borderTop: '1px solid #F3F4F6' },
   nextBtn: { width: '100%', padding: '14px', background: BLUE, color: WH, border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'opacity 0.15s ease' },
 };
+
