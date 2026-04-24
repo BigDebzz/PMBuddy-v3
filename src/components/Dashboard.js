@@ -28,13 +28,13 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   const fetchAll = async () => {
     setLoading(true);
     const [{ data: v }, { data: p }, { data: d }, { data: members }] = await Promise.all([
-      supabase.from('projects').select('*').order('updated_at', { ascending: false }),
+      // Filter all data by user_id so users only see their own content
+      supabase.from('projects').select('*').eq('user_id', user.id).order('updated_at', { ascending: false }),
       supabase.from('pm_projects').select('*').eq('user_id', user.id).order('updated_at', { ascending: false }),
-      supabase.from('documents').select('*').order('updated_at', { ascending: false }),
+      supabase.from('documents').select('*').eq('user_id', user.id).order('updated_at', { ascending: false }),
       supabase.from('project_members').select('*').eq('user_id', user.id).eq('status', 'accepted'),
     ]);
     setValidations(v || []);
-    // Split projects and campaigns
     const allProjects = p || [];
     setProjects(allProjects.filter(proj => proj.industry !== 'Campaign'));
     setCampaigns(allProjects.filter(proj => proj.industry === 'Campaign'));
@@ -62,6 +62,11 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   const quickDocs = documents.filter(d => d.type === 'quick' || !d.project_id);
   const projectDocs = documents.filter(d => d.type !== 'quick' && d.project_id);
 
+  // When user starts a new campaign, switch to Campaigns tab on return
+  const handleNewCampaign = () => {
+    onNewCampaign({ onSaved: () => { fetchAll(); setActiveTab('Campaigns'); } });
+  };
+
   return (
     <>
     <div style={s.page}>
@@ -81,7 +86,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
           <div style={s.quickGrid}>
             {[
               { icon: '◈', label: 'New Project', action: onNewProject, bg: BL, color: WH },
-              { icon: '◈', label: 'New Campaign', action: onNewCampaign, bg: '#EFF6FF', color: BLUE },
+              { icon: '◈', label: 'New Campaign', action: handleNewCampaign, bg: '#EFF6FF', color: BLUE },
               { icon: '✦', label: 'New Validation', action: onNewValidation, bg: '#F0FDF4', color: '#15803D' },
               { icon: '✎', label: 'Quick Doc', action: onNewQuickDoc, bg: '#FFF7ED', color: '#C2410C' },
               { icon: '◎', label: 'Book a Consultant', action: null, bg: '#F3F4F6', color: '#9CA3AF', soon: true },
@@ -100,7 +105,16 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
         {/* TABS */}
         <div style={s.tabBar}>
           {TABS.map(tab => (
-            <button key={tab} style={{ ...s.tabBtn, color: activeTab === tab ? BLUE : '#6B7280', borderBottomColor: activeTab === tab ? BLUE : 'transparent', fontWeight: activeTab === tab ? 700 : 500 }} onClick={() => setActiveTab(tab)}>
+            <button
+              key={tab}
+              style={{
+                ...s.tabBtn,
+                color: activeTab === tab ? BLUE : '#6B7280',
+                borderBottomColor: activeTab === tab ? BLUE : 'transparent',
+                fontWeight: activeTab === tab ? 700 : 500,
+              }}
+              onClick={() => setActiveTab(tab)}
+            >
               {tab}
               {tab === 'Projects' && projects.length > 0 && <span style={s.tabCount}>{projects.length}</span>}
               {tab === 'Campaigns' && campaigns.length > 0 && <span style={s.tabCount}>{campaigns.length}</span>}
@@ -159,19 +173,21 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
           <div style={s.section}>
             <div style={s.sectionHead}>
               <p style={s.sectionLabel}>My Campaigns</p>
-              <button style={s.newBtn} onClick={onNewCampaign}>New campaign</button>
+              <button style={s.newBtn} onClick={handleNewCampaign}>New campaign</button>
             </div>
             {loading && <p style={s.emptyText}>Loading...</p>}
             {!loading && campaigns.length === 0 && (
               <div style={s.emptyState}>
                 <p style={s.emptyTitle}>No campaigns yet.</p>
-                <p style={s.emptyBody}>Campaigns are short-term partnerships, drives and focused team efforts. Create one to get a structured plan with milestones and an AI review.</p>
-                <button style={s.primaryBtn} onClick={onNewCampaign}>Start a campaign</button>
+                <p style={s.emptyBody}>Campaigns are short-term projects, initiatives, events or focused efforts — solo or with others. Create one to get a structured plan with milestones and an AI review.</p>
+                <button style={s.primaryBtn} onClick={handleNewCampaign}>Start a campaign</button>
               </div>
             )}
             {!loading && campaigns.length > 0 && (
               <div style={s.projectsGrid}>
-                {campaigns.map(p => <ProjectCard key={p.id} p={p} onOpen={() => onOpenProject(p)} onDelete={() => deleteCampaign(p.id)} isCampaign />)}
+                {campaigns.map(p => (
+                  <ProjectCard key={p.id} p={p} onOpen={() => onOpenProject(p)} onDelete={() => deleteCampaign(p.id)} isCampaign />
+                ))}
               </div>
             )}
           </div>
@@ -242,6 +258,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
               <p style={s.sectionLabel}>My Validations</p>
               <button style={s.newBtn} onClick={onNewValidation}>New validation</button>
             </div>
+            {loading && <p style={s.emptyText}>Loading...</p>}
             {!loading && validations.length === 0 && (
               <div style={s.emptyState}>
                 <p style={s.emptyTitle}>No validations yet.</p>
@@ -259,11 +276,11 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                         <span style={s.validationDate}>{new Date(v.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                       </div>
                       <p style={s.validationTitle}>{v.title || 'Untitled Validation'}</p>
-                      <p style={{ ...s.validationVerdict, color: v.analysis.color }}>{v.analysis.verdict}</p>
+                      <p style={{ ...s.validationVerdict, color: v.analysis?.color }}>{v.analysis?.verdict}</p>
                     </div>
                     <div style={s.validationRight}>
                       <div style={s.scoreRing}>
-                        <span style={{ ...s.scoreNum, color: v.analysis.color }}>{v.analysis.score}</span>
+                        <span style={{ ...s.scoreNum, color: v.analysis?.color }}>{v.analysis?.score}</span>
                         <span style={s.scoreLabel}>/ 100</span>
                       </div>
                       <div style={s.validationActions}>
@@ -281,7 +298,16 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
       </div>
     </div>
 
-    {viewingDoc && <DocViewerModal doc={viewingDoc} onClose={() => setViewingDoc(null)} onUpdate={(updated) => { setViewingDoc(updated); setDocuments(docs => docs.map(d => d.id === updated.id ? updated : d)); }} />}
+    {viewingDoc && (
+      <DocViewerModal
+        doc={viewingDoc}
+        onClose={() => setViewingDoc(null)}
+        onUpdate={(updated) => {
+          setViewingDoc(updated);
+          setDocuments(docs => docs.map(d => d.id === updated.id ? updated : d));
+        }}
+      />
+    )}
     </>
   );
 }
@@ -306,7 +332,9 @@ function ProjectCard({ p, onOpen, onDelete, isCampaign }) {
   return (
     <div style={s.projectCard}>
       <div style={s.projectBadges}>
-        <span style={{ ...s.industryBadge, background: isCampaign ? '#FFF7ED' : '#EFF6FF', color: isCampaign ? '#C2410C' : BLUE }}>{isCampaign ? 'Campaign' : p.industry}</span>
+        <span style={{ ...s.industryBadge, background: isCampaign ? '#FFF7ED' : '#EFF6FF', color: isCampaign ? '#C2410C' : BLUE }}>
+          {isCampaign ? 'Campaign' : p.industry}
+        </span>
         <span style={s.methodBadge}>{p.methodology}</span>
       </div>
       <p style={s.projectName}>{p.name}</p>
@@ -361,7 +389,11 @@ INSTRUCTIONS:
 - Return the COMPLETE document in HTML with your changes applied (h1, h2, p, ul/li). No html/head/body tags. No markdown.`;
 
     try {
-      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, mode: 'document' }) });
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, mode: 'document' }),
+      });
       const result = await res.json();
       const updated = (result.result || '').replace(/```html|```/g, '').trim();
       if (updated && updated.length > 100) {
@@ -371,7 +403,9 @@ INSTRUCTIONS:
         setUpdateInput('');
         setUpdateMsg('Updated.');
       }
-    } catch (err) { setUpdateMsg('Something went wrong. Try again.'); }
+    } catch (err) {
+      setUpdateMsg('Something went wrong. Try again.');
+    }
     setUpdating(false);
   };
 
@@ -390,12 +424,27 @@ INSTRUCTIONS:
         </div>
         <div style={{ padding: '14px 28px', borderBottom: '1px solid #E5E7EB', background: GREY }}>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <input style={{ flex: 1, border: '1.5px solid #E5E7EB', borderRadius: 8, padding: '10px 14px', fontSize: 13, fontFamily: 'inherit', outline: 'none', background: WH }} placeholder="Want to change something? e.g. Add a budget section, make it shorter..." value={updateInput} onChange={e => setUpdateInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && updateDoc()} />
-            <button style={{ padding: '10px 20px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: !updateInput.trim() || updating ? 0.5 : 1, whiteSpace: 'nowrap' }} onClick={updateDoc} disabled={!updateInput.trim() || updating}>{updating ? 'Updating...' : 'Update'}</button>
+            <input
+              style={{ flex: 1, border: '1.5px solid #E5E7EB', borderRadius: 8, padding: '10px 14px', fontSize: 13, fontFamily: 'inherit', outline: 'none', background: WH }}
+              placeholder="Want to change something? e.g. Add a budget section, make it shorter..."
+              value={updateInput}
+              onChange={e => setUpdateInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && updateDoc()}
+            />
+            <button
+              style={{ padding: '10px 20px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: !updateInput.trim() || updating ? 0.5 : 1, whiteSpace: 'nowrap' }}
+              onClick={updateDoc}
+              disabled={!updateInput.trim() || updating}
+            >
+              {updating ? 'Updating...' : 'Update'}
+            </button>
           </div>
           {updateMsg && <p style={{ fontSize: 12, color: '#15803D', marginTop: 6 }}>{updateMsg}</p>}
         </div>
-        <div style={{ padding: '32px 40px', fontSize: 15, lineHeight: 1.8, color: '#374151', fontFamily: 'Georgia, serif', maxHeight: '65vh', overflowY: 'auto' }} dangerouslySetInnerHTML={{ __html: content }} />
+        <div
+          style={{ padding: '32px 40px', fontSize: 15, lineHeight: 1.8, color: '#374151', fontFamily: 'Georgia, serif', maxHeight: '65vh', overflowY: 'auto' }}
+          dangerouslySetInnerHTML={{ __html: content }}
+        />
       </div>
     </div>
   );
@@ -414,8 +463,9 @@ const s = {
   quickIcon: { width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 },
   quickLabel: { fontSize: 13, fontWeight: 600, color: BL, display: 'flex', alignItems: 'center', gap: 6 },
   comingSoon: { fontSize: 10, fontWeight: 600, color: BLUE, background: '#EFF6FF', padding: '2px 7px', borderRadius: 100 },
-  tabBar: { display: 'flex', borderBottom: `1.5px solid ${RULE}`, marginBottom: 24 },
-  tabBtn: { padding: '10px 16px', background: 'none', border: 'none', borderBottom: '2px solid transparent', marginBottom: -1.5, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 },
+  // Tab bar: overflow-x scroll so it doesn't clip on mobile
+  tabBar: { display: 'flex', borderBottom: `1.5px solid ${RULE}`, marginBottom: 24, overflowX: 'auto', WebkitOverflowScrolling: 'touch' },
+  tabBtn: { padding: '10px 16px', background: 'none', border: 'none', borderBottom: '2px solid transparent', marginBottom: -1.5, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 },
   tabCount: { fontSize: 11, fontWeight: 700, background: '#EFF6FF', color: BLUE, padding: '1px 6px', borderRadius: 100 },
   section: { marginBottom: 36 },
   sectionHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
