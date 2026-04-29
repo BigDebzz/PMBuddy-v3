@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import DocumentGenerator from './DocumentGenerator';
 import RemindersPanel from './RemindersPanel';
 import TeamTab from './TeamTab';
+import PMBuddyAssistant from './PMBuddyAssistant';
 
 const BLUE = '#0284C7';
 const BL = '#0A0A0A';
@@ -132,6 +133,9 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
           {tab === 'Reminders' && <RemindersPanel project={data} onUpdate={(updated) => { setData(updated); onUpdate(updated); }} />}
         </div>
       </div>
+
+      {/* PM Buddy floating assistant — reads live project data */}
+      <PMBuddyAssistant project={data} />
     </div>
   );
 }
@@ -651,24 +655,10 @@ function ProgressTab({ data, onSave }) {
         if (editingIdx === i) {
           return (
             <div key={i} style={{ ...s.milestoneCard, flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
-              <input
-                style={{ ...s.input, marginBottom: 0 }}
-                value={editDraft.title}
-                onChange={e => setEditDraft(p => ({ ...p, title: e.target.value }))}
-                placeholder="Milestone name"
-              />
+              <input style={{ ...s.input, marginBottom: 0 }} value={editDraft.title} onChange={e => setEditDraft(p => ({ ...p, title: e.target.value }))} placeholder="Milestone name" />
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                <input
-                  style={{ ...s.input, marginBottom: 0, flex: 1 }}
-                  type="date"
-                  value={editDraft.date || ''}
-                  onChange={e => setEditDraft(p => ({ ...p, date: e.target.value }))}
-                />
-                <select
-                  style={s.select}
-                  value={editDraft.status}
-                  onChange={e => setEditDraft(p => ({ ...p, status: e.target.value }))}
-                >
+                <input style={{ ...s.input, marginBottom: 0, flex: 1 }} type="date" value={editDraft.date || ''} onChange={e => setEditDraft(p => ({ ...p, date: e.target.value }))} />
+                <select style={s.select} value={editDraft.status} onChange={e => setEditDraft(p => ({ ...p, status: e.target.value }))}>
                   <option value="pending">Pending</option>
                   <option value="in_progress">In Progress</option>
                   <option value="done">Done</option>
@@ -693,23 +683,11 @@ function ProgressTab({ data, onSave }) {
         );
       })}
 
-      {/* Add new milestone */}
       <div style={{ marginTop: 16, background: GREY, borderRadius: 10, padding: '14px', border: '1px solid #E5E7EB' }}>
         <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 10 }}>Add a Milestone</p>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <input
-            style={{ ...s.input, flex: 2, marginBottom: 0, minWidth: 140 }}
-            placeholder="e.g. Launch beta version"
-            value={newTitle}
-            onChange={e => setNewTitle(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && addMilestone()}
-          />
-          <input
-            style={{ ...s.input, flex: 1, marginBottom: 0, minWidth: 120 }}
-            type="date"
-            value={newDate}
-            onChange={e => setNewDate(e.target.value)}
-          />
+          <input style={{ ...s.input, flex: 2, marginBottom: 0, minWidth: 140 }} placeholder="e.g. Launch beta version" value={newTitle} onChange={e => setNewTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && addMilestone()} />
+          <input style={{ ...s.input, flex: 1, marginBottom: 0, minWidth: 120 }} type="date" value={newDate} onChange={e => setNewDate(e.target.value)} />
           <button style={s.addBtn} onClick={addMilestone}>Add</button>
         </div>
       </div>
@@ -1081,7 +1059,6 @@ const s = {
   timelineRange: { display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, background: GREY, borderRadius: 12, padding: '18px' },
   timelineDateLabel: { fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 },
   timelineDateVal: { fontSize: 15, fontWeight: 800, color: BL },
-  // Insights
   insightsSection: { marginTop: 28, paddingTop: 24, borderTop: '1px solid #F3F4F6' },
   insightCard: { background: GREY, borderRadius: 12, padding: '16px 18px', border: '1px solid #E5E7EB' },
   insightIcon: { fontSize: 16, width: 28, height: 28, background: WH, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #E5E7EB', flexShrink: 0 },
@@ -1090,4 +1067,5 @@ const s = {
   editedBadge: { fontSize: 10, fontWeight: 600, color: '#D97706', background: '#FFFBEB', padding: '2px 7px', borderRadius: 100, display: 'inline-block', marginTop: 2 },
   insightSmBtn: { padding: '4px 10px', background: WH, color: '#374151', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
 };
+
 
