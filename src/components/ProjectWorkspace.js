@@ -25,17 +25,9 @@ async function notify(type, project, data) {
     await fetch('/api/notify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type,
-        projectId: project.id,
-        projectName: project.name,
-        ownerEmail: project.owner_email,
-        data,
-      }),
+      body: JSON.stringify({ type, projectId: project.id, projectName: project.name, ownerEmail: project.owner_email, data }),
     });
-  } catch (err) {
-    console.error('Notify error:', err);
-  }
+  } catch (err) { console.error('Notify error:', err); }
 }
 
 export default function ProjectWorkspace({ project, onBack, onUpdate }) {
@@ -44,7 +36,17 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
   const [showMethodPicker, setShowMethodPicker] = useState(false);
   const [tab, setTab] = useState(project._openDoc ? 'Documents' : 'Overview');
   const [saveStatus, setSaveStatus] = useState('saved');
+  const [acceptedMembers, setAcceptedMembers] = useState([]);
   const saveTimerRef = useRef(null);
+
+  useEffect(() => {
+    supabase
+      .from('project_members')
+      .select('*')
+      .eq('project_id', project.id)
+      .eq('status', 'accepted')
+      .then(({ data: members }) => setAcceptedMembers(members || []));
+  }, [project.id]);
 
   const save = useCallback(async (updates) => {
     const updated = { ...data, ...updates, updated_at: new Date().toISOString() };
@@ -118,7 +120,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
         </div>
 
         <div style={s.content}>
-          {tab === 'Overview' && <OverviewTab data={data} methodology={methodology} info={info} onSave={save} />}
+          {tab === 'Overview' && <OverviewTab data={data} methodology={methodology} info={info} onSave={save} acceptedMembers={acceptedMembers} />}
           {tab === 'What We Are Building' && <BacklogTab data={data} onSave={save} />}
           {tab === 'Work Cycles' && <SprintsTab data={data} onSave={save} />}
           {tab === 'Progress' && <ProgressTab data={data} onSave={save} />}
@@ -133,14 +135,11 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
           {tab === 'Reminders' && <RemindersPanel project={data} onUpdate={(updated) => { setData(updated); onUpdate(updated); }} />}
         </div>
       </div>
-
-      {/* PM Buddy floating assistant — reads live project data */}
       <PMBuddyAssistant project={data} />
     </div>
   );
 }
 
-// ─── PM Buddy Insights ────────────────────────────────────────────────────────
 function InsightCard({ title, icon, description, savedValue, savedEdited, onSave, generatePrompt }) {
   const [content, setContent] = useState(savedValue || '');
   const [edited, setEdited] = useState(savedEdited || false);
@@ -148,36 +147,20 @@ function InsightCard({ title, icon, description, savedValue, savedEdited, onSave
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
 
-  useEffect(() => {
-    setContent(savedValue || '');
-    setEdited(savedEdited || false);
-  }, [savedValue, savedEdited]);
+  useEffect(() => { setContent(savedValue || ''); setEdited(savedEdited || false); }, [savedValue, savedEdited]);
 
   const generate = async () => {
     setGenerating(true);
     try {
-      const res = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: generatePrompt }),
-      });
+      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: generatePrompt }) });
       const result = await res.json();
       const text = (result.result || '').trim().replace(/\*\*/g, '').replace(/\*/g, '').replace(/#{1,6} /g, '').trim();
-      if (text) {
-        setContent(text);
-        setEdited(false);
-        onSave(text, false);
-      }
+      if (text) { setContent(text); setEdited(false); onSave(text, false); }
     } catch (err) { console.error(err); }
     setGenerating(false);
   };
 
-  const saveEdit = () => {
-    setContent(draft);
-    setEdited(true);
-    onSave(draft, true);
-    setEditing(false);
-  };
+  const saveEdit = () => { setContent(draft); setEdited(true); onSave(draft, true); setEditing(false); };
 
   return (
     <div style={s.insightCard}>
@@ -191,107 +174,28 @@ function InsightCard({ title, icon, description, savedValue, savedEdited, onSave
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
-          {content && !editing && (
-            <button style={s.insightSmBtn} onClick={() => { setDraft(content); setEditing(true); }}>Edit</button>
-          )}
-          {editing && (
-            <>
-              <button style={{ ...s.insightSmBtn, background: BLUE, color: WH, borderColor: BLUE }} onClick={saveEdit}>Save</button>
-              <button style={s.insightSmBtn} onClick={() => setEditing(false)}>Cancel</button>
-            </>
-          )}
-          {!editing && (
-            <button style={{ ...s.insightSmBtn, background: content ? GREY : BLUE, color: content ? '#374151' : WH, borderColor: content ? '#E5E7EB' : BLUE }} onClick={generate} disabled={generating}>
-              {generating ? 'Generating...' : content ? 'Regenerate' : 'Generate'}
-            </button>
-          )}
+          {content && !editing && <button style={s.insightSmBtn} onClick={() => { setDraft(content); setEditing(true); }}>Edit</button>}
+          {editing && (<><button style={{ ...s.insightSmBtn, background: BLUE, color: WH, borderColor: BLUE }} onClick={saveEdit}>Save</button><button style={s.insightSmBtn} onClick={() => setEditing(false)}>Cancel</button></>)}
+          {!editing && <button style={{ ...s.insightSmBtn, background: content ? GREY : BLUE, color: content ? '#374151' : WH, borderColor: content ? '#E5E7EB' : BLUE }} onClick={generate} disabled={generating}>{generating ? 'Generating...' : content ? 'Regenerate' : 'Generate'}</button>}
         </div>
       </div>
-      {!content && !generating && (
-        <p style={{ fontSize: 13, color: '#9CA3AF', lineHeight: 1.6 }}>{description}</p>
-      )}
-      {generating && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: BLUE, animation: 'pulse 1s infinite' }} />
-          <p style={{ fontSize: 13, color: '#6B7280' }}>PM Buddy is working on this...</p>
-        </div>
-      )}
-      {content && !editing && (
-        <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>{content}</div>
-      )}
-      {editing && (
-        <textarea
-          style={{ ...s.textarea, minHeight: 120, marginBottom: 0 }}
-          value={draft}
-          onChange={e => setDraft(e.target.value)}
-          rows={5}
-        />
-      )}
+      {!content && !generating && <p style={{ fontSize: 13, color: '#9CA3AF', lineHeight: 1.6 }}>{description}</p>}
+      {generating && <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: BLUE }} /><p style={{ fontSize: 13, color: '#6B7280' }}>PM Buddy is working on this...</p></div>}
+      {content && !editing && <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>{content}</div>}
+      {editing && <textarea style={{ ...s.textarea, minHeight: 120, marginBottom: 0 }} value={draft} onChange={e => setDraft(e.target.value)} rows={5} />}
     </div>
   );
 }
 
 function PMBuddyInsights({ data, onSave }) {
   const insights = data.insights || {};
-
-  const projectContext = `
-Project: ${data.name}
-Industry: ${data.industry}
-Goal: ${data.scope?.goal || 'Not specified'}
-Description: ${data.description || 'Not specified'}
-Team: ${data.team_type === 'solo' ? 'Solo project' : (data.team || []).map(m => `${m.name} (${m.role})`).join(', ') || 'Not specified'}
-Milestones: ${(data.milestones || []).map(m => `${m.title} (${m.status})`).join(', ') || 'None set'}
-Timeline: ${data.timeline?.start ? `${data.timeline.start} to ${data.timeline.end}` : 'Not set'}
-Risks: ${(data.risks || []).map(r => r.title).join(', ') || 'None listed'}
-Communication: ${data.planning?.communications || data.scope?.communicationFlow || 'Not specified'}
-Methodology: ${data.methodology || 'Agile'}
-`.trim();
+  const projectContext = `Project: ${data.name}\nIndustry: ${data.industry}\nGoal: ${data.scope?.goal || 'Not specified'}\nDescription: ${data.description || 'Not specified'}\nTeam: ${data.team_type === 'solo' ? 'Solo project' : (data.team || []).map(m => `${m.name} (${m.role})`).join(', ') || 'Not specified'}\nMilestones: ${(data.milestones || []).map(m => `${m.title} (${m.status})`).join(', ') || 'None set'}\nTimeline: ${data.timeline?.start ? `${data.timeline.start} to ${data.timeline.end}` : 'Not set'}\nRisks: ${(data.risks || []).map(r => r.title).join(', ') || 'None listed'}\nCommunication: ${data.planning?.communications || data.scope?.communicationFlow || 'Not specified'}\nMethodology: ${data.methodology || 'Agile'}`.trim();
 
   const insightDefs = [
-    {
-      key: 'definition_of_done',
-      title: 'Definition of Done',
-      icon: '✓',
-      description: 'PM Buddy will define exactly what "done" looks like for this project based on your goal and milestones.',
-      prompt: `You are PM Buddy, a friendly project management coach. Based on this project, write a clear Definition of Done in plain English — a simple list of specific conditions that must be true before this project can be called complete.
-
-${projectContext}
-
-Write 4 to 6 bullet points. Each should be specific and checkable — not vague. Use plain language. No jargon. Start each with "✓". Do not include any intro or explanation, just the bullet points.`,
-    },
-    {
-      key: 'business_benefit',
-      title: 'Business Benefit',
-      icon: '◈',
-      description: 'PM Buddy will identify what value this project delivers — financial, social, or strategic.',
-      prompt: `You are PM Buddy, a friendly project management coach. Based on this project, write a clear Business Benefit statement in plain English. Explain what value completing this project will deliver and to whom.
-
-${projectContext}
-
-Write 3 to 5 sentences covering: what problem it solves, who benefits, what the measurable or visible outcome is, and why it matters. Use plain, simple language. No jargon. No bullet points.`,
-    },
-    {
-      key: 'quality_metrics',
-      title: 'Quality Markers',
-      icon: '◆',
-      description: 'PM Buddy will define how you will know the work is good enough before calling it done.',
-      prompt: `You are PM Buddy, a friendly project management coach. Based on this project, write simple Quality Markers — clear ways to tell whether the work meets the required standard.
-
-${projectContext}
-
-Write 4 to 6 specific quality checks in plain English. Each should be something you can actually test or observe. Use simple language. No jargon. Format as bullet points starting with "•".`,
-    },
-    {
-      key: 'roadmap',
-      title: 'Project Roadmap',
-      icon: '→',
-      description: 'PM Buddy will create a simple roadmap showing what happens when across the project timeline.',
-      prompt: `You are PM Buddy, a friendly project management coach. Based on this project, write a simple Project Roadmap in plain English.
-
-${projectContext}
-
-Organise the milestones and key activities into phases (e.g. Phase 1: Setup, Phase 2: Build, Phase 3: Launch). For each phase write: the phase name, what happens in it, and roughly when. Use the timeline and milestone data to be specific. Keep it simple and clear. No jargon. Format as plain text with phase headers.`,
-    },
+    { key: 'definition_of_done', title: 'Definition of Done', icon: '✓', description: 'PM Buddy will define exactly what "done" looks like for this project based on your goal and milestones.', prompt: `You are PM Buddy, a friendly project management coach. Based on this project, write a clear Definition of Done in plain English.\n\n${projectContext}\n\nWrite 4 to 6 bullet points starting with "✓". Specific and checkable. No jargon. No intro.` },
+    { key: 'business_benefit', title: 'Business Benefit', icon: '◈', description: 'PM Buddy will identify what value this project delivers — financial, social, or strategic.', prompt: `You are PM Buddy. Write a clear Business Benefit statement in plain English.\n\n${projectContext}\n\nWrite 3 to 5 sentences. What problem it solves, who benefits, what the outcome is. Plain language. No bullet points.` },
+    { key: 'quality_metrics', title: 'Quality Markers', icon: '◆', description: 'PM Buddy will define how you will know the work is good enough before calling it done.', prompt: `You are PM Buddy. Write simple Quality Markers.\n\n${projectContext}\n\nWrite 4 to 6 quality checks starting with "•". Plain language. No jargon.` },
+    { key: 'roadmap', title: 'Project Roadmap', icon: '→', description: 'PM Buddy will create a simple roadmap showing what happens when across the project timeline.', prompt: `You are PM Buddy. Write a simple Project Roadmap in plain English.\n\n${projectContext}\n\nOrganise into phases. For each phase: name, what happens, roughly when. Simple. No jargon.` },
   ];
 
   return (
@@ -300,23 +204,11 @@ Organise the milestones and key activities into phases (e.g. Phase 1: Setup, Pha
         <p style={s.sectionLabel}>PM Buddy Insights</p>
         <span style={{ fontSize: 11, color: '#9CA3AF' }}>Auto-generated · Always editable</span>
       </div>
-      <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 16, lineHeight: 1.6 }}>
-        PM Buddy generates these from your project details. Click Generate on any card, or Regenerate after updates.
-      </p>
+      <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 16, lineHeight: 1.6 }}>PM Buddy generates these from your project details. Click Generate on any card, or Regenerate after updates.</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {insightDefs.map(ins => (
-          <InsightCard
-            key={ins.key}
-            title={ins.title}
-            icon={ins.icon}
-            description={ins.description}
-            savedValue={insights[ins.key]?.content || ''}
-            savedEdited={insights[ins.key]?.edited || false}
-            generatePrompt={ins.prompt}
-            onSave={(content, edited) => {
-              onSave({ insights: { ...insights, [ins.key]: { content, edited, updatedAt: new Date().toISOString() } } });
-            }}
-          />
+          <InsightCard key={ins.key} title={ins.title} icon={ins.icon} description={ins.description} savedValue={insights[ins.key]?.content || ''} savedEdited={insights[ins.key]?.edited || false} generatePrompt={ins.prompt}
+            onSave={(content, edited) => onSave({ insights: { ...insights, [ins.key]: { content, edited, updatedAt: new Date().toISOString() } } })} />
         ))}
       </div>
     </div>
@@ -332,28 +224,14 @@ function CurrentStatusSection({ data, onSave }) {
 
   const saveStatus = () => {
     onSave({ scope: { ...scope, ...draft } });
-    if (draft.blockers && draft.blockers !== scope.blockers) {
-      notify('blocker_added', data, { blocker: draft.blockers });
-    }
+    if (draft.blockers && draft.blockers !== scope.blockers) notify('blocker_added', data, { blocker: draft.blockers });
     setEditing(false);
   };
 
   const getAiReview = async () => {
     setReviewing(true);
     setAiReview('');
-    const prompt = `You are PM Buddy, a friendly project management coach. Review this project status and give honest, plain-English feedback.
-
-Project: ${data.name}
-Industry: ${data.industry}
-Goal: ${scope.goal}
-Phase: ${draft.currentPhase || 'Not specified'}
-Done so far: ${draft.completedWork || 'Not specified'}
-Still to do: ${draft.remainingWork || 'Not specified'}
-Blockers: ${draft.blockers || 'None listed'}
-Communication: ${draft.communicationFlow || 'Not specified'}
-
-Give 3 to 4 sentences of honest feedback. What looks good, what is concerning, and the single most important thing to focus on right now. Use simple language. No bullet points. No jargon.`;
-
+    const prompt = `You are PM Buddy. Review this project status and give honest plain-English feedback.\n\nProject: ${data.name}\nGoal: ${scope.goal}\nPhase: ${draft.currentPhase || 'Not specified'}\nDone: ${draft.completedWork || 'Not specified'}\nRemaining: ${draft.remainingWork || 'Not specified'}\nBlockers: ${draft.blockers || 'None'}\n\nGive 3 to 4 sentences. What looks good, what is concerning, what to focus on. Simple language. No bullet points.`;
     try {
       const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
       const result = await res.json();
@@ -367,56 +245,21 @@ Give 3 to 4 sentences of honest feedback. What looks good, what is concerning, a
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
         <p style={{ ...s.sectionLabel, color: BLUE, marginBottom: 0 }}>Current Project Status</p>
         <div style={{ display: 'flex', gap: 8 }}>
-          {!editing ? (
-            <>
-              <button style={{ ...s.sprintBtn, fontSize: 12 }} onClick={() => setEditing(true)}>Edit</button>
-              <button style={{ ...s.sprintBtn, fontSize: 12, background: BLUE, color: WH, borderColor: BLUE }} onClick={getAiReview} disabled={reviewing}>{reviewing ? 'Reviewing...' : 'AI Review'}</button>
-            </>
-          ) : (
-            <>
-              <button style={{ ...s.sprintBtn, fontSize: 12, background: BLUE, color: WH, borderColor: BLUE }} onClick={saveStatus}>Save</button>
-              <button style={{ ...s.sprintBtn, fontSize: 12 }} onClick={() => setEditing(false)}>Cancel</button>
-            </>
-          )}
+          {!editing ? (<><button style={{ ...s.sprintBtn, fontSize: 12 }} onClick={() => setEditing(true)}>Edit</button><button style={{ ...s.sprintBtn, fontSize: 12, background: BLUE, color: WH, borderColor: BLUE }} onClick={getAiReview} disabled={reviewing}>{reviewing ? 'Reviewing...' : 'AI Review'}</button></>) : (<><button style={{ ...s.sprintBtn, fontSize: 12, background: BLUE, color: WH, borderColor: BLUE }} onClick={saveStatus}>Save</button><button style={{ ...s.sprintBtn, fontSize: 12 }} onClick={() => setEditing(false)}>Cancel</button></>)}
         </div>
       </div>
       {!editing ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {[
-            { label: 'Current Phase', value: scope.currentPhase },
-            { label: 'What has been done', value: scope.completedWork },
-            { label: 'What is remaining', value: scope.remainingWork },
-            { label: 'Blockers', value: scope.blockers },
-            { label: 'Communication', value: scope.communicationFlow },
-          ].map(({ label, value }) => value ? (
-            <div key={label}>
-              <p style={{ fontSize: 11, fontWeight: 700, color: BLUE, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>{label}</p>
-              <p style={{ fontSize: 14, color: BL, lineHeight: 1.6 }}>{value}</p>
-            </div>
-          ) : null)}
+          {[{ label: 'Current Phase', value: scope.currentPhase }, { label: 'What has been done', value: scope.completedWork }, { label: 'What is remaining', value: scope.remainingWork }, { label: 'Blockers', value: scope.blockers }, { label: 'Communication', value: scope.communicationFlow }].map(({ label, value }) => value ? (<div key={label}><p style={{ fontSize: 11, fontWeight: 700, color: BLUE, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>{label}</p><p style={{ fontSize: 14, color: BL, lineHeight: 1.6 }}>{value}</p></div>) : null)}
         </div>
       ) : (
         <div>
-          {[
-            { key: 'currentPhase', label: 'Current Phase', placeholder: 'e.g. Planning, Development, Testing' },
-            { key: 'completedWork', label: 'What has been done', placeholder: 'What has been completed so far?' },
-            { key: 'remainingWork', label: 'What is remaining', placeholder: 'What work is still left to do?' },
-            { key: 'blockers', label: 'Current blockers', placeholder: 'What is slowing things down?' },
-            { key: 'communicationFlow', label: 'How the team communicates', placeholder: 'e.g. Weekly meetings, WhatsApp, email' },
-          ].map(({ key, label, placeholder }) => (
-            <div key={key} style={{ marginBottom: 14 }}>
-              <label style={{ ...s.label, color: '#1E40AF' }}>{label}</label>
-              <textarea style={{ ...s.textarea, marginBottom: 0, minHeight: 60 }} placeholder={placeholder} value={draft[key]} onChange={e => setDraft(p => ({ ...p, [key]: e.target.value }))} rows={2} />
-            </div>
+          {[{ key: 'currentPhase', label: 'Current Phase', placeholder: 'e.g. Planning, Development, Testing' }, { key: 'completedWork', label: 'What has been done', placeholder: 'What has been completed so far?' }, { key: 'remainingWork', label: 'What is remaining', placeholder: 'What work is still left to do?' }, { key: 'blockers', label: 'Current blockers', placeholder: 'What is slowing things down?' }, { key: 'communicationFlow', label: 'How the team communicates', placeholder: 'e.g. Weekly meetings, WhatsApp, email' }].map(({ key, label, placeholder }) => (
+            <div key={key} style={{ marginBottom: 14 }}><label style={{ ...s.label, color: '#1E40AF' }}>{label}</label><textarea style={{ ...s.textarea, marginBottom: 0, minHeight: 60 }} placeholder={placeholder} value={draft[key]} onChange={e => setDraft(p => ({ ...p, [key]: e.target.value }))} rows={2} /></div>
           ))}
         </div>
       )}
-      {aiReview && (
-        <div style={{ marginTop: 16, background: WH, borderRadius: 10, padding: '14px 16px', border: '1px solid #BFDBFE' }}>
-          <p style={{ fontSize: 11, fontWeight: 700, color: BLUE, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>PM Buddy's Take</p>
-          <p style={{ fontSize: 14, color: '#374151', lineHeight: 1.7 }}>{aiReview}</p>
-        </div>
-      )}
+      {aiReview && <div style={{ marginTop: 16, background: WH, borderRadius: 10, padding: '14px 16px', border: '1px solid #BFDBFE' }}><p style={{ fontSize: 11, fontWeight: 700, color: BLUE, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>PM Buddy's Take</p><p style={{ fontSize: 14, color: '#374151', lineHeight: 1.7 }}>{aiReview}</p></div>}
     </div>
   );
 }
@@ -432,18 +275,8 @@ function GoalRefineSection({ label, value, field, onAccept }) {
     setRefining(true);
     setSuggestion('');
     const prompts = {
-      goal: `You are PM Buddy, a friendly project management coach. Someone was asked "what does success look like for your project?" and they wrote: "${draft}"
-
-They may have described what done looks like rather than a proper goal. Your job is to turn this into a clear, measurable project goal that answers: WHO will benefit, WHAT will change or be achieved, and HOW they will know it worked.
-
-Use simple, everyday language. No jargon. Write it as one or two sentences starting with "This project will succeed when..." or similar. Make it specific and realistic based on what they wrote.
-
-Return ONLY the rewritten goal. Nothing else.`,
-      description: `You are PM Buddy, a friendly project management coach. Someone described their project like this: "${draft}"
-
-Rewrite this as a clear, simple 2-3 sentence description anyone can understand. Explain what the project is, who it is for, and what it will do. No jargon. No corporate speak.
-
-Return ONLY the rewritten description. Nothing else.`,
+      goal: `You are PM Buddy. Turn this into a clear measurable project goal: "${draft}"\n\nAnswer WHO benefits, WHAT changes, HOW they will know it worked. One or two sentences starting with "This project will succeed when...". Plain language. Return ONLY the rewritten goal.`,
+      description: `You are PM Buddy. Rewrite this project description clearly: "${draft}"\n\n2-3 sentences. What it is, who it is for, what it does. No jargon. Return ONLY the rewritten description.`,
     };
     try {
       const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: prompts[field] || prompts.goal }) });
@@ -462,27 +295,11 @@ Return ONLY the rewritten description. Nothing else.`,
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <p style={s.sectionLabel}>{label}</p>
         <div style={{ display: 'flex', gap: 8 }}>
-          {!editing ? (
-            <>
-              <button style={s.smallEditBtn} onClick={() => { setEditing(true); setDraft(value || ''); }}>Edit</button>
-              <button style={s.smallRefineBtn} onClick={() => { setEditing(true); setDraft(value || ''); setTimeout(refine, 100); }}>AI Refine</button>
-            </>
-          ) : (
-            <>
-              <button style={{ ...s.smallEditBtn, background: BLUE, color: WH, borderColor: BLUE }} onClick={saveEdit}>Save</button>
-              <button style={s.smallEditBtn} onClick={() => { setEditing(false); setSuggestion(''); }}>Cancel</button>
-            </>
-          )}
+          {!editing ? (<><button style={s.smallEditBtn} onClick={() => { setEditing(true); setDraft(value || ''); }}>Edit</button><button style={s.smallRefineBtn} onClick={() => { setEditing(true); setDraft(value || ''); setTimeout(refine, 100); }}>AI Refine</button></>) : (<><button style={{ ...s.smallEditBtn, background: BLUE, color: WH, borderColor: BLUE }} onClick={saveEdit}>Save</button><button style={s.smallEditBtn} onClick={() => { setEditing(false); setSuggestion(''); }}>Cancel</button></>)}
         </div>
       </div>
-      {!editing ? (
-        <p style={s.goalText}>{value || 'Not set.'}</p>
-      ) : (
-        <textarea style={{ ...s.textarea, marginBottom: 8, minHeight: 80 }} value={draft} onChange={e => setDraft(e.target.value)} rows={3} />
-      )}
-      {editing && draft.trim().length > 20 && !suggestion && (
-        <button style={s.smallRefineBtn} onClick={refine} disabled={refining}>{refining ? 'PM Buddy is refining...' : 'AI Refine'}</button>
-      )}
+      {!editing ? <p style={s.goalText}>{value || 'Not set.'}</p> : <textarea style={{ ...s.textarea, marginBottom: 8, minHeight: 80 }} value={draft} onChange={e => setDraft(e.target.value)} rows={3} />}
+      {editing && draft.trim().length > 20 && !suggestion && <button style={s.smallRefineBtn} onClick={refine} disabled={refining}>{refining ? 'PM Buddy is refining...' : 'AI Refine'}</button>}
       {suggestion && (
         <div style={s.suggestionBox}>
           <p style={s.suggestionLabel}>PM Buddy Suggestion</p>
@@ -497,7 +314,7 @@ Return ONLY the rewritten description. Nothing else.`,
   );
 }
 
-function OverviewTab({ data, methodology, info, onSave }) {
+function OverviewTab({ data, methodology, info, onSave, acceptedMembers = [] }) {
   const end = data.timeline?.end ? new Date(data.timeline.end) : null;
   const start = data.timeline?.start ? new Date(data.timeline.start) : null;
   const today = new Date();
@@ -507,6 +324,7 @@ function OverviewTab({ data, methodology, info, onSave }) {
   const openRisks = (data.risks || []).filter(r => r.status === 'open').length;
   const milestones = data.milestones || [];
   const doneMilestones = milestones.filter(m => m.status === 'done').length;
+  const totalTeam = 1 + acceptedMembers.length;
 
   return (
     <div>
@@ -530,8 +348,8 @@ function OverviewTab({ data, methodology, info, onSave }) {
         </div>
         <div style={s.overviewCard}>
           <p style={s.overviewLabel}>Team Size</p>
-          <p style={s.overviewNum}>{data.team_type === 'solo' ? '1' : (data.team || []).length || '—'}</p>
-          <p style={s.overviewSub}>{data.team_type === 'solo' ? 'Solo project' : 'members'}</p>
+          <p style={s.overviewNum}>{totalTeam}</p>
+          <p style={s.overviewSub}>{acceptedMembers.length > 0 ? `${acceptedMembers.length} member${acceptedMembers.length > 1 ? 's' : ''} + you` : 'Just you so far'}</p>
         </div>
       </div>
 
@@ -541,22 +359,14 @@ function OverviewTab({ data, methodology, info, onSave }) {
       </div>
 
       <div style={s.overviewSection}>
-        <GoalRefineSection label="Your Project Goal" value={data.scope?.goal} field="goal" onAccept={(val) => {
-          onSave({ scope: { ...data.scope, goal: val } });
-          notify('goal_updated', data, { goal: val });
-        }} />
+        <GoalRefineSection label="Your Project Goal" value={data.scope?.goal} field="goal" onAccept={(val) => { onSave({ scope: { ...data.scope, goal: val } }); notify('goal_updated', data, { goal: val }); }} />
       </div>
 
       <div style={s.overviewSection}>
-        <GoalRefineSection label="Project Description" value={data.description} field="description" onAccept={(val) => {
-          onSave({ description: val });
-          notify('description_updated', data, {});
-        }} />
+        <GoalRefineSection label="Project Description" value={data.description} field="description" onAccept={(val) => { onSave({ description: val }); notify('description_updated', data, {}); }} />
       </div>
 
-      {data.scope?.currentPhase !== undefined && (
-        <CurrentStatusSection data={data} onSave={onSave} />
-      )}
+      {data.scope?.currentPhase !== undefined && <CurrentStatusSection data={data} onSave={onSave} />}
 
       <div style={s.overviewSection}>
         <p style={s.sectionLabel}>Key Milestones</p>
@@ -606,22 +416,9 @@ function ProgressTab({ data, onSave }) {
   };
 
   const startEdit = (i) => { setEditingIdx(i); setEditDraft({ ...milestones[i] }); };
-
-  const saveEdit = () => {
-    onSave({ milestones: milestones.map((m, idx) => idx === editingIdx ? { ...editDraft } : m) });
-    setEditingIdx(null);
-  };
-
-  const deleteMilestone = (i) => {
-    onSave({ milestones: milestones.filter((_, idx) => idx !== i) });
-    if (editingIdx === i) setEditingIdx(null);
-  };
-
-  const addMilestone = () => {
-    if (!newTitle.trim()) return;
-    onSave({ milestones: [...milestones, { title: newTitle.trim(), date: newDate, status: 'pending' }] });
-    setNewTitle(''); setNewDate('');
-  };
+  const saveEdit = () => { onSave({ milestones: milestones.map((m, idx) => idx === editingIdx ? { ...editDraft } : m) }); setEditingIdx(null); };
+  const deleteMilestone = (i) => { onSave({ milestones: milestones.filter((_, idx) => idx !== i) }); if (editingIdx === i) setEditingIdx(null); };
+  const addMilestone = () => { if (!newTitle.trim()) return; onSave({ milestones: [...milestones, { title: newTitle.trim(), date: newDate, status: 'pending' }] }); setNewTitle(''); setNewDate(''); };
 
   const statusConfig = {
     done: { bg: '#F0FDF4', color: '#15803D', label: 'Done', next: 'Mark Pending' },
@@ -633,23 +430,12 @@ function ProgressTab({ data, onSave }) {
     <div>
       <SectionHead title="Progress" sub="Track where things stand. Edit milestones, add new ones, or cycle their status." />
       <div style={s.timelineRange}>
-        <div style={{ flex: 1, textAlign: 'center' }}>
-          <p style={s.timelineDateLabel}>Start Date</p>
-          <p style={s.timelineDateVal}>{data.timeline?.start ? formatDate(data.timeline.start) : 'Not set'}</p>
-        </div>
+        <div style={{ flex: 1, textAlign: 'center' }}><p style={s.timelineDateLabel}>Start Date</p><p style={s.timelineDateVal}>{data.timeline?.start ? formatDate(data.timeline.start) : 'Not set'}</p></div>
         <div style={{ flex: 1, height: 2, background: BLUE, borderRadius: 1 }} />
-        <div style={{ flex: 1, textAlign: 'center' }}>
-          <p style={s.timelineDateLabel}>End Date</p>
-          <p style={s.timelineDateVal}>{data.timeline?.end ? formatDate(data.timeline.end) : 'Not set'}</p>
-        </div>
+        <div style={{ flex: 1, textAlign: 'center' }}><p style={s.timelineDateLabel}>End Date</p><p style={s.timelineDateVal}>{data.timeline?.end ? formatDate(data.timeline.end) : 'Not set'}</p></div>
       </div>
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <p style={s.sectionLabel}>Milestones</p>
-      </div>
-
+      <p style={{ ...s.sectionLabel, marginBottom: 12 }}>Milestones</p>
       {milestones.length === 0 && <p style={s.emptyText}>No milestones set. Add one below.</p>}
-
       {milestones.map((m, i) => {
         const sc = statusConfig[m.status] || statusConfig.pending;
         if (editingIdx === i) {
@@ -658,11 +444,7 @@ function ProgressTab({ data, onSave }) {
               <input style={{ ...s.input, marginBottom: 0 }} value={editDraft.title} onChange={e => setEditDraft(p => ({ ...p, title: e.target.value }))} placeholder="Milestone name" />
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                 <input style={{ ...s.input, marginBottom: 0, flex: 1 }} type="date" value={editDraft.date || ''} onChange={e => setEditDraft(p => ({ ...p, date: e.target.value }))} />
-                <select style={s.select} value={editDraft.status} onChange={e => setEditDraft(p => ({ ...p, status: e.target.value }))}>
-                  <option value="pending">Pending</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="done">Done</option>
-                </select>
+                <select style={s.select} value={editDraft.status} onChange={e => setEditDraft(p => ({ ...p, status: e.target.value }))}><option value="pending">Pending</option><option value="in_progress">In Progress</option><option value="done">Done</option></select>
                 <button style={{ ...s.sprintBtn, background: BLUE, color: WH, borderColor: BLUE }} onClick={saveEdit}>Save</button>
                 <button style={s.sprintBtn} onClick={() => setEditingIdx(null)}>Cancel</button>
               </div>
@@ -671,10 +453,7 @@ function ProgressTab({ data, onSave }) {
         }
         return (
           <div key={i} style={s.milestoneCard}>
-            <div style={{ flex: 1 }}>
-              <p style={{ ...s.milestoneName, textDecoration: m.status === 'done' ? 'line-through' : 'none', color: m.status === 'done' ? '#9CA3AF' : BL }}>{m.title}</p>
-              <p style={s.milestoneDate}>{m.date ? formatDate(m.date) : 'No date'}</p>
-            </div>
+            <div style={{ flex: 1 }}><p style={{ ...s.milestoneName, textDecoration: m.status === 'done' ? 'line-through' : 'none', color: m.status === 'done' ? '#9CA3AF' : BL }}>{m.title}</p><p style={s.milestoneDate}>{m.date ? formatDate(m.date) : 'No date'}</p></div>
             <span style={{ ...s.pill, background: sc.bg, color: sc.color }}>{sc.label}</span>
             <button style={s.sprintBtn} onClick={() => cycleMilestone(i)}>{sc.next}</button>
             <button style={s.sprintBtn} onClick={() => startEdit(i)}>Edit</button>
@@ -682,7 +461,6 @@ function ProgressTab({ data, onSave }) {
           </div>
         );
       })}
-
       <div style={{ marginTop: 16, background: GREY, borderRadius: 10, padding: '14px', border: '1px solid #E5E7EB' }}>
         <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 10 }}>Add a Milestone</p>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -747,7 +525,7 @@ function SprintsTab({ data, onSave }) {
   const statusColors = { planning: { bg: '#EFF6FF', color: BLUE }, active: { bg: '#FFF7ED', color: '#D97706' }, done: { bg: '#F0FDF4', color: '#15803D' } };
   return (
     <div>
-      <SectionHead title="Work Cycles" sub="A work cycle is a short focused period — typically 1 to 4 weeks — where your team builds a specific set of things." />
+      <SectionHead title="Work Cycles" sub="A work cycle is a short focused period where your team builds a specific set of things." />
       <button style={s.primaryBtn} onClick={() => setShowAdd(p => !p)}>+ Plan a New Work Cycle</button>
       {showAdd && (
         <div style={s.addCard}>
@@ -768,11 +546,7 @@ function SprintsTab({ data, onSave }) {
         return (
           <div key={i} style={s.sprintCard}>
             <div style={s.sprintHeader}>
-              <div>
-                <p style={s.sprintNum}>Cycle {sprint.number}</p>
-                <p style={s.sprintGoal}>{sprint.goal}</p>
-                <p style={s.sprintMeta}>{sprint.duration} · {sprint.start ? formatDate(sprint.start) : ''}{sprint.end ? ` to ${formatDate(sprint.end)}` : ''}</p>
-              </div>
+              <div><p style={s.sprintNum}>Cycle {sprint.number}</p><p style={s.sprintGoal}>{sprint.goal}</p><p style={s.sprintMeta}>{sprint.duration} · {sprint.start ? formatDate(sprint.start) : ''}{sprint.end ? ` to ${formatDate(sprint.end)}` : ''}</p></div>
               <span style={{ ...s.pill, background: sc.bg, color: sc.color }}>{sprint.status === 'planning' ? 'Planning' : sprint.status === 'active' ? 'In Progress' : 'Completed'}</span>
             </div>
             <div style={s.sprintActions}>
@@ -924,9 +698,7 @@ function RisksComplianceTab({ data, onSave }) {
       <p style={s.scopeLabel}>What Could Go Wrong?</p>
       <div style={s.addRow}><input style={{ ...s.input, flex: 1, marginBottom: 0 }} placeholder="Describe a risk..." value={newRisk} onChange={e => setNewRisk(e.target.value)} onKeyDown={e => e.key === 'Enter' && addRisk()} /><select style={s.select} value={newLevel} onChange={e => setNewLevel(e.target.value)}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select><button style={s.addBtn} onClick={addRisk}>Add</button></div>
       {risks.length === 0 && <p style={s.emptyText}>No risks added yet.</p>}
-      {risks.map((r, i) => { const lc = levelColors[r.level] || levelColors.medium; return (
-        <div key={i} style={s.riskCard}><span style={{ ...s.pill, background: lc.bg, color: lc.color, flexShrink: 0 }}>{r.level}</span><p style={{ ...s.riskTitle, textDecoration: r.status === 'mitigated' ? 'line-through' : 'none', color: r.status === 'mitigated' ? '#9CA3AF' : BL }}>{r.title}</p><button style={s.sprintBtn} onClick={() => toggleRisk(i)}>{r.status === 'mitigated' ? 'Handled' : 'Mark Handled'}</button></div>
-      ); })}
+      {risks.map((r, i) => { const lc = levelColors[r.level] || levelColors.medium; return (<div key={i} style={s.riskCard}><span style={{ ...s.pill, background: lc.bg, color: lc.color, flexShrink: 0 }}>{r.level}</span><p style={{ ...s.riskTitle, textDecoration: r.status === 'mitigated' ? 'line-through' : 'none', color: r.status === 'mitigated' ? '#9CA3AF' : BL }}>{r.title}</p><button style={s.sprintBtn} onClick={() => toggleRisk(i)}>{r.status === 'mitigated' ? 'Handled' : 'Mark Handled'}</button></div>); })}
       <div style={{ marginTop: 32 }}>
         <p style={s.scopeLabel}>Internal Rules</p>
         <div style={s.addRow}><input style={{ ...s.input, flex: 1, marginBottom: 0 }} placeholder="e.g. All features must pass security review" value={newInternal} onChange={e => setNewInternal(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCompliance('internal', newInternal, setNewInternal)} /><button style={s.addBtn} onClick={() => addCompliance('internal', newInternal, setNewInternal)}>Add</button></div>
@@ -1067,5 +839,3 @@ const s = {
   editedBadge: { fontSize: 10, fontWeight: 600, color: '#D97706', background: '#FFFBEB', padding: '2px 7px', borderRadius: 100, display: 'inline-block', marginTop: 2 },
   insightSmBtn: { padding: '4px 10px', background: WH, color: '#374151', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
 };
-
-
