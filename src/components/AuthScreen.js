@@ -17,6 +17,8 @@ export default function AuthScreen({ onAuth, onBack }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   const roles = [
     'Founder', 'Hackathon participant', 'Solo builder',
@@ -24,22 +26,17 @@ export default function AuthScreen({ onAuth, onBack }) {
   ];
 
   useEffect(() => {
-    // Check if this is a password reset redirect
     const hash = window.location.hash;
     if (hash && hash.includes('type=recovery')) {
       setMode('reset');
       window.history.replaceState(null, '', window.location.pathname);
       return;
     }
-
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) onAuth(session.user);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (_event === 'PASSWORD_RECOVERY') {
-        setMode('reset');
-        return;
-      }
+      if (_event === 'PASSWORD_RECOVERY') { setMode('reset'); return; }
       if (session?.user && _event !== 'PASSWORD_RECOVERY') onAuth(session.user);
     });
     return () => subscription.unsubscribe();
@@ -90,7 +87,6 @@ export default function AuthScreen({ onAuth, onBack }) {
     if (mode === 'signup' && !firstName.trim()) { setError('Please enter your first name.'); return; }
     if (mode === 'signup' && !role) { setError('Please select what describes you best.'); return; }
     setLoading(true);
-
     if (mode === 'login') {
       const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
       if (err) { setError(err.message); setLoading(false); return; }
@@ -134,7 +130,13 @@ export default function AuthScreen({ onAuth, onBack }) {
           {error && <div style={s.error}>{error}</div>}
           {message && <div style={s.success}>{message}</div>}
           <label style={s.label}>New password</label>
-          <input style={s.input} type="password" placeholder="At least 6 characters" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+          <div style={s.pwWrap}>
+            <input style={{ ...s.input, marginBottom: 0, paddingRight: 44 }} type={showNewPassword ? 'text' : 'password'} placeholder="At least 6 characters" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+            <button type="button" style={s.eyeBtn} onClick={() => setShowNewPassword(p => !p)} aria-label={showNewPassword ? 'Hide password' : 'Show password'}>
+              {showNewPassword ? <EyeOffIcon /> : <EyeIcon />}
+            </button>
+          </div>
+          <div style={{ marginBottom: 16 }} />
           <button style={s.btn} onClick={handleResetPassword} disabled={loading}>
             {loading ? 'Updating...' : 'Update password'}
           </button>
@@ -237,7 +239,20 @@ export default function AuthScreen({ onAuth, onBack }) {
             </button>
           )}
         </div>
-        <input style={s.input} type="password" placeholder={mode === 'signup' ? 'At least 6 characters' : 'Your password'} value={password} onChange={e => setPassword(e.target.value)} />
+
+        <div style={s.pwWrap}>
+          <input
+            style={{ ...s.input, marginBottom: 0, paddingRight: 44 }}
+            type={showPassword ? 'text' : 'password'}
+            placeholder={mode === 'signup' ? 'At least 6 characters' : 'Your password'}
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+          />
+          <button type="button" style={s.eyeBtn} onClick={() => setShowPassword(p => !p)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
+            {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+          </button>
+        </div>
+        <div style={{ marginBottom: 16 }} />
 
         <button style={s.btn} onClick={handle} disabled={loading}>
           {loading ? 'Please wait...' : mode === 'login' ? 'Log in' : 'Create account'}
@@ -261,6 +276,25 @@ export default function AuthScreen({ onAuth, onBack }) {
         <button style={s.backBtn} onClick={onBack}>Continue without account</button>
       </div>
     </div>
+  );
+}
+
+function EyeIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+  );
+}
+
+function EyeOffIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+      <line x1="1" y1="1" x2="23" y2="23"/>
+    </svg>
   );
 }
 
@@ -292,6 +326,8 @@ const s = {
   nameField: { flex: 1 },
   label: { display: 'block', fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6, letterSpacing: '0.02em' },
   input: { width: '100%', border: '1px solid #E5E7EB', borderRadius: 8, padding: '11px 14px', fontSize: 14, fontFamily: 'inherit', marginBottom: 16, boxSizing: 'border-box', color: BL, outline: 'none' },
+  pwWrap: { position: 'relative', width: '100%' },
+  eyeBtn: { position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 },
   roleGrid: { display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
   roleBtn: { padding: '8px 14px', border: '1.5px solid', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' },
   passwordRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
