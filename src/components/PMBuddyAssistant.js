@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { supabase } from '../lib/supabase';
 
 const BLUE = '#0284C7';
 const BL = '#0A0A0A';
 const WH = '#FFFFFF';
 const GREY = '#F8FAFC';
 
-// Inject keyframe animation once into document head
 function injectAnimation() {
   if (document.getElementById('pmbuddy-anim')) return;
   const style = document.createElement('style');
@@ -62,21 +62,62 @@ function useSpeech() {
   return { listening, start, stop, baseTextRef };
 }
 
+// ── Local storage helpers (fast cache) ──────────────────────────────────────
 const STORAGE_KEY = (projectId) => 'pmbuddy_chat_' + projectId;
 
-function loadConversation(projectId) {
+function loadLocal(projectId) {
   try {
     const saved = localStorage.getItem(STORAGE_KEY(projectId));
     return saved ? JSON.parse(saved) : [];
   } catch (e) { return []; }
 }
 
-function saveConversation(projectId, messages) {
+function saveLocal(projectId, messages) {
   try {
     localStorage.setItem(STORAGE_KEY(projectId), JSON.stringify(messages.slice(-50)));
   } catch (e) {}
 }
 
+// ── Supabase helpers ─────────────────────────────────────────────────────────
+async function loadFromSupabase(projectId, userId) {
+  if (!userId || projectId === 'wizard') return null;
+  try {
+    const { data, error } = await supabase
+      .from('chat_messages')
+      .select('role, message, created_at')
+      .eq('project_id', projectId)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true })
+      .limit(50);
+    if (error) return null;
+    return (data || []).map(function(row) {
+      return { role: row.role, text: row.message, ts: new Date(row.created_at).getTime() };
+    });
+  } catch (e) { return null; }
+}
+
+async function saveToSupabase(projectId, userId, msg) {
+  if (!userId || projectId === 'wizard') return;
+  try {
+    await supabase.from('chat_messages').insert({
+      project_id: projectId,
+      user_id: userId,
+      role: msg.role,
+      message: msg.text,
+    });
+  } catch (e) { /* silent fail — localStorage is the backup */ }
+}
+
+async function clearFromSupabase(projectId, userId) {
+  if (!userId || projectId === 'wizard') return;
+  try {
+    await supabase.from('chat_messages').delete()
+      .eq('project_id', projectId)
+      .eq('user_id', userId);
+  } catch (e) {}
+}
+
+// ── Project context builder ──────────────────────────────────────────────────
 function buildProjectContext(project) {
   if (!project) return '';
   const milestones = project.milestones || [];
@@ -121,24 +162,15 @@ function buildOpeningNudge(project) {
   const daysLeft = end ? Math.ceil((new Date(end) - new Date()) / 86400000) : null;
   const isCampaign = project.industry === 'Campaign';
 
-  if (overdue.length > 0) {
-    return "Hey, I'm your PM Buddy. You have " + overdue.length + " overdue milestone" + (overdue.length > 1 ? 's' : '') + " on " + project.name + ". That needs your attention first. Want me to help you figure out what to do next?";
-  }
-  if (highRisks.length > 0) {
-    return "Hey, I'm your PM Buddy. I can see " + highRisks.length + " high priority risk" + (highRisks.length > 1 ? 's' : '') + " sitting open on " + project.name + ". Those should not be ignored. Do you have a plan to manage them?";
-  }
-  if (daysLeft !== null && daysLeft <= 7 && daysLeft > 0) {
-    return "Hey, I'm your PM Buddy. " + project.name + " is due in " + daysLeft + " day" + (daysLeft > 1 ? 's' : '') + ". Are you confident everything is on track? Let's do a quick check.";
-  }
-  if (team.length <= 1 && !isCampaign) {
-    return "Hey, I'm your PM Buddy. I notice " + project.name + " doesn't have any team members added yet. If other people are involved, now is a good time to invite them so everyone works from the same plan.";
-  }
-  if (risks.length === 0) {
-    return "Hey, I'm your PM Buddy. I'm looking at " + project.name + " and I don't see any risks logged yet. Every project has risks. Let's make sure yours are documented so nothing catches you off guard.";
-  }
+  if (overdue.length > 0) return "Hey, I'm your PM Buddy. You have " + overdue.length + " overdue milestone" + (overdue.length > 1 ? 's' : '') + " on " + project.name + ". That needs your attention first. Want me to help you figure out what to do next?";
+  if (highRisks.length > 0) return "Hey, I'm your PM Buddy. I can see " + highRisks.length + " high priority risk" + (highRisks.length > 1 ? 's' : '') + " sitting open on " + project.name + ". Those should not be ignored. Do you have a plan to manage them?";
+  if (daysLeft !== null && daysLeft <= 7 && daysLeft > 0) return "Hey, I'm your PM Buddy. " + project.name + " is due in " + daysLeft + " day" + (daysLeft > 1 ? 's' : '') + ". Are you confident everything is on track? Let's do a quick check.";
+  if (team.length <= 1 && !isCampaign) return "Hey, I'm your PM Buddy. I notice " + project.name + " doesn't have any team members added yet. If other people are involved, now is a good time to invite them so everyone works from the same plan.";
+  if (risks.length === 0) return "Hey, I'm your PM Buddy. I'm looking at " + project.name + " and I don't see any risks logged yet. Every project has risks. Let's make sure yours are documented so nothing catches you off guard.";
   return "Hey, I'm your PM Buddy. Think of me as your personal project manager for " + project.name + ". I'm here to guide you, catch what you might miss and make sure this stays on track. What do you need help with?";
 }
 
+// ── Main component ───────────────────────────────────────────────────────────
 export default function PMBuddyAssistant({ project, context }) {
   const projectId = (project && project.id) ? project.id : 'wizard';
   const [open, setOpen] = useState(false);
@@ -147,6 +179,7 @@ export default function PMBuddyAssistant({ project, context }) {
   const [loading, setLoading] = useState(false);
   const [hasPopped, setHasPopped] = useState(false);
   const [unread, setUnread] = useState(0);
+  const [userId, setUserId] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const openRef = useRef(open);
@@ -154,27 +187,54 @@ export default function PMBuddyAssistant({ project, context }) {
 
   useEffect(function() { openRef.current = open; }, [open]);
 
+  // Get current user
+  useEffect(function() {
+    supabase.auth.getUser().then(function(res) {
+      if (res.data && res.data.user) setUserId(res.data.user.id);
+    });
+  }, []);
+
+  // Load conversation — Supabase first, localStorage as fallback
   useEffect(function() {
     injectAnimation();
-    var saved = loadConversation(projectId);
-    if (saved.length > 0) setMessages(saved);
-  }, [projectId]);
+    async function load() {
+      // Try Supabase first for cross-device persistence
+      if (userId) {
+        const remote = await loadFromSupabase(projectId, userId);
+        if (remote && remote.length > 0) {
+          setMessages(remote);
+          saveLocal(projectId, remote); // sync to local cache
+          return;
+        }
+      }
+      // Fall back to localStorage
+      const local = loadLocal(projectId);
+      if (local.length > 0) setMessages(local);
+    }
+    load();
+  }, [projectId, userId]);
 
+  // Auto-pop after 10 seconds
   useEffect(function() {
     if (hasPopped) return;
-    var timer = setTimeout(function() {
-      var saved = loadConversation(projectId);
-      if (saved.length === 0) {
-        var nudge = buildOpeningNudge(project);
-        var opening = [{ role: 'assistant', text: nudge, ts: Date.now() }];
-        setMessages(opening);
-        saveConversation(projectId, opening);
+    var timer = setTimeout(async function() {
+      const local = loadLocal(projectId);
+      if (local.length === 0) {
+        // Check Supabase too before showing opening nudge
+        const remote = userId ? await loadFromSupabase(projectId, userId) : null;
+        if (!remote || remote.length === 0) {
+          const nudge = buildOpeningNudge(project);
+          const opening = [{ role: 'assistant', text: nudge, ts: Date.now() }];
+          setMessages(opening);
+          saveLocal(projectId, opening);
+          if (userId) saveToSupabase(projectId, userId, opening[0]);
+        }
       }
       setOpen(true);
       setHasPopped(true);
     }, 10000);
     return function() { clearTimeout(timer); };
-  }, [project, projectId, hasPopped]);
+  }, [project, projectId, hasPopped, userId]);
 
   useEffect(function() {
     if (open && messagesEndRef.current) {
@@ -193,15 +253,18 @@ export default function PMBuddyAssistant({ project, context }) {
     var userMsg = { role: 'user', text: text.trim(), ts: Date.now() };
     var updated = messages.concat([userMsg]);
     setMessages(updated);
-    saveConversation(projectId, updated);
+    saveLocal(projectId, updated);
+    // Save to Supabase (non-blocking)
+    saveToSupabase(projectId, userId, userMsg);
     setLoading(true);
 
     var projectContext = buildProjectContext(project);
-    var conversationHistory = updated.slice(-10).map(function(m) {
+    // Use last 20 messages for richer memory context
+    var conversationHistory = updated.slice(-20).map(function(m) {
       return (m.role === 'user' ? 'User' : 'PM Buddy') + ': ' + m.text;
     }).join('\n');
 
-    var prompt = 'You are PM Buddy, a friendly and direct personal project manager assistant. You are reading this specific project data and responding based on it.\n\nPROJECT CONTEXT:\n' + projectContext + '\n\n' + (context ? 'ADDITIONAL CONTEXT:\n' + context + '\n\n' : '') + 'CONVERSATION SO FAR:\n' + conversationHistory + '\n\nYOUR RULES:\n- Speak in plain everyday language. No PM jargon unless you explain it.\n- Be direct and specific to THIS project. Never give generic advice.\n- You suggest things but never edit the user\'s work.\n- Keep responses to 2 to 4 sentences unless they ask for detail.\n- Never start with "Great question" or "Absolutely" or filler.\n- You are warm but honest. You are on their side.\n\nRespond only as PM Buddy. No preamble.';
+    var prompt = 'You are PM Buddy, a friendly and direct personal project manager assistant. You are reading this specific project data and responding based on it.\n\nPROJECT CONTEXT:\n' + projectContext + '\n\n' + (context ? 'ADDITIONAL CONTEXT:\n' + context + '\n\n' : '') + 'CONVERSATION HISTORY (last 20 messages — use this to remember what has been discussed):\n' + conversationHistory + '\n\nYOUR RULES:\n- Speak in plain everyday language. No PM jargon unless you explain it.\n- Be direct and specific to THIS project. Never give generic advice.\n- You remember the full conversation above — refer back to earlier points when relevant.\n- You suggest things but never edit the user\'s work.\n- Keep responses to 2 to 4 sentences unless they ask for detail.\n- Never start with "Great question" or "Absolutely" or filler.\n- You are warm but honest. You are on their side.\n\nRespond only as PM Buddy. No preamble.';
 
     try {
       var controller = new AbortController();
@@ -218,13 +281,15 @@ export default function PMBuddyAssistant({ project, context }) {
       var assistantMsg = { role: 'assistant', text: reply, ts: Date.now() };
       var finalMessages = updated.concat([assistantMsg]);
       setMessages(finalMessages);
-      saveConversation(projectId, finalMessages);
+      saveLocal(projectId, finalMessages);
+      // Save assistant reply to Supabase too
+      saveToSupabase(projectId, userId, assistantMsg);
       if (!openRef.current) setUnread(function(u) { return u + 1; });
     } catch (err) {
       var errMsg = { role: 'assistant', text: 'I had trouble connecting. Check your internet and try again.', ts: Date.now() };
       var finalWithErr = updated.concat([errMsg]);
       setMessages(finalWithErr);
-      saveConversation(projectId, finalWithErr);
+      saveLocal(projectId, finalWithErr);
     }
     setLoading(false);
   };
@@ -237,10 +302,11 @@ export default function PMBuddyAssistant({ project, context }) {
     if (speech.listening) { speech.stop(); } else { speech.start(input, function(val) { setInput(val); }); }
   };
 
-  var handleClear = function() {
+  var handleClear = async function() {
     if (window.confirm('Clear this conversation?')) {
       setMessages([]);
-      saveConversation(projectId, []);
+      saveLocal(projectId, []);
+      await clearFromSupabase(projectId, userId);
     }
   };
 
@@ -284,7 +350,6 @@ export default function PMBuddyAssistant({ project, context }) {
         overflow: 'hidden',
       }
     },
-      // Header
       React.createElement('div', {
         style: {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -317,7 +382,6 @@ export default function PMBuddyAssistant({ project, context }) {
         )
       ),
 
-      // Messages
       React.createElement('div', {
         style: {
           flex: 1, overflowY: 'auto', padding: '16px',
@@ -389,7 +453,6 @@ export default function PMBuddyAssistant({ project, context }) {
         React.createElement('div', { ref: messagesEndRef })
       ),
 
-      // Input area
       React.createElement('div', {
         style: { borderTop: '1px solid #F3F4F6', padding: '10px 12px', background: GREY }
       },
