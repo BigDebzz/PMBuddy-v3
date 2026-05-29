@@ -18,17 +18,49 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Projects');
   const [viewingDoc, setViewingDoc] = useState(null);
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
 
   const firstName = user?.user_metadata?.first_name || user?.email?.split('@')[0] || 'there';
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
+  // Capture the PWA install prompt event
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+      // Only show banner if not already installed
+      const isInstalled = window.matchMedia('(display-mode: standalone)').matches;
+      if (!isInstalled) {
+        const dismissed = localStorage.getItem('pmbuddy_install_dismissed');
+        if (!dismissed) setShowInstallBanner(true);
+      }
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setShowInstallBanner(false);
+      setInstallPrompt(null);
+    }
+  };
+
+  const handleDismissInstall = () => {
+    setShowInstallBanner(false);
+    localStorage.setItem('pmbuddy_install_dismissed', '1');
+  };
 
   useEffect(() => { fetchAll(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchAll = async () => {
     setLoading(true);
     const [{ data: v }, { data: p }, { data: d }, { data: members }] = await Promise.all([
-      // Filter all data by user_id so users only see their own content
       supabase.from('projects').select('*').eq('user_id', user.id).order('updated_at', { ascending: false }),
       supabase.from('pm_projects').select('*').eq('user_id', user.id).order('updated_at', { ascending: false }),
       supabase.from('documents').select('*').eq('user_id', user.id).order('updated_at', { ascending: false }),
@@ -62,7 +94,6 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   const quickDocs = documents.filter(d => d.type === 'quick' || !d.project_id);
   const projectDocs = documents.filter(d => d.type !== 'quick' && d.project_id);
 
-  // When user starts a new campaign, switch to Campaigns tab on return
   const handleNewCampaign = () => {
     onNewCampaign({ onSaved: () => { fetchAll(); setActiveTab('Campaigns'); } });
   };
@@ -71,6 +102,23 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
     <>
     <div style={s.page}>
       <div style={s.wrap}>
+
+        {/* INSTALL BANNER */}
+        {showInstallBanner && (
+          <div style={s.installBanner}>
+            <div style={s.installLeft}>
+              <div style={s.installIcon}>⬇</div>
+              <div>
+                <p style={s.installTitle}>Install PM Buddy</p>
+                <p style={s.installSub}>Add to your home screen for faster access</p>
+              </div>
+            </div>
+            <div style={s.installActions}>
+              <button style={s.installBtn} onClick={handleInstall}>Install</button>
+              <button style={s.installDismiss} onClick={handleDismissInstall}>✕</button>
+            </div>
+          </div>
+        )}
 
         {/* HEADER */}
         <div style={s.header}>
@@ -144,7 +192,6 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                 {projects.map(p => <ProjectCard key={p.id} p={p} onOpen={() => onOpenProject(p)} onDelete={() => deleteProject(p.id)} />)}
               </div>
             )}
-
             {!loading && invitedProjects.length > 0 && (
               <>
                 <div style={{ ...s.sectionHead, marginTop: 32 }}>
@@ -453,6 +500,14 @@ INSTRUCTIONS:
 const s = {
   page: { minHeight: '100vh', background: WH, padding: '40px 48px 80px', fontFamily: "'DM Sans', system-ui, sans-serif" },
   wrap: { maxWidth: 1000, margin: '0 auto' },
+  installBanner: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: BL, borderRadius: 12, padding: '14px 18px', marginBottom: 20, gap: 12, flexWrap: 'wrap' },
+  installLeft: { display: 'flex', alignItems: 'center', gap: 12 },
+  installIcon: { width: 36, height: 36, borderRadius: 8, background: BLUE, color: WH, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 },
+  installTitle: { fontSize: 14, fontWeight: 700, color: WH, marginBottom: 2 },
+  installSub: { fontSize: 12, color: '#9CA3AF' },
+  installActions: { display: 'flex', gap: 8, alignItems: 'center' },
+  installBtn: { padding: '8px 20px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  installDismiss: { background: 'none', border: 'none', color: '#6B7280', fontSize: 16, cursor: 'pointer', padding: '4px 8px', fontFamily: 'inherit' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 },
   greeting: { fontSize: 13, color: '#9CA3AF', fontWeight: 400, marginBottom: 6 },
   title: { fontSize: 26, fontWeight: 500, color: BL, letterSpacing: '-0.8px' },
@@ -463,7 +518,6 @@ const s = {
   quickIcon: { width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 },
   quickLabel: { fontSize: 13, fontWeight: 600, color: BL, display: 'flex', alignItems: 'center', gap: 6 },
   comingSoon: { fontSize: 10, fontWeight: 600, color: BLUE, background: '#EFF6FF', padding: '2px 7px', borderRadius: 100 },
-  // Tab bar: overflow-x scroll so it doesn't clip on mobile
   tabBar: { display: 'flex', borderBottom: `1.5px solid ${RULE}`, marginBottom: 24, overflowX: 'auto', WebkitOverflowScrolling: 'touch' },
   tabBtn: { padding: '10px 16px', background: 'none', border: 'none', borderBottom: '2px solid transparent', marginBottom: -1.5, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 },
   tabCount: { fontSize: 11, fontWeight: 700, background: '#EFF6FF', color: BLUE, padding: '1px 6px', borderRadius: 100 },
@@ -511,4 +565,3 @@ const s = {
   docRowDate: { fontSize: 12, color: '#9CA3AF' },
   docRowActions: { display: 'flex', gap: 8 },
 };
-
