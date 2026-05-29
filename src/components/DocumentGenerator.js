@@ -31,39 +31,99 @@ export default function DocumentGenerator({ data, methodology, user, openDoc }) 
     setAiReportLoading(true);
     setAiReport(null);
     setAiReportError(null);
-    const scope = data.scope || {};
-    const risks = (data.risks || []);
-    const milestones = (data.milestones || []);
-    const team = (data.team || []);
-    const planning = data.planning || {};
 
-    const prompt = `You are a senior project manager doing a detailed health check on a project. Be specific, honest and helpful. Reference the actual project details in your response.
+    // ── Fetch the freshest project data from Supabase ──────────────────────
+    let freshProject = data;
+    try {
+      const { data: fp } = await supabase
+        .from('pm_projects')
+        .select('*')
+        .eq('id', data.id)
+        .single();
+      if (fp) freshProject = fp;
+    } catch (e) { /* use prop data as fallback */ }
+
+    // ── Fetch accepted team members from project_members table ─────────────
+    let acceptedMembers = [];
+    try {
+      const { data: members } = await supabase
+        .from('project_members')
+        .select('*')
+        .eq('project_id', data.id)
+        .eq('status', 'accepted');
+      acceptedMembers = members || [];
+    } catch (e) {}
+
+    const scope = freshProject.scope || {};
+    const risks = freshProject.risks || [];
+    const milestones = freshProject.milestones || [];
+    const wizardTeam = freshProject.team || [];
+    const planning = freshProject.planning || {};
+
+    // Combine wizard team + accepted project_members for accurate count
+    const totalTeamSize = 1 + acceptedMembers.length; // owner + accepted members
+    const teamDescription = acceptedMembers.length > 0
+      ? `Owner + ${acceptedMembers.length} accepted member(s): ${acceptedMembers.map(m => `${m.email} (${m.role})`).join(', ')}`
+      : wizardTeam.length > 0
+        ? wizardTeam.map(m => `${m.name} (${m.role})`).join(', ')
+        : 'Solo — no team members added or accepted yet';
+
+    // ── Build honest scoring criteria for Gemini ───────────────────────────
+    const hasGoal = !!(scope.goal && scope.goal.trim().length > 20);
+    const hasTimeline = !!(freshProject.timeline?.start && freshProject.timeline?.end);
+    const hasMilestones = milestones.length >= 2;
+    const hasRisks = risks.length >= 1;
+    const hasTeam = totalTeamSize > 1 || wizardTeam.length > 0;
+    const hasDescription = !!(freshProject.description && freshProject.description.trim().length > 30);
+    const hasCommunicationPlan = !!(planning.communications && planning.communications.trim().length > 10);
+
+    const filledFields = [hasGoal, hasTimeline, hasMilestones, hasRisks, hasTeam, hasDescription, hasCommunicationPlan].filter(Boolean).length;
+    const maxScore = 100;
+    const baseScore = Math.round((filledFields / 7) * maxScore);
+
+    const prompt = `You are a senior PMP-certified project manager doing an honest health check on this project. Be specific, direct and reference actual project details. Do not give inflated scores.
 
 PROJECT DETAILS:
-Name: ${data.name}
-Industry: ${data.industry}
+Name: ${freshProject.name}
+Industry: ${freshProject.industry}
 Methodology: ${methodology}
-Goal: ${scope.goal || 'Not provided'}
-Description: ${data.description || 'Not provided'}
-Team type: ${data.team_type || 'Not set'}
-Team members: ${team.length > 0 ? team.map(m => `${m.name} (${m.role})`).join(', ') : 'None added'}
-Risks identified: ${risks.length > 0 ? risks.map(r => r.title).join(', ') : 'None'}
-Milestones: ${milestones.length > 0 ? milestones.map(m => m.title).join(', ') : 'None'}
-Start date: ${data.timeline?.start || 'Not set'}
-End date: ${data.timeline?.end || 'Not set'}
-Communication plan: ${planning.communications || 'Not set'}
-Tools: ${planning.tools || 'Not set'}
+Goal: ${scope.goal || 'NOT SET — this is a critical gap'}
+Description: ${freshProject.description || 'Not provided'}
+Team: ${teamDescription}
+Total team size (owner + accepted members): ${totalTeamSize}
+Risks identified: ${risks.length > 0 ? risks.map(r => `${r.title} (${r.level})`).join(', ') : 'NONE — risks not documented'}
+Milestones: ${milestones.length > 0 ? milestones.map(m => `${m.title} (${m.status})`).join(', ') : 'NONE — no milestones set'}
+Start date: ${freshProject.timeline?.start || 'NOT SET'}
+End date: ${freshProject.timeline?.end || 'NOT SET'}
+Communication plan: ${planning.communications || 'NOT SET'}
 
-Respond ONLY with this JSON. No markdown. No code blocks. Pure JSON.
-{"score":75,"verdict":"Almost ready","strengths":[{"title":"Clear title here","detail":"Specific explanation referencing their actual project data. Why this is good and what it enables."},{"title":"Second strength","detail":"Specific explanation."}],"gaps":[{"title":"Gap title","why":"Why this matters for THIS specific project","howToFix":"Concrete actionable step they can take right now, specific to their project"},{"title":"Second gap","why":"Why it matters","howToFix":"How to fix it"}],"recommendation":"One specific sentence telling them the single most important action to take today based on their project","readyToDocument":true}
+SCORING RULES — be honest:
+- Base completeness score: ${baseScore}/100 based on ${filledFields}/7 key fields filled
+- Reduce further if goal is vague (under 20 words or generic)
+- Reduce if no risks documented
+- Reduce if no milestones set
+- Increase if team is clearly defined with roles
+- Increase if timeline is realistic and specific
+
+Fields status:
+- Goal set and specific: ${hasGoal ? 'YES' : 'NO'}
+- Timeline set: ${hasTimeline ? 'YES' : 'NO'}
+- Milestones (2+): ${hasMilestones ? 'YES' : 'NO'}
+- Risks documented: ${hasRisks ? 'YES' : 'NO'}
+- Team defined: ${hasTeam ? 'YES' : 'NO'}
+- Description: ${hasDescription ? 'YES' : 'NO'}
+- Communication plan: ${hasCommunicationPlan ? 'YES' : 'NO'}
+
+Respond ONLY with this JSON. No markdown. No code blocks. Pure JSON:
+{"score":${baseScore},"verdict":"${baseScore >= 70 ? 'Almost ready' : baseScore >= 45 ? 'Needs more work' : 'Not ready yet'}","strengths":[{"title":"Specific strength title","detail":"Specific explanation referencing their actual project data. Max 25 words."},{"title":"Second strength if it exists","detail":"Specific explanation. Max 25 words."}],"gaps":[{"title":"Gap title — be specific to this project","why":"Why this matters for THIS specific project. Max 20 words.","howToFix":"Concrete actionable step. Max 20 words."},{"title":"Second gap","why":"Why it matters","howToFix":"How to fix it"}],"recommendation":"One specific sentence: the single most important action to take today. Reference their project name.","readyToDocument":${baseScore >= 65}}
 
 Rules:
-- Score 0-100 based on completeness and quality
-- verdict: "Ready to document", "Almost ready", or "Needs more work"  
-- Max 3 strengths and 3 gaps
-- Reference their actual project name, goal, industry or team in your responses
-- howToFix must be specific and actionable, not generic advice
-- Keep each field under 30 words`;
+- Score must be close to ${baseScore} — do not inflate it
+- If goal, milestones, and risks are all missing, score must be below 40
+- Reference their actual project name "${freshProject.name}" in recommendation
+- If team is solo, say solo — do not pretend there is a team
+- If a field is missing, it MUST appear as a gap
+- Max 3 strengths, max 3 gaps`;
 
     try {
       const res = await fetch('/api/gemini', {
@@ -89,7 +149,10 @@ Rules:
         const jsonStr = clean.substring(firstBrace, lastBrace + 1);
         const parsed = JSON.parse(jsonStr);
         setAiReport(parsed);
-        await supabase.from('pm_projects').update({ ai_health_check: parsed }).eq('id', data.id);
+        // Save to Supabase so it persists
+        await supabase.from('pm_projects')
+          .update({ ai_health_check: parsed })
+          .eq('id', data.id);
       } else {
         setAiReportError('No response from AI. Please try again.');
       }
@@ -131,7 +194,6 @@ Rules:
       setPreviewType(type);
       setEditContent(content);
 
-      // Auto-save
       if (user) {
         const userId = typeof user === 'string' ? user : user?.id;
         const title = type === 'pm' ? 'Project Management Plan' : 'Benefits Management Document';
@@ -242,7 +304,7 @@ Rules:
         <div style={s.aiReportTop}>
           <div>
             <p style={s.aiReportTitle}>AI Project Health Check</p>
-            <p style={s.aiReportSub}>Get an honest review of your project setup before generating documents.</p>
+            <p style={s.aiReportSub}>Reads your latest project data — including team members and updated goal — before scoring.</p>
           </div>
           <button style={s.aiReportBtn} onClick={runAiReport} disabled={aiReportLoading}>
             {aiReportLoading ? 'Reviewing...' : aiReport ? 'Run Again' : 'Run Health Check'}
@@ -252,7 +314,7 @@ Rules:
         {aiReportLoading && (
           <div style={s.aiReportLoading}>
             <div style={s.aiSpinner} />
-            <p style={s.aiReportLoadingText}>Reviewing your project setup...</p>
+            <p style={s.aiReportLoadingText}>Fetching latest project data and reviewing...</p>
           </div>
         )}
 
@@ -267,15 +329,15 @@ Rules:
           <div style={s.aiReportResult}>
             <div style={s.aiScoreRow}>
               <div style={s.aiScoreBlock}>
-                <span style={{ ...s.aiScore, color: aiReport.score >= 70 ? '#15803D' : aiReport.score >= 50 ? BLUE : '#D97706' }}>
+                <span style={{ ...s.aiScore, color: aiReport.score >= 70 ? '#15803D' : aiReport.score >= 45 ? BLUE : '#DC2626' }}>
                   {aiReport.score}
                 </span>
                 <span style={s.aiScoreLabel}>/ 100</span>
               </div>
               <span style={{
                 ...s.aiVerdict,
-                background: aiReport.readyToDocument ? '#F0FDF4' : '#FFFBEB',
-                color: aiReport.readyToDocument ? '#15803D' : '#D97706',
+                background: aiReport.readyToDocument ? '#F0FDF4' : aiReport.score >= 45 ? '#FFFBEB' : '#FEF2F2',
+                color: aiReport.readyToDocument ? '#15803D' : aiReport.score >= 45 ? '#D97706' : '#DC2626',
               }}>
                 {aiReport.verdict}
               </span>
@@ -364,7 +426,7 @@ Rules:
             {generating === 'pm' ? 'Writing document...' : 'Generate Document'}
           </button>
         </div>
-        {generating === 'pm' && <p style={s.generatingNote}>PM Buddy is writing your project management plan. This can take up to 1 minute. Nothing good comes easily.</p>}
+        {generating === 'pm' && <p style={s.generatingNote}>PM Buddy is writing your project management plan. This can take up to 1 minute.</p>}
         {genError && previewType !== 'pm' && !generating && (
           <div style={s.errorNote}>
             <p style={s.errorNoteText}>{genError}</p>
@@ -411,7 +473,7 @@ Rules:
             {generating === 'benefits' ? 'Writing document...' : 'Generate Document'}
           </button>
         </div>
-        {generating === 'benefits' && <p style={s.generatingNote}>PM Buddy is writing your benefits document. This can take up to 1 minute. Nothing good comes easily.</p>}
+        {generating === 'benefits' && <p style={s.generatingNote}>PM Buddy is writing your benefits document. This can take up to 1 minute.</p>}
         {genError && previewType !== 'benefits' && !generating && (
           <div style={s.errorNote}>
             <p style={s.errorNoteText}>{genError}</p>
@@ -504,10 +566,7 @@ Write these sections: Executive Summary, Project Overview, Scope and Deliverable
     signal: controller.signal,
   });
   clearTimeout(timeout);
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Gemini API error ${response.status}: ${errText}`);
-  }
+  if (!response.ok) throw new Error(`Gemini API error ${response.status}`);
   const result = await response.json();
   return (result.result || '').replace(/```html|```/g, '').trim();
 }
@@ -535,9 +594,7 @@ Risks: ${(data.risks || []).map(r => r.title).join(', ') || 'Not specified'}
 
 Write the following sections in HTML using h2 for headings and p for paragraphs. No html, head or body tags. No markdown.
 
-Sections: Executive Summary, The Problem We Are Solving, The Solution and Its Value, Expected Benefits, How We Will Measure Success, Timeline to Benefits Realisation, Risks to Benefits Delivery, Accountability and Governance, Why This Investment Matters.
-
-Write with conviction.`;
+Sections: Executive Summary, The Problem We Are Solving, The Solution and Its Value, Expected Benefits, How We Will Measure Success, Timeline to Benefits Realisation, Risks to Benefits Delivery, Accountability and Governance, Why This Investment Matters.`;
 
   const controller2 = new AbortController();
   const timeout2 = setTimeout(() => controller2.abort(), 90000);
@@ -548,10 +605,7 @@ Write with conviction.`;
     signal: controller2.signal,
   });
   clearTimeout(timeout2);
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Gemini API error ${response.status}: ${errText}`);
-  }
+  if (!response.ok) throw new Error(`Gemini API error ${response.status}`);
   const result = await response.json();
   return (result.result || '').replace(/```html|```/g, '').trim();
 }
@@ -581,9 +635,7 @@ const s = {
   aiVerdict: { fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 100 },
   aiSection: { marginBottom: 14 },
   aiSectionLabel: { fontSize: 11, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 },
-  aiItem: { display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 6 },
   aiDot: { width: 6, height: 6, borderRadius: '50%', flexShrink: 0, marginTop: 6 },
-  aiItemText: { fontSize: 13, color: '#374151', lineHeight: 1.6 },
   aiRecommendation: { background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8, padding: '12px 14px', marginTop: 4 },
   aiRecLabel: { fontSize: 11, fontWeight: 600, color: BLUE, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 },
   aiRecText: { fontSize: 13, color: '#1E40AF', lineHeight: 1.65 },
@@ -629,17 +681,9 @@ const s = {
   aiGapBody: { marginLeft: 14 },
   aiGapWhy: { fontSize: 13, color: '#92400E', lineHeight: 1.6, marginBottom: 6 },
   aiGapFix: { fontSize: 13, color: '#374151', lineHeight: 1.6, background: WH, padding: '8px 10px', borderRadius: 6, border: '1px solid #FDE68A' },
-  editArea: { padding: '0' },
+  editArea: {},
   editNote: { fontSize: 12, color: '#9CA3AF', padding: '10px 16px', background: '#F8FAFC', borderBottom: '1px solid #E5E7EB' },
-  editableDoc: {
-    padding: '32px',
-    minHeight: 400,
-    outline: 'none',
-    fontSize: 14,
-    lineHeight: 1.8,
-    color: '#374151',
-    fontFamily: 'Georgia, serif',
-  },
+  editableDoc: { padding: '32px', minHeight: 400, outline: 'none', fontSize: 14, lineHeight: 1.8, color: '#374151', fontFamily: 'Georgia, serif' },
   noteCard: { background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '12px 14px', marginTop: 12 },
   noteText: { fontSize: 12, color: '#92400E', lineHeight: 1.7 },
 };
