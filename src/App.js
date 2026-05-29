@@ -8,6 +8,7 @@ import ProjectWizard from './components/ProjectWizard';
 import ProjectWorkspace from './components/ProjectWorkspace';
 import CampaignWizard from './components/CampaignWizard';
 import QuickDoc from './components/QuickDoc';
+import FeedbackButton from './components/FeedbackButton';
 import { supabase } from './lib/supabase';
 import { Analytics } from './lib/analytics';
 import { analyze } from './data/analysis';
@@ -63,9 +64,7 @@ export default function App() {
       setScreen(S.INVITE);
     };
 
-    // Handle Google OAuth redirect — session is in the URL hash
     const handleAuth = async () => {
-      // First try to get session from URL hash (Google OAuth redirect)
       if (window.location.hash && window.location.hash.includes('access_token')) {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
@@ -76,7 +75,6 @@ export default function App() {
         }
       }
 
-      // Normal session check
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         setUser(session.user);
@@ -111,7 +109,6 @@ export default function App() {
       user_id: user.id,
     }).eq('id', inviteData.id);
 
-    // Notify project team
     try {
       await fetch('/api/notify', {
         method: 'POST',
@@ -155,7 +152,6 @@ export default function App() {
       <div style={{ minHeight: '100vh', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <div style={{ background: '#FFFFFF', borderRadius: 16, padding: 40, maxWidth: 480, width: '100%', border: '1px solid #E5E7EB', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
           <p style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>PM Buddy</p>
-
           {inviteError ? (
             <>
               <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0A0A0A', marginBottom: 12 }}>Invalid Invite</h2>
@@ -168,21 +164,12 @@ export default function App() {
               <p style={{ fontSize: 15, color: '#6B7280', lineHeight: 1.7, marginBottom: 8 }}>
                 You have been invited to join <strong style={{ color: '#0A0A0A' }}>{inviteData.pm_projects?.name}</strong> as a <strong style={{ color: '#0A0A0A' }}>{inviteData.role}</strong>.
               </p>
-              <p style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 28 }}>
-                {inviteData.pm_projects?.description}
-              </p>
+              <p style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 28 }}>{inviteData.pm_projects?.description}</p>
               <div style={{ display: 'flex', gap: 12 }}>
-                <button
-                  style={{ flex: 1, padding: '12px', background: '#0284C7', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: inviteAccepting ? 0.6 : 1 }}
-                  onClick={acceptInvite}
-                  disabled={inviteAccepting}
-                >
+                <button style={{ flex: 1, padding: '12px', background: '#0284C7', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: inviteAccepting ? 0.6 : 1 }} onClick={acceptInvite} disabled={inviteAccepting}>
                   {inviteAccepting ? 'Accepting...' : 'Accept Invitation'}
                 </button>
-                <button
-                  style={{ padding: '12px 20px', background: 'none', color: '#6B7280', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
-                  onClick={declineInvite}
-                >
+                <button style={{ padding: '12px 20px', background: 'none', color: '#6B7280', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }} onClick={declineInvite}>
                   Decline
                 </button>
               </div>
@@ -216,6 +203,7 @@ export default function App() {
       {screen === S.PROJECT_NEW && user && <ProjectWizard user={user} onComplete={(p) => { setActiveProject({ ...p, _currentUser: user }); setScreen(S.PROJECT_OPEN); }} onBack={() => setScreen(S.DASHBOARD)} />}
       {screen === S.QUICK_DOC && user && <QuickDoc user={user} onBack={() => setScreen(S.DASHBOARD)} onStartProject={() => setScreen(S.PROJECT_NEW)} onStartCampaign={() => setScreen(S.CAMPAIGN_NEW)} />}
       {screen === S.PROJECT_OPEN && activeProject && activeProject.id && <ProjectWorkspace project={activeProject} onBack={() => setScreen(S.DASHBOARD)} onUpdate={(p) => setActiveProject({ ...p, _currentUser: user })} />}
+      {user && <FeedbackButton />}
     </div>
   );
 }
@@ -229,4 +217,3 @@ const nav = {
   loginBtn: { padding: '6px 14px', background: 'none', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 500, color: '#6B7280', cursor: 'pointer', fontFamily: 'inherit' },
   signupBtn: { padding: '6px 14px', background: '#0A0A0A', color: '#FFFFFF', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
 };
-
