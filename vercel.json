@@ -9,13 +9,17 @@
     "api/gemini.js": { "maxDuration": 60 },
     "api/send-reminder.js": { "maxDuration": 15 },
     "api/check-milestones.js": { "maxDuration": 60 },
-    "api/notify.js": { "maxDuration": 15 }
+    "api/notify.js": { "maxDuration": 15 },
+    "api/check-inactive-users.js": { "maxDuration": 30 }
   },
   "crons": [
     {
       "path": "/api/check-milestones",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/check-inactive-users",
+      "schedule": "0 9 * * *"
     }
   ]
 }
-
