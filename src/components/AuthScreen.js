@@ -129,9 +129,16 @@ export default function AuthScreen({ onAuth, onBack }) {
         }
       });
       if (err) { setError(err.message); setLoading(false); return; }
+      const sendWelcome = () => fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'welcome', data: { email: email.trim(), firstName: firstName.trim() } })
+      }).catch(() => {});
       if (data.user && data.session) {
+        sendWelcome();
         onAuth(data.user);
       } else {
+        sendWelcome();
         setMessage('Account created. Check your email to confirm, then log in.');
         setMode('login');
       }
