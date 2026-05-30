@@ -80,12 +80,35 @@ export default function AuthScreen({ onAuth, onBack }) {
     }, 1500);
   };
 
+
+  const validatePassword = (pw) => {
+    if (pw.length < 8) return 'Password must be at least 8 characters.';
+    if (!/[A-Z]/.test(pw)) return 'Password must include at least one capital letter.';
+    if (!/[0-9]/.test(pw)) return 'Password must include at least one number.';
+    if (!/[^A-Za-z0-9]/.test(pw)) return 'Password must include at least one symbol (e.g. @, #, !).';
+    return null;
+  };
+
+  const getPasswordStrength = (pw) => {
+    if (!pw) return null;
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    if (pw.length >= 12) score++;
+    if (score <= 2) return { label: 'Weak', color: '#DC2626', width: '33%' };
+    if (score <= 3) return { label: 'Fair', color: '#D97706', width: '66%' };
+    return { label: 'Strong', color: '#15803D', width: '100%' };
+  };
+
   const handle = async () => {
     setError('');
     setMessage('');
     if (!email || !password) { setError('Please enter your email and password.'); return; }
     if (mode === 'signup' && !firstName.trim()) { setError('Please enter your first name.'); return; }
     if (mode === 'signup' && !role) { setError('Please select what describes you best.'); return; }
+    if (mode === 'signup') { const pwError = validatePassword(password); if (pwError) { setError(pwError); return; } }
     setLoading(true);
     if (mode === 'login') {
       const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
@@ -136,7 +159,8 @@ export default function AuthScreen({ onAuth, onBack }) {
               {showNewPassword ? <EyeOffIcon /> : <EyeIcon />}
             </button>
           </div>
-          <div style={{ marginBottom: 16 }} />
+          {mode === 'signup' && password && (() => { const st = getPasswordStrength(password); return st ? React.createElement('div', { style: { marginTop: 8, marginBottom: 8 } }, React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', marginBottom: 4 } }, React.createElement('span', { style: { fontSize: 11, color: '#9CA3AF' } }, 'Password strength'), React.createElement('span', { style: { fontSize: 11, fontWeight: 700, color: st.color } }, st.label)), React.createElement('div', { style: { height: 4, background: '#E5E7EB', borderRadius: 2, overflow: 'hidden' } }, React.createElement('div', { style: { height: '100%', width: st.width, background: st.color, borderRadius: 2, transition: 'width 0.3s' } }))) : null; })()}
+        <div style={{ marginBottom: 8 }} />
           <button style={s.btn} onClick={handleResetPassword} disabled={loading}>
             {loading ? 'Updating...' : 'Update password'}
           </button>
@@ -244,7 +268,7 @@ export default function AuthScreen({ onAuth, onBack }) {
           <input
             style={{ ...s.input, marginBottom: 0, paddingRight: 44 }}
             type={showPassword ? 'text' : 'password'}
-            placeholder={mode === 'signup' ? 'At least 6 characters' : 'Your password'}
+            placeholder={mode === 'signup' ? 'Min 8 chars, capital, number, symbol' : 'Your password'}
             value={password}
             onChange={e => setPassword(e.target.value)}
           />
@@ -252,7 +276,8 @@ export default function AuthScreen({ onAuth, onBack }) {
             {showPassword ? <EyeOffIcon /> : <EyeIcon />}
           </button>
         </div>
-        <div style={{ marginBottom: 16 }} />
+        {mode === 'signup' && password && (() => { const st = getPasswordStrength(password); return st ? React.createElement('div', { style: { marginTop: 8, marginBottom: 8 } }, React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', marginBottom: 4 } }, React.createElement('span', { style: { fontSize: 11, color: '#9CA3AF' } }, 'Password strength'), React.createElement('span', { style: { fontSize: 11, fontWeight: 700, color: st.color } }, st.label)), React.createElement('div', { style: { height: 4, background: '#E5E7EB', borderRadius: 2, overflow: 'hidden' } }, React.createElement('div', { style: { height: '100%', width: st.width, background: st.color, borderRadius: 2, transition: 'width 0.3s' } }))) : null; })()}
+        <div style={{ marginBottom: 8 }} />
 
         <button style={s.btn} onClick={handle} disabled={loading}>
           {loading ? 'Please wait...' : mode === 'login' ? 'Log in' : 'Create account'}
