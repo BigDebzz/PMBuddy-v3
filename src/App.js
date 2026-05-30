@@ -21,6 +21,74 @@ const S = {
   INVITE: 'invite',
 };
 
+function ValidationModeModal({ onSelect, onClose }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 2000,
+      background: 'rgba(0,0,0,0.55)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: 24,
+    }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div style={{
+        background: '#FFFFFF', borderRadius: 20, padding: '36px 32px',
+        maxWidth: 480, width: '100%',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+        fontFamily: "'DM Sans', system-ui, sans-serif",
+      }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>New Validation</p>
+        <h2 style={{ fontSize: 22, fontWeight: 800, color: '#0A0A0A', marginBottom: 6, letterSpacing: '-0.4px' }}>What are you validating?</h2>
+        <p style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.7, marginBottom: 28 }}>Choose the type that best describes what you are building or pitching.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <button
+            onClick={() => onSelect('startup')}
+            style={{
+              display: 'flex', alignItems: 'flex-start', gap: 16,
+              padding: '18px 20px', background: '#F8FAFC',
+              border: '1.5px solid #E5E7EB', borderRadius: 12,
+              cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#0284C7'; e.currentTarget.style.background = '#EFF6FF'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#E5E7EB'; e.currentTarget.style.background = '#F8FAFC'; }}
+          >
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: '#0A0A0A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🚀</div>
+            <div>
+              <p style={{ fontSize: 15, fontWeight: 700, color: '#0A0A0A', marginBottom: 4 }}>Startup Idea</p>
+              <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>Validate a business idea, product, or venture you are building or planning to build.</p>
+            </div>
+          </button>
+          <button
+            onClick={() => onSelect('hackathon')}
+            style={{
+              display: 'flex', alignItems: 'flex-start', gap: 16,
+              padding: '18px 20px', background: '#F8FAFC',
+              border: '1.5px solid #E5E7EB', borderRadius: 12,
+              cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#15803D'; e.currentTarget.style.background = '#F0FDF4'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#E5E7EB'; e.currentTarget.style.background = '#F8FAFC'; }}
+          >
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: '#15803D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>⚡</div>
+            <div>
+              <p style={{ fontSize: 15, fontWeight: 700, color: '#0A0A0A', marginBottom: 4 }}>Hackathon Project</p>
+              <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>Validate an idea you are pitching at a hackathon, competition, or accelerator programme.</p>
+            </div>
+          </button>
+        </div>
+        <button
+          onClick={onClose}
+          style={{ width: '100%', marginTop: 16, padding: '10px', background: 'none', border: 'none', color: '#9CA3AF', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [screen, setScreen] = useState(S.LAND);
   const [mode, setMode] = useState(null);
@@ -32,6 +100,7 @@ export default function App() {
   const [inviteData, setInviteData] = useState(null);
   const [inviteError, setInviteError] = useState('');
   const [inviteAccepting, setInviteAccepting] = useState(false);
+  const [showValidationModal, setShowValidationModal] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -134,9 +203,9 @@ export default function App() {
     setScreen(S.DASHBOARD);
   };
 
-  const selectMode = (m) => { setMode(m); setAnswers({}); setAnalysis(null); setProjectId(null); setScreen(S.QA); };
+  const selectMode = (m) => { setMode(m); setAnswers({}); setAnalysis(null); setProjectId(null); setShowValidationModal(false); setScreen(S.QA); };
   const complete = (a) => { const r = analyze(mode, a); setAnswers(a); setAnalysis(r); Analytics.reportGenerated(mode, r.score); setScreen(S.RESULTS); };
-  const reset = () => { setMode(null); setAnswers({}); setAnalysis(null); setProjectId(null); setActiveProject(null); setScreen(S.LAND); };
+  const reset = () => { setMode(null); setAnswers({}); setAnalysis(null); setProjectId(null); setActiveProject(null); setShowValidationModal(false); setScreen(S.LAND); };
   const saveValidation = async (title) => {
     if (!user) { setScreen(S.AUTH); return; }
     if (projectId) { await supabase.from('projects').update({ title, answers, analysis, updated_at: new Date().toISOString() }).eq('id', projectId); }
@@ -198,12 +267,13 @@ export default function App() {
       {screen === S.QA && mode && <QuestionWizard mode={mode} onComplete={complete} onBack={() => setScreen(S.LAND)} />}
       {screen === S.RESULTS && analysis && <ResultsDashboard mode={mode} answers={answers} analysis={analysis} onReset={reset} onEdit={() => setScreen(S.QA)} onSave={saveValidation} user={user} projectId={projectId} />}
       {screen === S.AUTH && <AuthScreen onAuth={(u) => { setUser(u); setScreen(S.DASHBOARD); }} onBack={() => setScreen(S.LAND)} />}
-      {screen === S.DASHBOARD && user && <Dashboard user={user} onOpenValidation={openValidation} onOpenProject={openProject} onNewValidation={() => selectMode('startup')} onNewProject={() => setScreen(S.PROJECT_NEW)} onNewCampaign={() => setScreen(S.CAMPAIGN_NEW)} onNewQuickDoc={() => setScreen(S.QUICK_DOC)} onLogout={logout} />}
+      {screen === S.DASHBOARD && user && <Dashboard user={user} onOpenValidation={openValidation} onOpenProject={openProject} onNewValidation={() => setShowValidationModal(true)} onNewProject={() => setScreen(S.PROJECT_NEW)} onNewCampaign={() => setScreen(S.CAMPAIGN_NEW)} onNewQuickDoc={() => setScreen(S.QUICK_DOC)} onLogout={logout} />}
       {screen === S.CAMPAIGN_NEW && user && <CampaignWizard user={user} onComplete={(p) => { setActiveProject({ ...p, _currentUser: user }); setScreen(S.PROJECT_OPEN); }} onBack={() => setScreen(S.DASHBOARD)} />}
       {screen === S.PROJECT_NEW && user && <ProjectWizard user={user} onComplete={(p) => { setActiveProject({ ...p, _currentUser: user }); setScreen(S.PROJECT_OPEN); }} onBack={() => setScreen(S.DASHBOARD)} />}
       {screen === S.QUICK_DOC && user && <QuickDoc user={user} onBack={() => setScreen(S.DASHBOARD)} onStartProject={() => setScreen(S.PROJECT_NEW)} onStartCampaign={() => setScreen(S.CAMPAIGN_NEW)} />}
       {screen === S.PROJECT_OPEN && activeProject && activeProject.id && <ProjectWorkspace project={activeProject} onBack={() => setScreen(S.DASHBOARD)} onUpdate={(p) => setActiveProject({ ...p, _currentUser: user })} />}
       {user && <FeedbackButton />}
+      {showValidationModal && <ValidationModeModal onSelect={selectMode} onClose={() => setShowValidationModal(false)} />}
     </div>
   );
 }
