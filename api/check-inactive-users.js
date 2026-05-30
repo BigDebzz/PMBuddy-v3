@@ -15,20 +15,20 @@ async function sendEmail(email, firstName) {
       <p style="margin:0;font-size:13px;font-weight:700;color:#0284C7;letter-spacing:0.1em;text-transform:uppercase;">PM Buddy</p>
     </div>
     <div style="padding:32px;">
-      <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#D97706;text-transform:uppercase;letter-spacing:0.1em;">Still waiting for you</p>
-      <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#0A0A0A;line-height:1.3;">Your first project is one click away${name}.</h1>
-      <p style="margin:0 0 16px;font-size:15px;color:#374151;line-height:1.8;">You signed up for PM Buddy but have not created a project yet. It takes less than 3 minutes and PM Buddy guides you through every step.</p>
+      <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#D97706;text-transform:uppercase;letter-spacing:0.1em;">One thing left to do</p>
+      <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#0A0A0A;line-height:1.3;">You signed up${name}. Now let PM Buddy actually help you.</h1>
+      <p style="margin:0 0 16px;font-size:15px;color:#374151;line-height:1.8;">You created an account yesterday but have not started a project yet. That is the one step that makes PM Buddy actually useful for you.</p>
 
       <div style="background:#F8FAFC;border-radius:10px;padding:20px;margin:20px 0;border-left:4px solid #0284C7;">
-        <p style="margin:0 0 10px;font-size:14px;font-weight:700;color:#0A0A0A;">What PM Buddy does for you</p>
-        <p style="margin:0 0 6px;font-size:14px;color:#374151;">Sets up your project with milestones, risks and a communication plan automatically.</p>
-        <p style="margin:0 0 6px;font-size:14px;color:#374151;">Flags problems before they become blockers.</p>
-        <p style="margin:0;font-size:14px;color:#374151;">Generates your project documents so you do not have to start from scratch.</p>
+        <p style="margin:0 0 10px;font-size:14px;font-weight:700;color:#0A0A0A;">What happens when you create your first project</p>
+        <p style="margin:0 0 8px;font-size:14px;color:#374151;line-height:1.6;">PM Buddy asks you a few questions and builds out your project structure automatically including milestones, risks and a communication plan.</p>
+        <p style="margin:0 0 8px;font-size:14px;color:#374151;line-height:1.6;">You get a professional project setup in under 3 minutes without needing to know anything about project management.</p>
+        <p style="margin:0;font-size:14px;color:#374151;line-height:1.6;">From there PM Buddy stays with you, flags what needs attention and generates your documents when you need them.</p>
       </div>
 
       <a href="https://pmbuddy-v3.vercel.app" style="display:inline-block;background:#0284C7;color:#ffffff;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;margin-bottom:24px;">Create my first project</a>
 
-      <p style="margin:0;font-size:13px;color:#9CA3AF;line-height:1.7;">If you have any questions or need help getting started, just reply to this email.</p>
+      <p style="margin:0;font-size:13px;color:#9CA3AF;line-height:1.7;">If something stopped you or you have a question, just reply to this email. We will help you get started.</p>
     </div>
     <div style="padding:20px 32px;border-top:1px solid #F3F4F6;">
       <p style="margin:0;font-size:12px;color:#9CA3AF;">PM Buddy. Think, Plan and Execute Like a Professional PM. <a href="https://pmbuddy-v3.vercel.app" style="color:#9CA3AF;">pmbuddy-v3.vercel.app</a></p>
