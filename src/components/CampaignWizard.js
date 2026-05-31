@@ -153,12 +153,12 @@ export default function CampaignWizard({ user, onComplete, onBack }) {
     } catch {}
   }, []);
 
-  // Save draft whenever data changes
+  // Save draft whenever data, step or aiReview changes
   useEffect(() => {
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify({ data, step, aiReview }));
     } catch {}
-  }, [data]);
+  }, [data, step, aiReview]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const update = useCallback((key, val) => setData(p => ({ ...p, [key]: val })), []);
 
