@@ -156,7 +156,7 @@ export default function CampaignWizard({ user, onComplete, onBack }) {
   // Save draft whenever data changes
   useEffect(() => {
     try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify({ data }));
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ data, step, aiReview }));
     } catch {}
   }, [data]);
 
@@ -706,4 +706,3 @@ const s = {
   footer: { marginTop: 32, paddingTop: 24, borderTop: '1px solid #F3F4F6' },
   nextBtn: { width: '100%', padding: '14px', background: BLUE, color: WH, border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'opacity 0.15s ease' },
 };
-
