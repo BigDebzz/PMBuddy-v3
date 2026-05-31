@@ -418,7 +418,27 @@ function ProgressTab({ data, onSave }) {
   const startEdit = (i) => { setEditingIdx(i); setEditDraft({ ...milestones[i] }); };
   const saveEdit = () => { onSave({ milestones: milestones.map((m, idx) => idx === editingIdx ? { ...editDraft } : m) }); setEditingIdx(null); };
   const deleteMilestone = (i) => { onSave({ milestones: milestones.filter((_, idx) => idx !== i) }); if (editingIdx === i) setEditingIdx(null); };
-  const addMilestone = () => { if (!newTitle.trim()) return; onSave({ milestones: [...milestones, { title: newTitle.trim(), date: newDate, status: 'pending' }] }); setNewTitle(''); setNewDate(''); };
+  const [milestoneError, setMilestoneError] = useState('');
+  const addMilestone = () => {
+    if (!newTitle.trim()) return;
+    if (newDate) {
+      const projectStart = data.timeline?.start;
+      const projectEnd = data.timeline?.end;
+      const mDate = new Date(newDate);
+      if (projectStart && mDate < new Date(projectStart)) {
+        setMilestoneError('Milestone date cannot be before the project start date.');
+        return;
+      }
+      if (projectEnd && mDate > new Date(projectEnd)) {
+        setMilestoneError('Milestone date cannot be after the project end date.');
+        return;
+      }
+    }
+    setMilestoneError('');
+    onSave({ milestones: [...milestones, { title: newTitle.trim(), date: newDate, status: 'pending' }] });
+    setNewTitle('');
+    setNewDate('');
+  };
 
   const statusConfig = {
     done: { bg: '#F0FDF4', color: '#15803D', label: 'Done', next: 'Mark Pending' },
@@ -468,6 +488,7 @@ function ProgressTab({ data, onSave }) {
           <input style={{ ...s.input, flex: 1, marginBottom: 0, minWidth: 120 }} type="date" value={newDate} onChange={e => setNewDate(e.target.value)} />
           <button style={s.addBtn} onClick={addMilestone}>Add</button>
         </div>
+        {milestoneError && <p style={{ fontSize: 13, color: '#DC2626', marginTop: 8 }}>{milestoneError}</p>}
       </div>
     </div>
   );
