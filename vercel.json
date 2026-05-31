@@ -10,7 +10,8 @@
     "api/send-reminder.js": { "maxDuration": 15 },
     "api/check-milestones.js": { "maxDuration": 60 },
     "api/notify.js": { "maxDuration": 15 },
-    "api/check-inactive-users.js": { "maxDuration": 30 }
+    "api/check-inactive-users.js": { "maxDuration": 30 },
+    "api/check-inactive-users-weekly.js": { "maxDuration": 60 }
   },
   "crons": [
     {
@@ -20,6 +21,10 @@
     {
       "path": "/api/check-inactive-users",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/check-inactive-users-weekly",
+      "schedule": "0 10 * * 1"
     }
   ]
 }
