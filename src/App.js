@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import LandingScreen from './components/LandingScreen';
 import QuestionWizard from './components/QuestionWizard';
 import ResultsDashboard from './components/ResultsDashboard';
@@ -102,6 +102,14 @@ export default function App() {
   const [inviteAccepting, setInviteAccepting] = useState(false);
   const [showValidationModal, setShowValidationModal] = useState(false);
 
+  // Keep refs so onAuth callback always has latest values
+  const modeRef = useRef(mode);
+  const answersRef = useRef(answers);
+  const analysisRef = useRef(analysis);
+  useEffect(() => { modeRef.current = mode; }, [mode]);
+  useEffect(() => { answersRef.current = answers; }, [answers]);
+  useEffect(() => { analysisRef.current = analysis; }, [analysis]);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('invite');
@@ -203,6 +211,22 @@ export default function App() {
     setScreen(S.DASHBOARD);
   };
 
+  // Auto-save pending validation after user signs up or logs in
+  const autoSavePendingValidation = async (u) => {
+    const currentAnalysis = analysisRef.current;
+    const currentMode = modeRef.current;
+    const currentAnswers = answersRef.current;
+    if (!currentAnalysis || !currentMode || !u) return;
+    try {
+      const { data } = await supabase
+        .from('projects')
+        .insert({ user_id: u.id, mode: currentMode, title: 'My Validation', answers: currentAnswers, analysis: currentAnalysis })
+        .select()
+        .single();
+      if (data) setProjectId(data.id);
+    } catch (e) { console.error('Auto-save validation error:', e); }
+  };
+
   const selectMode = (m) => { setMode(m); setAnswers({}); setAnalysis(null); setProjectId(null); setShowValidationModal(false); setScreen(S.QA); };
   const complete = (a) => { const r = analyze(mode, a); setAnswers(a); setAnalysis(r); Analytics.reportGenerated(mode, r.score); setScreen(S.RESULTS); };
   const reset = () => { setMode(null); setAnswers({}); setAnalysis(null); setProjectId(null); setActiveProject(null); setShowValidationModal(false); setScreen(S.LAND); };
@@ -214,6 +238,13 @@ export default function App() {
   const openValidation = (p) => { setMode(p.mode); setAnswers(p.answers); setAnalysis(p.analysis); setProjectId(p.id); setScreen(S.RESULTS); };
   const openProject = (p) => { setActiveProject({ ...p, _currentUser: user }); setScreen(S.PROJECT_OPEN); };
   const logout = async () => { await supabase.auth.signOut(); setUser(null); reset(); };
+
+  // onAuth — called when user signs up or logs in from AuthScreen
+  const handleAuthSuccess = async (u) => {
+    setUser(u);
+    await autoSavePendingValidation(u);
+    setScreen(S.DASHBOARD);
+  };
 
   // Invite screen
   if (screen === S.INVITE) {
@@ -266,7 +297,7 @@ export default function App() {
       {(screen === S.LAND || (screen === S.DASHBOARD && !user)) && <LandingScreen onSelectMode={selectMode} onLogin={() => setScreen(S.AUTH)} onSignup={() => setScreen(S.AUTH)} onDashboard={() => setScreen(S.DASHBOARD)} user={user} />}
       {screen === S.QA && mode && <QuestionWizard mode={mode} onComplete={complete} onBack={() => setScreen(S.LAND)} />}
       {screen === S.RESULTS && analysis && <ResultsDashboard mode={mode} answers={answers} analysis={analysis} onReset={reset} onEdit={() => setScreen(S.QA)} onSave={saveValidation} user={user} projectId={projectId} />}
-      {screen === S.AUTH && <AuthScreen onAuth={(u) => { setUser(u); setScreen(S.DASHBOARD); }} onBack={() => setScreen(S.LAND)} />}
+      {screen === S.AUTH && <AuthScreen onAuth={handleAuthSuccess} onBack={() => setScreen(S.LAND)} />}
       {screen === S.DASHBOARD && user && <Dashboard user={user} onOpenValidation={openValidation} onOpenProject={openProject} onNewValidation={() => setShowValidationModal(true)} onNewProject={() => setScreen(S.PROJECT_NEW)} onNewCampaign={() => setScreen(S.CAMPAIGN_NEW)} onNewQuickDoc={() => setScreen(S.QUICK_DOC)} onLogout={logout} />}
       {screen === S.CAMPAIGN_NEW && user && <CampaignWizard user={user} onComplete={(p) => { setActiveProject({ ...p, _currentUser: user }); setScreen(S.PROJECT_OPEN); }} onBack={() => setScreen(S.DASHBOARD)} />}
       {screen === S.PROJECT_NEW && user && <ProjectWizard user={user} onComplete={(p) => { setActiveProject({ ...p, _currentUser: user }); setScreen(S.PROJECT_OPEN); }} onBack={() => setScreen(S.DASHBOARD)} />}
