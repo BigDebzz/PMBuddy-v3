@@ -13,16 +13,25 @@ const TABS = {
   startup: ['Report', 'AI Analysis', 'Roadmap', 'Tools to Use', 'Methodology', 'Proof Points'],
 };
 
+const DEEP_KEY = (mode) => 'pmbuddy_deep_' + mode;
+
 export default function ResultsDashboard({ mode, answers, analysis, onReset, onEdit, onSave, user, projectId }) {
   const [tab, setTab] = useState('Report');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(!!projectId);
   const [title, setTitle] = useState('');
   const [showTitleInput, setShowTitleInput] = useState(false);
-  const [deepAnalysis, setDeepAnalysis] = useState(null);
   const [deepLoading, setDeepLoading] = useState(false);
   const config = modeConfig[mode];
   const tabs = TABS[mode];
+
+  // Restore deep analysis from localStorage so tab switches don't wipe it
+  const [deepAnalysis, setDeepAnalysis] = useState(() => {
+    try {
+      const s = localStorage.getItem(DEEP_KEY(mode));
+      return s ? JSON.parse(s) : null;
+    } catch { return null; }
+  });
 
   const handleTab = (t) => {
     setTab(t);
@@ -37,6 +46,7 @@ export default function ResultsDashboard({ mode, answers, analysis, onReset, onE
     setDeepAnalysis(null);
     const result = await deepAnalyze(mode, answers);
     setDeepAnalysis(result);
+    try { localStorage.setItem(DEEP_KEY(mode), JSON.stringify(result)); } catch {}
     setDeepLoading(false);
   };
 
