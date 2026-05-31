@@ -6,8 +6,26 @@ const BL = '#0A0A0A';
 const WH = '#FFFFFF';
 const GREY = '#F8FAFC';
 const RULE = '#E5E7EB';
+const SIDEBAR_W = 240;
 
-const TABS = ['Projects', 'Campaigns', 'Quick Docs', 'Validations'];
+const NAV = [
+  { id: 'home', icon: '⌂', label: 'Home' },
+  { id: 'projects', icon: '◈', label: 'Projects' },
+  { id: 'campaigns', icon: '◉', label: 'Campaigns' },
+  { id: 'validations', icon: '✦', label: 'Validations' },
+  { id: 'docs', icon: '✎', label: 'Documents' },
+  { id: 'settings', icon: '⚙', label: 'Settings' },
+];
+
+const CHECKLIST = [
+  { id: 'signup', label: 'Create your account', always: true },
+  { id: 'project', label: 'Start your first project', action: 'project' },
+  { id: 'milestone', label: 'Add a milestone to your project', action: 'project' },
+  { id: 'assistant', label: 'Talk to PM Buddy assistant', hint: 'Open any project and click the chat bubble' },
+  { id: 'doc', label: 'Generate a project document', action: 'doc' },
+  { id: 'validation', label: 'Run a validation on your idea', action: 'validation' },
+  { id: 'invite', label: 'Invite a team member', hint: 'Open a project and go to the Team tab' },
+];
 
 export default function Dashboard({ user, onOpenValidation, onOpenProject, onNewValidation, onNewProject, onNewCampaign, onNewQuickDoc, onLogout }) {
   const [validations, setValidations] = useState([]);
@@ -16,8 +34,9 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   const [invitedProjects, setInvitedProjects] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('Projects');
+  const [activeNav, setActiveNav] = useState('home');
   const [viewingDoc, setViewingDoc] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
 
@@ -25,17 +44,12 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
-  // Capture the PWA install prompt event
   useEffect(() => {
     const handler = (e) => {
       e.preventDefault();
       setInstallPrompt(e);
-      // Only show banner if not already installed
       const isInstalled = window.matchMedia('(display-mode: standalone)').matches;
-      if (!isInstalled) {
-        const dismissed = localStorage.getItem('pmbuddy_install_dismissed');
-        if (!dismissed) setShowInstallBanner(true);
-      }
+      if (!isInstalled && !localStorage.getItem('pmbuddy_install_dismissed')) setShowInstallBanner(true);
     };
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
@@ -45,15 +59,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
     if (!installPrompt) return;
     installPrompt.prompt();
     const { outcome } = await installPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setShowInstallBanner(false);
-      setInstallPrompt(null);
-    }
-  };
-
-  const handleDismissInstall = () => {
-    setShowInstallBanner(false);
-    localStorage.setItem('pmbuddy_install_dismissed', '1');
+    if (outcome === 'accepted') { setShowInstallBanner(false); setInstallPrompt(null); }
   };
 
   useEffect(() => { fetchAll(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -71,7 +77,6 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
     setProjects(allProjects.filter(proj => proj.industry !== 'Campaign'));
     setCampaigns(allProjects.filter(proj => proj.industry === 'Campaign'));
     setDocuments(d || []);
-
     if (members && members.length > 0) {
       const ownedIds = new Set(allProjects.map(proj => proj.id));
       const projectIds = members.filter(m => !ownedIds.has(m.project_id)).map(m => m.project_id);
@@ -94,268 +99,444 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   const quickDocs = documents.filter(d => d.type === 'quick' || !d.project_id);
   const projectDocs = documents.filter(d => d.type !== 'quick' && d.project_id);
 
-  const handleNewCampaign = () => {
-    onNewCampaign({ onSaved: () => { fetchAll(); setActiveTab('Campaigns'); } });
+  const handleNewCampaign = () => onNewCampaign({ onSaved: () => { fetchAll(); setActiveNav('campaigns'); } });
+
+  // Onboarding checklist state
+  const checklistDone = {
+    signup: true,
+    project: projects.length > 0,
+    milestone: projects.some(p => (p.milestones || []).length > 0),
+    assistant: !!localStorage.getItem('pmbuddy_assistant_used'),
+    doc: documents.length > 0,
+    validation: validations.length > 0,
+    invite: invitedProjects.length > 0 || (projects.some(p => (p.team || []).length > 1)),
+  };
+  const checklistTotal = CHECKLIST.length;
+  const checklistDoneCount = CHECKLIST.filter(c => checklistDone[c.id]).length;
+  const onboardingComplete = checklistDoneCount === checklistTotal;
+  const isNewUser = projects.length === 0 && validations.length === 0 && documents.length === 0;
+
+  const handleChecklistAction = (action) => {
+    if (action === 'project') onNewProject();
+    if (action === 'doc') onNewQuickDoc();
+    if (action === 'validation') onNewValidation();
   };
 
   return (
-    <>
-    <div style={s.page}>
-      <div style={s.wrap}>
+    <div style={s.shell}>
+      {/* Mobile overlay */}
+      {sidebarOpen && <div style={s.overlay} onClick={() => setSidebarOpen(false)} />}
 
-        {/* INSTALL BANNER */}
-        {showInstallBanner && (
-          <div style={s.installBanner}>
-            <div style={s.installLeft}>
-              <div style={s.installIcon}>⬇</div>
-              <div>
-                <p style={s.installTitle}>Install PM Buddy</p>
-                <p style={s.installSub}>Add to your home screen for faster access</p>
-              </div>
-            </div>
-            <div style={s.installActions}>
-              <button style={s.installBtn} onClick={handleInstall}>Install</button>
-              <button style={s.installDismiss} onClick={handleDismissInstall}>✕</button>
-            </div>
+      {/* Sidebar */}
+      <aside style={{ ...s.sidebar, transform: sidebarOpen ? 'translateX(0)' : undefined }}>
+        <div style={s.sidebarTop}>
+          <div style={s.brand}>
+            <div style={s.brandDot} />
+            <span style={s.brandName}>PM Buddy</span>
           </div>
-        )}
-
-        {/* HEADER */}
-        <div style={s.header}>
-          <div>
-            <p style={s.greeting}>{greeting}, {firstName}.</p>
-            <h1 style={s.title}>Your Dashboard</h1>
-          </div>
-          <button style={s.logoutBtn} onClick={onLogout}>Log out</button>
-        </div>
-
-        {/* QUICK ACTIONS */}
-        <div style={s.quickSection}>
-          <div style={s.quickGrid}>
-            {[
-              { icon: '◈', label: 'New Project', action: onNewProject, bg: BL, color: WH },
-              { icon: '◈', label: 'New Campaign', action: handleNewCampaign, bg: '#EFF6FF', color: BLUE },
-              { icon: '✦', label: 'New Validation', action: onNewValidation, bg: '#F0FDF4', color: '#15803D' },
-              { icon: '✎', label: 'Quick Doc', action: onNewQuickDoc, bg: '#FFF7ED', color: '#C2410C' },
-              { icon: '◎', label: 'Book a Consultant', action: null, bg: '#F3F4F6', color: '#9CA3AF', soon: true },
-            ].map((item, i) => (
-              <button key={i} style={{ ...s.quickCard, cursor: item.action ? 'pointer' : 'default', opacity: item.action ? 1 : 0.5 }} onClick={item.action || undefined} disabled={!item.action}>
-                <div style={{ ...s.quickIcon, background: item.bg, color: item.color }}>{item.icon}</div>
-                <div style={s.quickLabel}>
-                  {item.label}
-                  {item.soon && <span style={s.comingSoon}>Soon</span>}
-                </div>
-              </button>
-            ))}
+          <div style={s.userCard}>
+            <div style={s.avatar}>{(firstName[0] || '?').toUpperCase()}</div>
+            <div>
+              <p style={s.userName}>{firstName}</p>
+              <p style={s.userEmail}>{user?.email}</p>
+            </div>
           </div>
         </div>
 
-        {/* TABS */}
-        <div style={s.tabBar}>
-          {TABS.map(tab => (
+        <nav style={s.nav}>
+          {NAV.map(item => (
             <button
-              key={tab}
-              style={{
-                ...s.tabBtn,
-                color: activeTab === tab ? BLUE : '#6B7280',
-                borderBottomColor: activeTab === tab ? BLUE : 'transparent',
-                fontWeight: activeTab === tab ? 700 : 500,
-              }}
-              onClick={() => setActiveTab(tab)}
+              key={item.id}
+              style={{ ...s.navItem, background: activeNav === item.id ? '#EFF6FF' : 'none', color: activeNav === item.id ? BLUE : '#374151', fontWeight: activeNav === item.id ? 700 : 500 }}
+              onClick={() => { setActiveNav(item.id); setSidebarOpen(false); }}
             >
-              {tab}
-              {tab === 'Projects' && projects.length > 0 && <span style={s.tabCount}>{projects.length}</span>}
-              {tab === 'Campaigns' && campaigns.length > 0 && <span style={s.tabCount}>{campaigns.length}</span>}
-              {tab === 'Quick Docs' && quickDocs.length > 0 && <span style={s.tabCount}>{quickDocs.length}</span>}
-              {tab === 'Validations' && validations.length > 0 && <span style={s.tabCount}>{validations.length}</span>}
+              <span style={{ ...s.navIcon, color: activeNav === item.id ? BLUE : '#9CA3AF' }}>{item.icon}</span>
+              {item.label}
+              {item.id === 'projects' && projects.length > 0 && <span style={s.navBadge}>{projects.length}</span>}
+              {item.id === 'campaigns' && campaigns.length > 0 && <span style={s.navBadge}>{campaigns.length}</span>}
+              {item.id === 'validations' && validations.length > 0 && <span style={s.navBadge}>{validations.length}</span>}
+              {item.id === 'docs' && documents.length > 0 && <span style={s.navBadge}>{documents.length}</span>}
             </button>
           ))}
+        </nav>
+
+        <div style={s.sidebarBottom}>
+          {!onboardingComplete && (
+            <div style={s.progressMini}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#6B7280' }}>Getting started</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: BLUE }}>{checklistDoneCount}/{checklistTotal}</span>
+              </div>
+              <div style={s.miniBar}><div style={{ ...s.miniBarFill, width: `${(checklistDoneCount / checklistTotal) * 100}%` }} /></div>
+            </div>
+          )}
+          <button style={s.logoutBtn} onClick={onLogout}>Log out</button>
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <main style={s.main}>
+        {/* Top bar */}
+        <div style={s.topBar}>
+          <button style={s.menuBtn} onClick={() => setSidebarOpen(p => !p)}>☰</button>
+          <div style={s.topActions}>
+            {showInstallBanner && (
+              <div style={s.installChip}>
+                <button style={s.installChipBtn} onClick={handleInstall}>⬇ Install App</button>
+                <button style={s.installDismiss} onClick={() => { setShowInstallBanner(false); localStorage.setItem('pmbuddy_install_dismissed', '1'); }}>✕</button>
+              </div>
+            )}
+            <button style={s.newBtn} onClick={onNewProject}>+ New Project</button>
+          </div>
         </div>
 
-        {/* PROJECTS TAB */}
-        {activeTab === 'Projects' && (
-          <div style={s.section}>
-            <div style={s.sectionHead}>
-              <p style={s.sectionLabel}>My Projects</p>
-              <button style={s.newBtn} onClick={onNewProject}>New project</button>
-            </div>
-            {loading && <p style={s.emptyText}>Loading...</p>}
-            {!loading && projects.length === 0 && (
-              <div style={s.emptyState}>
-                <p style={s.emptyTitle}>No projects yet.</p>
-                <p style={s.emptyBody}>Create your first project and PM Buddy will set it up with risks, milestones, team roles and a communication plan.</p>
-                <button style={s.primaryBtn} onClick={onNewProject}>Create your first project</button>
+        <div style={s.content}>
+
+          {/* HOME */}
+          {activeNav === 'home' && (
+            <div>
+              <div style={s.pageHead}>
+                <h1 style={s.pageTitle}>{greeting}, {firstName}.</h1>
+                <p style={s.pageSub}>Here is where your work lives.</p>
               </div>
-            )}
-            {!loading && projects.length > 0 && (
-              <div style={s.projectsGrid}>
-                {projects.map(p => <ProjectCard key={p.id} p={p} onOpen={() => onOpenProject(p)} onDelete={() => deleteProject(p.id)} />)}
-              </div>
-            )}
-            {!loading && invitedProjects.length > 0 && (
-              <>
-                <div style={{ ...s.sectionHead, marginTop: 32 }}>
-                  <p style={s.sectionLabel}>Projects I Was Invited To</p>
+
+              {/* Onboarding checklist for new users */}
+              {isNewUser && (
+                <div style={s.checklistCard}>
+                  <div style={s.checklistHead}>
+                    <div>
+                      <p style={s.checklistTitle}>Get started with PM Buddy</p>
+                      <p style={s.checklistSub}>Complete these steps to get the most out of the platform.</p>
+                    </div>
+                    <div style={s.checklistProgress}>
+                      <span style={s.checklistCount}>{checklistDoneCount}<span style={{ fontSize: 14, color: '#9CA3AF' }}>/{checklistTotal}</span></span>
+                    </div>
+                  </div>
+                  <div style={s.checklistBar}><div style={{ ...s.checklistBarFill, width: `${(checklistDoneCount / checklistTotal) * 100}%` }} /></div>
+                  <div style={s.checklistItems}>
+                    {CHECKLIST.map((item) => {
+                      const done = checklistDone[item.id];
+                      return (
+                        <div key={item.id} style={{ ...s.checklistItem, opacity: done ? 0.6 : 1 }}>
+                          <div style={{ ...s.checkBox, background: done ? BLUE : WH, borderColor: done ? BLUE : RULE }}>
+                            {done && <span style={{ color: WH, fontSize: 11, fontWeight: 900 }}>✓</span>}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <p style={{ ...s.checkLabel, textDecoration: done ? 'line-through' : 'none', color: done ? '#9CA3AF' : BL }}>{item.label}</p>
+                            {item.hint && !done && <p style={s.checkHint}>{item.hint}</p>}
+                          </div>
+                          {item.action && !done && (
+                            <button style={s.checkAction} onClick={() => handleChecklistAction(item.action)}>Start →</button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
+              )}
+
+              {/* Stats row */}
+              <div style={s.statsRow}>
+                {[
+                  { label: 'Projects', value: projects.length, color: BLUE, action: () => setActiveNav('projects') },
+                  { label: 'Campaigns', value: campaigns.length, color: '#7C3AED', action: () => setActiveNav('campaigns') },
+                  { label: 'Documents', value: documents.length, color: '#C2410C', action: () => setActiveNav('docs') },
+                  { label: 'Validations', value: validations.length, color: '#15803D', action: () => setActiveNav('validations') },
+                ].map((stat, i) => (
+                  <button key={i} style={s.statCard} onClick={stat.action}>
+                    <p style={{ ...s.statNum, color: stat.color }}>{stat.value}</p>
+                    <p style={s.statLabel}>{stat.label}</p>
+                  </button>
+                ))}
+              </div>
+
+              {/* Quick actions */}
+              <p style={s.sectionLabel}>Quick actions</p>
+              <div style={s.quickGrid}>
+                {[
+                  { icon: '◈', label: 'New Project', sub: 'Start a structured project', action: onNewProject, bg: BL, color: WH },
+                  { icon: '◉', label: 'New Campaign', sub: 'Short initiative or event', action: handleNewCampaign, bg: '#EFF6FF', color: BLUE },
+                  { icon: '✦', label: 'Validate an Idea', sub: 'Test before you build', action: onNewValidation, bg: '#F0FDF4', color: '#15803D' },
+                  { icon: '✎', label: 'Quick Doc', sub: 'Generate a document fast', action: onNewQuickDoc, bg: '#FFF7ED', color: '#C2410C' },
+                ].map((item, i) => (
+                  <button key={i} style={s.quickCard} onClick={item.action}>
+                    <div style={{ ...s.quickIcon, background: item.bg, color: item.color }}>{item.icon}</div>
+                    <div>
+                      <p style={s.quickLabel}>{item.label}</p>
+                      <p style={s.quickSub}>{item.sub}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Recent projects */}
+              {projects.length > 0 && (
+                <>
+                  <div style={s.sectionHead}>
+                    <p style={s.sectionLabel}>Recent projects</p>
+                    <button style={s.seeAll} onClick={() => setActiveNav('projects')}>See all</button>
+                  </div>
+                  <div style={s.projectsGrid}>
+                    {projects.slice(0, 3).map(p => <ProjectCard key={p.id} p={p} onOpen={() => onOpenProject(p)} onDelete={() => deleteProject(p.id)} />)}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* PROJECTS */}
+          {activeNav === 'projects' && (
+            <div>
+              <div style={s.pageHead}>
+                <div>
+                  <h1 style={s.pageTitle}>Projects</h1>
+                  <p style={s.pageSub}>{projects.length} project{projects.length !== 1 ? 's' : ''}</p>
+                </div>
+                <button style={s.primaryBtn} onClick={onNewProject}>+ New project</button>
+              </div>
+              {loading && <p style={s.emptyText}>Loading...</p>}
+              {!loading && projects.length === 0 && (
+                <div style={s.emptyState}>
+                  <div style={s.emptyIcon}>◈</div>
+                  <p style={s.emptyTitle}>No projects yet</p>
+                  <p style={s.emptyBody}>Create your first project and PM Buddy will set it up with risks, milestones, team roles and a communication plan.</p>
+                  <button style={s.primaryBtn} onClick={onNewProject}>Create your first project</button>
+                </div>
+              )}
+              {!loading && projects.length > 0 && (
                 <div style={s.projectsGrid}>
-                  {invitedProjects.map(p => (
-                    <div key={p.id} style={{ ...s.projectCard, borderColor: BLUE + '40' }}>
-                      <div style={s.projectBadges}>
-                        <span style={s.industryBadge}>{p.industry}</span>
-                        <span style={{ ...s.methodBadge, background: '#EFF6FF', color: BLUE }}>{p._inviteRole}</span>
+                  {projects.map(p => <ProjectCard key={p.id} p={p} onOpen={() => onOpenProject(p)} onDelete={() => deleteProject(p.id)} />)}
+                </div>
+              )}
+              {!loading && invitedProjects.length > 0 && (
+                <>
+                  <p style={{ ...s.sectionLabel, marginTop: 32, marginBottom: 16 }}>Projects I was invited to</p>
+                  <div style={s.projectsGrid}>
+                    {invitedProjects.map(p => (
+                      <div key={p.id} style={{ ...s.projectCard, borderColor: BLUE + '40' }}>
+                        <div style={s.projectBadges}>
+                          <span style={s.industryBadge}>{p.industry}</span>
+                          <span style={{ ...s.methodBadge, background: '#EFF6FF', color: BLUE }}>{p._inviteRole}</span>
+                        </div>
+                        <p style={s.projectName}>{p.name}</p>
+                        <p style={s.projectDesc}>{p.description}</p>
+                        <button style={s.openBtn} onClick={() => onOpenProject(p)}>Open project</button>
                       </div>
-                      <p style={s.projectName}>{p.name}</p>
-                      <p style={s.projectDesc}>{p.description}</p>
-                      <button style={s.openBtn} onClick={() => onOpenProject(p)}>Open project</button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* CAMPAIGNS */}
+          {activeNav === 'campaigns' && (
+            <div>
+              <div style={s.pageHead}>
+                <div>
+                  <h1 style={s.pageTitle}>Campaigns</h1>
+                  <p style={s.pageSub}>{campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''}</p>
+                </div>
+                <button style={s.primaryBtn} onClick={handleNewCampaign}>+ New campaign</button>
+              </div>
+              {loading && <p style={s.emptyText}>Loading...</p>}
+              {!loading && campaigns.length === 0 && (
+                <div style={s.emptyState}>
+                  <div style={s.emptyIcon}>◉</div>
+                  <p style={s.emptyTitle}>No campaigns yet</p>
+                  <p style={s.emptyBody}>Campaigns are short-term projects, initiatives, events or focused efforts. Create one to get a structured plan with milestones and an AI review.</p>
+                  <button style={s.primaryBtn} onClick={handleNewCampaign}>Start a campaign</button>
+                </div>
+              )}
+              {!loading && campaigns.length > 0 && (
+                <div style={s.projectsGrid}>
+                  {campaigns.map(p => <ProjectCard key={p.id} p={p} onOpen={() => onOpenProject(p)} onDelete={() => deleteCampaign(p.id)} isCampaign />)}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* VALIDATIONS */}
+          {activeNav === 'validations' && (
+            <div>
+              <div style={s.pageHead}>
+                <div>
+                  <h1 style={s.pageTitle}>Validations</h1>
+                  <p style={s.pageSub}>{validations.length} validation{validations.length !== 1 ? 's' : ''}</p>
+                </div>
+                <button style={s.primaryBtn} onClick={onNewValidation}>+ New validation</button>
+              </div>
+              {loading && <p style={s.emptyText}>Loading...</p>}
+              {!loading && validations.length === 0 && (
+                <div style={s.emptyState}>
+                  <div style={s.emptyIcon}>✦</div>
+                  <p style={s.emptyTitle}>No validations yet</p>
+                  <p style={s.emptyBody}>Answer honest questions about your idea and get a detailed report in 10 minutes.</p>
+                  <button style={s.primaryBtn} onClick={onNewValidation}>Start a validation</button>
+                </div>
+              )}
+              {!loading && validations.length > 0 && (
+                <div style={s.validationsGrid}>
+                  {validations.map(v => (
+                    <div key={v.id} style={s.validationRow}>
+                      <div style={s.validationLeft}>
+                        <div style={s.validationMeta}>
+                          <span style={s.modeBadge}>{v.mode === 'hackathon' ? 'Hackathon' : 'Startup'}</span>
+                          <span style={s.validationDate}>{new Date(v.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                        </div>
+                        <p style={s.validationTitle}>{v.title || 'Untitled Validation'}</p>
+                        <p style={{ fontSize: 12, fontWeight: 600, color: v.analysis?.color }}>{v.analysis?.verdict}</p>
+                      </div>
+                      <div style={s.validationRight}>
+                        <div style={s.scoreRing}>
+                          <span style={{ fontSize: 28, fontWeight: 600, color: v.analysis?.color }}>{v.analysis?.score}</span>
+                          <span style={{ fontSize: 12, color: '#9CA3AF' }}>/100</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button style={s.openBtn} onClick={() => onOpenValidation(v)}>Open</button>
+                          <button style={s.deleteBtn} onClick={() => deleteValidation(v.id)}>Delete</button>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* CAMPAIGNS TAB */}
-        {activeTab === 'Campaigns' && (
-          <div style={s.section}>
-            <div style={s.sectionHead}>
-              <p style={s.sectionLabel}>My Campaigns</p>
-              <button style={s.newBtn} onClick={handleNewCampaign}>New campaign</button>
+              )}
             </div>
-            {loading && <p style={s.emptyText}>Loading...</p>}
-            {!loading && campaigns.length === 0 && (
-              <div style={s.emptyState}>
-                <p style={s.emptyTitle}>No campaigns yet.</p>
-                <p style={s.emptyBody}>Campaigns are short-term projects, initiatives, events or focused efforts — solo or with others. Create one to get a structured plan with milestones and an AI review.</p>
-                <button style={s.primaryBtn} onClick={handleNewCampaign}>Start a campaign</button>
-              </div>
-            )}
-            {!loading && campaigns.length > 0 && (
-              <div style={s.projectsGrid}>
-                {campaigns.map(p => (
-                  <ProjectCard key={p.id} p={p} onOpen={() => onOpenProject(p)} onDelete={() => deleteCampaign(p.id)} isCampaign />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+          )}
 
-        {/* QUICK DOCS TAB */}
-        {activeTab === 'Quick Docs' && (
-          <div style={s.section}>
-            <div style={s.sectionHead}>
-              <p style={s.sectionLabel}>My Documents</p>
-              <button style={s.newBtn} onClick={onNewQuickDoc}>New doc</button>
-            </div>
-            {loading && <p style={s.emptyText}>Loading...</p>}
-            {!loading && documents.length === 0 && (
-              <div style={s.emptyState}>
-                <p style={s.emptyTitle}>No documents yet.</p>
-                <p style={s.emptyBody}>Use Quick Doc to create concept notes, session plans, proposals and more in minutes.</p>
-                <button style={s.primaryBtn} onClick={onNewQuickDoc}>Create a document</button>
+          {/* DOCS */}
+          {activeNav === 'docs' && (
+            <div>
+              <div style={s.pageHead}>
+                <div>
+                  <h1 style={s.pageTitle}>Documents</h1>
+                  <p style={s.pageSub}>{documents.length} document{documents.length !== 1 ? 's' : ''}</p>
+                </div>
+                <button style={s.primaryBtn} onClick={onNewQuickDoc}>+ New doc</button>
               </div>
-            )}
-            {!loading && quickDocs.length > 0 && (
-              <>
-                <p style={{ ...s.sectionLabel, marginBottom: 12 }}>Quick Docs</p>
-                {quickDocs.map(doc => (
-                  <div key={doc.id} style={s.docRow}>
-                    <div style={s.docRowLeft}>
-                      <span style={{ ...s.docTypeBadge, background: '#FFF7ED', color: '#C2410C' }}>Quick Doc</span>
-                      <p style={s.docRowTitle}>{doc.title}</p>
-                      <p style={s.docRowDate}>{new Date(doc.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-                    </div>
-                    <div style={s.docRowActions}>
-                      <button style={s.openBtn} onClick={() => setViewingDoc(doc)}>Open</button>
-                      <button style={{ ...s.openBtn, background: WH, color: BLUE, border: `1px solid ${BLUE}` }} onClick={() => downloadDoc(doc)}>Download</button>
-                    </div>
-                  </div>
-                ))}
-              </>
-            )}
-            {!loading && projectDocs.length > 0 && (
-              <>
-                <p style={{ ...s.sectionLabel, marginTop: 24, marginBottom: 12 }}>Project Documents</p>
-                {projectDocs.map(doc => (
-                  <div key={doc.id} style={s.docRow}>
-                    <div style={s.docRowLeft}>
-                      <span style={{ ...s.docTypeBadge, background: '#EFF6FF', color: BLUE }}>Internal</span>
-                      <p style={s.docRowTitle}>{doc.title}</p>
-                      <p style={s.docRowDate}>{new Date(doc.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-                    </div>
-                    <div style={s.docRowActions}>
-                      <button style={s.openBtn} onClick={() => {
+              {loading && <p style={s.emptyText}>Loading...</p>}
+              {!loading && documents.length === 0 && (
+                <div style={s.emptyState}>
+                  <div style={s.emptyIcon}>✎</div>
+                  <p style={s.emptyTitle}>No documents yet</p>
+                  <p style={s.emptyBody}>Use Quick Doc to create concept notes, session plans, proposals and more in minutes.</p>
+                  <button style={s.primaryBtn} onClick={onNewQuickDoc}>Create a document</button>
+                </div>
+              )}
+              {!loading && quickDocs.length > 0 && (
+                <>
+                  <p style={{ ...s.sectionLabel, marginBottom: 12 }}>Quick Docs</p>
+                  {quickDocs.map(doc => <DocRow key={doc.id} doc={doc} type="Quick Doc" typeBg="#FFF7ED" typeColor="#C2410C" onOpen={() => setViewingDoc(doc)} onDownload={() => downloadDoc(doc)} />)}
+                </>
+              )}
+              {!loading && projectDocs.length > 0 && (
+                <>
+                  <p style={{ ...s.sectionLabel, marginTop: 24, marginBottom: 12 }}>Project Documents</p>
+                  {projectDocs.map(doc => (
+                    <DocRow key={doc.id} doc={doc} type="Internal" typeBg="#EFF6FF" typeColor={BLUE}
+                      onOpen={() => {
                         const project = [...projects, ...campaigns].find(p => p.id === doc.project_id);
                         if (project) onOpenProject({ ...project, _openDoc: doc });
                         else setViewingDoc(doc);
-                      }}>Open</button>
-                      <button style={{ ...s.openBtn, background: WH, color: BLUE, border: `1px solid ${BLUE}` }} onClick={() => downloadDoc(doc)}>Download</button>
-                    </div>
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
-        )}
-
-        {/* VALIDATIONS TAB */}
-        {activeTab === 'Validations' && (
-          <div style={s.section}>
-            <div style={s.sectionHead}>
-              <p style={s.sectionLabel}>My Validations</p>
-              <button style={s.newBtn} onClick={onNewValidation}>New validation</button>
+                      }}
+                      onDownload={() => downloadDoc(doc)}
+                    />
+                  ))}
+                </>
+              )}
             </div>
-            {loading && <p style={s.emptyText}>Loading...</p>}
-            {!loading && validations.length === 0 && (
-              <div style={s.emptyState}>
-                <p style={s.emptyTitle}>No validations yet.</p>
-                <p style={s.emptyBody}>Answer honest questions about your idea and get a detailed report in 10 minutes.</p>
-                <button style={s.primaryBtn} onClick={onNewValidation}>Start a validation</button>
-              </div>
-            )}
-            {!loading && validations.length > 0 && (
-              <div style={s.validationsGrid}>
-                {validations.map(v => (
-                  <div key={v.id} style={s.validationRow}>
-                    <div style={s.validationLeft}>
-                      <div style={s.validationMeta}>
-                        <span style={s.modeBadge}>{v.mode === 'hackathon' ? 'Hackathon' : 'Startup'}</span>
-                        <span style={s.validationDate}>{new Date(v.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                      </div>
-                      <p style={s.validationTitle}>{v.title || 'Untitled Validation'}</p>
-                      <p style={{ ...s.validationVerdict, color: v.analysis?.color }}>{v.analysis?.verdict}</p>
-                    </div>
-                    <div style={s.validationRight}>
-                      <div style={s.scoreRing}>
-                        <span style={{ ...s.scoreNum, color: v.analysis?.color }}>{v.analysis?.score}</span>
-                        <span style={s.scoreLabel}>/ 100</span>
-                      </div>
-                      <div style={s.validationActions}>
-                        <button style={s.openBtn} onClick={() => onOpenValidation(v)}>Open</button>
-                        <button style={s.deleteBtn} onClick={() => deleteValidation(v.id)}>Delete</button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+          )}
 
+          {/* SETTINGS */}
+          {activeNav === 'settings' && (
+            <div>
+              <div style={s.pageHead}>
+                <h1 style={s.pageTitle}>Settings</h1>
+                <p style={s.pageSub}>Manage your account and preferences.</p>
+              </div>
+              <div style={s.settingsCard}>
+                <p style={s.settingsSection}>Account</p>
+                <div style={s.settingsRow}>
+                  <div>
+                    <p style={s.settingsLabel}>Name</p>
+                    <p style={s.settingsValue}>{user?.user_metadata?.first_name} {user?.user_metadata?.last_name}</p>
+                  </div>
+                </div>
+                <div style={s.settingsRow}>
+                  <div>
+                    <p style={s.settingsLabel}>Email</p>
+                    <p style={s.settingsValue}>{user?.email}</p>
+                  </div>
+                </div>
+                <div style={s.settingsRow}>
+                  <div>
+                    <p style={s.settingsLabel}>Role</p>
+                    <p style={s.settingsValue}>{user?.user_metadata?.role || 'Not set'}</p>
+                  </div>
+                </div>
+                <div style={{ ...s.settingsRow, borderBottom: 'none' }}>
+                  <div>
+                    <p style={s.settingsLabel}>Member since</p>
+                    <p style={s.settingsValue}>{new Date(user?.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                  </div>
+                </div>
+              </div>
+              <div style={{ ...s.settingsCard, marginTop: 16 }}>
+                <p style={s.settingsSection}>Danger zone</p>
+                <div style={{ ...s.settingsRow, borderBottom: 'none' }}>
+                  <div>
+                    <p style={s.settingsLabel}>Sign out</p>
+                    <p style={{ fontSize: 13, color: '#9CA3AF' }}>You will be signed out of this device.</p>
+                  </div>
+                  <button style={{ ...s.openBtn, background: 'none', color: '#DC2626', border: '1px solid #FECACA' }} onClick={onLogout}>Log out</button>
+                </div>
+              </div>
+              <div style={{ ...s.settingsCard, marginTop: 16 }}>
+                <p style={s.settingsSection}>About PM Buddy</p>
+                <div style={{ ...s.settingsRow, borderBottom: 'none' }}>
+                  <div>
+                    <p style={s.settingsLabel}>Version</p>
+                    <p style={s.settingsValue}>3.0 — Early Access</p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 16, padding: '0 0 4px' }}>
+                  <a href="/privacy.html" style={{ fontSize: 13, color: BLUE }}>Privacy Policy</a>
+                  <a href="/terms.html" style={{ fontSize: 13, color: BLUE }}>Terms of Service</a>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+      </main>
+
+      {viewingDoc && (
+        <DocViewerModal
+          doc={viewingDoc}
+          onClose={() => setViewingDoc(null)}
+          onUpdate={(updated) => {
+            setViewingDoc(updated);
+            setDocuments(docs => docs.map(d => d.id === updated.id ? updated : d));
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function DocRow({ doc, type, typeBg, typeColor, onOpen, onDownload }) {
+  return (
+    <div style={s.docRow}>
+      <div style={s.docRowLeft}>
+        <span style={{ ...s.docTypeBadge, background: typeBg, color: typeColor }}>{type}</span>
+        <p style={s.docRowTitle}>{doc.title}</p>
+        <p style={s.docRowDate}>{new Date(doc.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+      </div>
+      <div style={s.docRowActions}>
+        <button style={s.openBtn} onClick={onOpen}>Open</button>
+        <button style={{ ...s.openBtn, background: WH, color: BLUE, border: `1px solid ${BLUE}` }} onClick={onDownload}>Download</button>
       </div>
     </div>
-
-    {viewingDoc && (
-      <DocViewerModal
-        doc={viewingDoc}
-        onClose={() => setViewingDoc(null)}
-        onUpdate={(updated) => {
-          setViewingDoc(updated);
-          setDocuments(docs => docs.map(d => d.id === updated.id ? updated : d));
-        }}
-      />
-    )}
-    </>
   );
 }
 
@@ -387,22 +568,11 @@ function ProjectCard({ p, onOpen, onDelete, isCampaign }) {
       <p style={s.projectName}>{p.name}</p>
       <p style={s.projectDesc}>{p.description}</p>
       <div style={s.projectStats}>
-        <div style={s.stat}>
-          <span style={s.statNum}>{doneMilestones}/{totalMilestones}</span>
-          <span style={s.statLabel}>Milestones</span>
-        </div>
+        <div style={s.stat}><span style={s.statNum2}>{doneMilestones}/{totalMilestones}</span><span style={s.statLabel2}>Milestones</span></div>
         <div style={s.statDivider} />
-        <div style={s.stat}>
-          <span style={{ ...s.statNum, color: openRisks > 0 ? '#DC2626' : '#15803D' }}>{openRisks}</span>
-          <span style={s.statLabel}>Risks</span>
-        </div>
+        <div style={s.stat}><span style={{ ...s.statNum2, color: openRisks > 0 ? '#DC2626' : '#15803D' }}>{openRisks}</span><span style={s.statLabel2}>Risks</span></div>
         <div style={s.statDivider} />
-        <div style={s.stat}>
-          <span style={{ ...s.statNum, color: daysLeft !== null && daysLeft < 7 ? '#DC2626' : BL }}>
-            {daysLeft !== null ? `${daysLeft}d` : 'N/A'}
-          </span>
-          <span style={s.statLabel}>Days Left</span>
-        </div>
+        <div style={s.stat}><span style={{ ...s.statNum2, color: daysLeft !== null && daysLeft < 7 ? '#DC2626' : BL }}>{daysLeft !== null ? `${daysLeft}d` : 'N/A'}</span><span style={s.statLabel2}>Left</span></div>
       </div>
       <div style={s.cardActions}>
         <button style={s.openBtn} onClick={onOpen}>Open</button>
@@ -421,26 +591,9 @@ function DocViewerModal({ doc, onClose, onUpdate }) {
   const updateDoc = async () => {
     if (!updateInput.trim()) return;
     setUpdating(true);
-    setUpdateMsg('');
-    const prompt = `You are editing a professional document. The user has a specific change request.
-
-CURRENT DOCUMENT:
-${content}
-
-USER'S REQUEST: "${updateInput}"
-
-INSTRUCTIONS:
-- Make ONLY the changes the user asked for. Do not rewrite sections they did not mention.
-- If they ask to add something, add it in the right place.
-- If they explicitly ask to rewrite the whole document, rewrite everything.
-- Return the COMPLETE document in HTML with your changes applied (h1, h2, p, ul/li). No html/head/body tags. No markdown.`;
-
+    const prompt = `You are editing a professional document. The user has a specific change request.\n\nCURRENT DOCUMENT:\n${content}\n\nUSER'S REQUEST: "${updateInput}"\n\nReturn the COMPLETE document in HTML with your changes applied. No html/head/body tags. No markdown.`;
     try {
-      const res = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, mode: 'document' }),
-      });
+      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, mode: 'document' }) });
       const result = await res.json();
       const updated = (result.result || '').replace(/```html|```/g, '').trim();
       if (updated && updated.length > 100) {
@@ -450,16 +603,14 @@ INSTRUCTIONS:
         setUpdateInput('');
         setUpdateMsg('Updated.');
       }
-    } catch (err) {
-      setUpdateMsg('Something went wrong. Try again.');
-    }
+    } catch { setUpdateMsg('Something went wrong. Try again.'); }
     setUpdating(false);
   };
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px', overflowY: 'auto' }}>
       <div style={{ background: WH, borderRadius: 16, width: '100%', maxWidth: 800, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 28px', borderBottom: '1px solid #E5E7EB' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 28px', borderBottom: `1px solid ${RULE}` }}>
           <div>
             <p style={{ fontSize: 11, fontWeight: 700, color: '#C2410C', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Quick Doc</p>
             <p style={{ fontSize: 16, fontWeight: 700, color: BL }}>{doc.title}</p>
@@ -469,99 +620,117 @@ INSTRUCTIONS:
             <button style={{ padding: '7px 16px', background: BL, color: WH, border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={onClose}>Close</button>
           </div>
         </div>
-        <div style={{ padding: '14px 28px', borderBottom: '1px solid #E5E7EB', background: GREY }}>
+        <div style={{ padding: '14px 28px', borderBottom: `1px solid ${RULE}`, background: GREY }}>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <input
-              style={{ flex: 1, border: '1.5px solid #E5E7EB', borderRadius: 8, padding: '10px 14px', fontSize: 13, fontFamily: 'inherit', outline: 'none', background: WH }}
-              placeholder="Want to change something? e.g. Add a budget section, make it shorter..."
-              value={updateInput}
-              onChange={e => setUpdateInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && updateDoc()}
-            />
-            <button
-              style={{ padding: '10px 20px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: !updateInput.trim() || updating ? 0.5 : 1, whiteSpace: 'nowrap' }}
-              onClick={updateDoc}
-              disabled={!updateInput.trim() || updating}
-            >
-              {updating ? 'Updating...' : 'Update'}
-            </button>
+            <input style={{ flex: 1, border: `1.5px solid ${RULE}`, borderRadius: 8, padding: '10px 14px', fontSize: 13, fontFamily: 'inherit', outline: 'none', background: WH }} placeholder="Want to change something? e.g. Add a budget section..." value={updateInput} onChange={e => setUpdateInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && updateDoc()} />
+            <button style={{ padding: '10px 20px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: !updateInput.trim() || updating ? 0.5 : 1 }} onClick={updateDoc} disabled={!updateInput.trim() || updating}>{updating ? 'Updating...' : 'Update'}</button>
           </div>
           {updateMsg && <p style={{ fontSize: 12, color: '#15803D', marginTop: 6 }}>{updateMsg}</p>}
         </div>
-        <div
-          style={{ padding: '32px 40px', fontSize: 15, lineHeight: 1.8, color: '#374151', fontFamily: 'Georgia, serif', maxHeight: '65vh', overflowY: 'auto' }}
-          dangerouslySetInnerHTML={{ __html: content }}
-        />
+        <div style={{ padding: '32px 40px', fontSize: 15, lineHeight: 1.8, color: '#374151', fontFamily: 'Georgia, serif', maxHeight: '65vh', overflowY: 'auto' }} dangerouslySetInnerHTML={{ __html: content }} />
       </div>
     </div>
   );
 }
 
 const s = {
-  page: { minHeight: '100vh', background: WH, padding: '40px 48px 80px', fontFamily: "'DM Sans', system-ui, sans-serif" },
-  wrap: { maxWidth: 1000, margin: '0 auto' },
-  installBanner: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: BL, borderRadius: 12, padding: '14px 18px', marginBottom: 20, gap: 12, flexWrap: 'wrap' },
-  installLeft: { display: 'flex', alignItems: 'center', gap: 12 },
-  installIcon: { width: 36, height: 36, borderRadius: 8, background: BLUE, color: WH, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 },
-  installTitle: { fontSize: 14, fontWeight: 700, color: WH, marginBottom: 2 },
-  installSub: { fontSize: 12, color: '#9CA3AF' },
-  installActions: { display: 'flex', gap: 8, alignItems: 'center' },
-  installBtn: { padding: '8px 20px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
-  installDismiss: { background: 'none', border: 'none', color: '#6B7280', fontSize: 16, cursor: 'pointer', padding: '4px 8px', fontFamily: 'inherit' },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 },
-  greeting: { fontSize: 13, color: '#9CA3AF', fontWeight: 400, marginBottom: 6 },
-  title: { fontSize: 26, fontWeight: 500, color: BL, letterSpacing: '-0.8px' },
-  logoutBtn: { padding: '8px 16px', background: 'none', color: '#6B7280', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
-  quickSection: { marginBottom: 28 },
-  quickGrid: { display: 'flex', gap: 10, flexWrap: 'wrap' },
-  quickCard: { display: 'flex', alignItems: 'center', gap: 10, background: WH, border: `1px solid ${RULE}`, borderRadius: 10, padding: '12px 16px', fontFamily: 'inherit', textAlign: 'left' },
-  quickIcon: { width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 },
-  quickLabel: { fontSize: 13, fontWeight: 600, color: BL, display: 'flex', alignItems: 'center', gap: 6 },
-  comingSoon: { fontSize: 10, fontWeight: 600, color: BLUE, background: '#EFF6FF', padding: '2px 7px', borderRadius: 100 },
-  tabBar: { display: 'flex', borderBottom: `1.5px solid ${RULE}`, marginBottom: 24, overflowX: 'auto', WebkitOverflowScrolling: 'touch' },
-  tabBtn: { padding: '10px 16px', background: 'none', border: 'none', borderBottom: '2px solid transparent', marginBottom: -1.5, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 },
-  tabCount: { fontSize: 11, fontWeight: 700, background: '#EFF6FF', color: BLUE, padding: '1px 6px', borderRadius: 100 },
-  section: { marginBottom: 36 },
-  sectionHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-  sectionLabel: { fontSize: 11, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.14em' },
-  newBtn: { padding: '6px 14px', background: 'none', color: BLUE, border: `1px solid ${BLUE}`, borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
-  primaryBtn: { padding: '10px 20px', background: BL, color: WH, border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
-  emptyState: { padding: '40px 0' },
-  emptyTitle: { fontSize: 16, fontWeight: 500, color: BL, marginBottom: 8 },
-  emptyBody: { fontSize: 14, color: '#9CA3AF', marginBottom: 20, lineHeight: 1.7, maxWidth: 420 },
-  emptyText: { color: '#9CA3AF', fontSize: 14, padding: '24px 0' },
-  projectsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 },
-  projectCard: { border: `1px solid ${RULE}`, borderRadius: 10, padding: '20px' },
+  shell: { display: 'flex', minHeight: '100vh', background: GREY, fontFamily: "'DM Sans', system-ui, sans-serif" },
+  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 40 },
+  sidebar: { width: SIDEBAR_W, flexShrink: 0, background: WH, borderRight: `1px solid ${RULE}`, display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, height: '100vh', zIndex: 50, transition: 'transform 0.25s ease', '@media(max-width:768px)': { transform: 'translateX(-100%)' } },
+  sidebarTop: { padding: '20px 16px 16px' },
+  brand: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 },
+  brandDot: { width: 8, height: 8, borderRadius: '50%', background: BLUE },
+  brandName: { fontSize: 15, fontWeight: 800, color: BL, letterSpacing: '-0.3px' },
+  userCard: { display: 'flex', alignItems: 'center', gap: 10, padding: '12px', background: GREY, borderRadius: 10, marginBottom: 8 },
+  avatar: { width: 32, height: 32, borderRadius: '50%', background: BLUE, color: WH, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, flexShrink: 0 },
+  userName: { fontSize: 13, fontWeight: 700, color: BL, marginBottom: 1 },
+  userEmail: { fontSize: 11, color: '#9CA3AF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 },
+  nav: { flex: 1, padding: '8px 8px', overflowY: 'auto' },
+  navItem: { width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, textAlign: 'left', marginBottom: 2, transition: 'all 0.15s' },
+  navIcon: { fontSize: 16, width: 20, textAlign: 'center', flexShrink: 0 },
+  navBadge: { marginLeft: 'auto', fontSize: 11, fontWeight: 700, background: '#EFF6FF', color: BLUE, padding: '1px 7px', borderRadius: 100 },
+  sidebarBottom: { padding: '12px 16px 20px' },
+  progressMini: { background: GREY, borderRadius: 8, padding: '10px 12px', marginBottom: 10 },
+  miniBar: { height: 4, background: RULE, borderRadius: 2, overflow: 'hidden' },
+  miniBarFill: { height: '100%', background: BLUE, borderRadius: 2, transition: 'width 0.4s' },
+  logoutBtn: { width: '100%', padding: '9px', background: 'none', border: `1px solid ${RULE}`, borderRadius: 8, fontSize: 13, color: '#6B7280', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center' },
+  main: { flex: 1, marginLeft: SIDEBAR_W, minHeight: '100vh', display: 'flex', flexDirection: 'column' },
+  topBar: { position: 'sticky', top: 0, background: WH, borderBottom: `1px solid ${RULE}`, padding: '0 28px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 30 },
+  menuBtn: { background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6B7280', display: 'none', fontFamily: 'inherit' },
+  topActions: { display: 'flex', alignItems: 'center', gap: 10 },
+  installChip: { display: 'flex', alignItems: 'center', gap: 4, background: BL, borderRadius: 8, padding: '4px 4px 4px 12px' },
+  installChipBtn: { background: 'none', border: 'none', color: WH, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  installDismiss: { background: 'none', border: 'none', color: '#6B7280', fontSize: 14, cursor: 'pointer', padding: '0 6px', fontFamily: 'inherit' },
+  newBtn: { padding: '8px 16px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  content: { padding: '32px 28px 80px', maxWidth: 1000, width: '100%' },
+  pageHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28, flexWrap: 'wrap', gap: 12 },
+  pageTitle: { fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 800, color: BL, letterSpacing: '-0.5px', marginBottom: 4 },
+  pageSub: { fontSize: 14, color: '#9CA3AF' },
+  primaryBtn: { padding: '9px 18px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  checklistCard: { background: WH, border: `1px solid ${RULE}`, borderRadius: 16, padding: '24px', marginBottom: 28 },
+  checklistHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
+  checklistTitle: { fontSize: 16, fontWeight: 700, color: BL, marginBottom: 4 },
+  checklistSub: { fontSize: 13, color: '#6B7280' },
+  checklistProgress: { flexShrink: 0 },
+  checklistCount: { fontSize: 24, fontWeight: 800, color: BLUE, letterSpacing: '-0.5px' },
+  checklistBar: { height: 4, background: RULE, borderRadius: 2, overflow: 'hidden', marginBottom: 20 },
+  checklistBarFill: { height: '100%', background: BLUE, borderRadius: 2, transition: 'width 0.4s' },
+  checklistItems: { display: 'flex', flexDirection: 'column', gap: 0 },
+  checklistItem: { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: `1px solid ${GREY}` },
+  checkBox: { width: 20, height: 20, borderRadius: 6, border: `2px solid`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' },
+  checkLabel: { fontSize: 14, fontWeight: 500 },
+  checkHint: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
+  checkAction: { padding: '5px 12px', background: '#EFF6FF', color: BLUE, border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 },
+  statsRow: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 28 },
+  statCard: { background: WH, border: `1px solid ${RULE}`, borderRadius: 12, padding: '16px', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', transition: 'border-color 0.15s' },
+  statNum: { fontSize: 28, fontWeight: 800, letterSpacing: '-0.5px', marginBottom: 4 },
+  statLabel: { fontSize: 12, color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' },
+  sectionLabel: { fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 },
+  sectionHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, marginTop: 28 },
+  seeAll: { background: 'none', border: 'none', color: BLUE, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  quickGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, marginBottom: 8 },
+  quickCard: { display: 'flex', alignItems: 'center', gap: 12, background: WH, border: `1px solid ${RULE}`, borderRadius: 12, padding: '14px 16px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'border-color 0.15s' },
+  quickIcon: { width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 },
+  quickLabel: { fontSize: 13, fontWeight: 700, color: BL, marginBottom: 2 },
+  quickSub: { fontSize: 12, color: '#9CA3AF' },
+  projectsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 },
+  projectCard: { background: WH, border: `1px solid ${RULE}`, borderRadius: 12, padding: '20px' },
   projectBadges: { display: 'flex', gap: 6, marginBottom: 12 },
-  industryBadge: { fontSize: 10, fontWeight: 600, background: '#EFF6FF', color: BLUE, padding: '3px 9px', borderRadius: 100 },
-  methodBadge: { fontSize: 10, fontWeight: 600, background: GREY, color: '#6B7280', padding: '3px 9px', borderRadius: 100 },
-  projectName: { fontSize: 15, fontWeight: 600, color: BL, marginBottom: 4 },
+  industryBadge: { fontSize: 10, fontWeight: 700, background: '#EFF6FF', color: BLUE, padding: '3px 9px', borderRadius: 100 },
+  methodBadge: { fontSize: 10, fontWeight: 700, background: GREY, color: '#6B7280', padding: '3px 9px', borderRadius: 100 },
+  projectName: { fontSize: 15, fontWeight: 700, color: BL, marginBottom: 4 },
   projectDesc: { fontSize: 13, color: '#9CA3AF', lineHeight: 1.6, marginBottom: 16, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' },
   projectStats: { display: 'flex', marginBottom: 16, border: `1px solid ${RULE}`, borderRadius: 8, overflow: 'hidden' },
   stat: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 8px', gap: 3 },
-  statNum: { fontSize: 16, fontWeight: 600, color: BL },
-  statLabel: { fontSize: 10, fontWeight: 500, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em' },
+  statNum2: { fontSize: 16, fontWeight: 700, color: BL },
+  statLabel2: { fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em' },
   statDivider: { width: 1, background: RULE, flexShrink: 0 },
   cardActions: { display: 'flex', gap: 8 },
-  openBtn: { padding: '7px 16px', background: BL, color: WH, border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
-  deleteBtn: { padding: '7px 14px', background: 'none', color: '#9CA3AF', border: `1px solid ${RULE}`, borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
+  openBtn: { padding: '7px 16px', background: BL, color: WH, border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  deleteBtn: { padding: '7px 14px', background: 'none', color: '#9CA3AF', border: `1px solid ${RULE}`, borderRadius: 6, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' },
+  emptyState: { padding: '60px 0', textAlign: 'center', maxWidth: 400 },
+  emptyIcon: { fontSize: 32, marginBottom: 16, color: '#D1D5DB' },
+  emptyTitle: { fontSize: 18, fontWeight: 700, color: BL, marginBottom: 8 },
+  emptyBody: { fontSize: 14, color: '#9CA3AF', lineHeight: 1.7, marginBottom: 24 },
+  emptyText: { color: '#9CA3AF', fontSize: 14, padding: '24px 0' },
   validationsGrid: { display: 'flex', flexDirection: 'column', gap: 0 },
   validationRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 0', borderBottom: `1px solid ${RULE}`, gap: 20, flexWrap: 'wrap' },
   validationLeft: { flex: 1, minWidth: 200 },
   validationMeta: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 },
-  modeBadge: { fontSize: 10, fontWeight: 600, background: '#EFF6FF', color: BLUE, padding: '3px 9px', borderRadius: 100 },
+  modeBadge: { fontSize: 10, fontWeight: 700, background: '#EFF6FF', color: BLUE, padding: '3px 9px', borderRadius: 100 },
   validationDate: { fontSize: 12, color: '#9CA3AF' },
-  validationTitle: { fontSize: 15, fontWeight: 500, color: BL, marginBottom: 4 },
-  validationVerdict: { fontSize: 12, fontWeight: 600 },
+  validationTitle: { fontSize: 15, fontWeight: 600, color: BL, marginBottom: 4 },
   validationRight: { display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 },
   scoreRing: { display: 'flex', alignItems: 'baseline', gap: 3 },
-  scoreNum: { fontSize: 28, fontWeight: 600, letterSpacing: '-1px', lineHeight: 1 },
-  scoreLabel: { fontSize: 12, color: '#9CA3AF' },
-  validationActions: { display: 'flex', gap: 8 },
   docRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: `1px solid ${RULE}`, gap: 16, flexWrap: 'wrap' },
   docRowLeft: { flex: 1 },
-  docTypeBadge: { fontSize: 10, fontWeight: 600, padding: '3px 9px', borderRadius: 100, display: 'inline-block', marginBottom: 4 },
-  docRowTitle: { fontSize: 14, fontWeight: 500, color: BL, marginBottom: 2 },
+  docTypeBadge: { fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 100, display: 'inline-block', marginBottom: 4 },
+  docRowTitle: { fontSize: 14, fontWeight: 600, color: BL, marginBottom: 2 },
   docRowDate: { fontSize: 12, color: '#9CA3AF' },
   docRowActions: { display: 'flex', gap: 8 },
+  settingsCard: { background: WH, border: `1px solid ${RULE}`, borderRadius: 12, overflow: 'hidden' },
+  settingsSection: { fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '14px 20px', borderBottom: `1px solid ${RULE}`, background: GREY },
+  settingsRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: `1px solid ${RULE}` },
+  settingsLabel: { fontSize: 12, fontWeight: 700, color: '#6B7280', marginBottom: 4 },
+  settingsValue: { fontSize: 14, color: BL, fontWeight: 500 },
 };
