@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About PM Buddy</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', system-ui, sans-serif; background: #FFFFFF; color: #374151; line-height: 1.8; }
+    nav { position: sticky; top: 0; background: #FFFFFF; border-bottom: 1px solid #E5E7EB; padding: 0 48px; height: 52px; display: flex; align-items: center; justify-content: space-between; z-index: 100; }
+    nav a { text-decoration: none; font-size: 15px; font-weight: 600; color: #0A0A0A; display: flex; align-items: center; gap: 8px; }
+    nav .dot { width: 8px; height: 8px; border-radius: 50%; background: #0284C7; }
+    .cta { padding: 8px 18px; background: #0284C7; color: #fff; border-radius: 8px; font-size: 13px; font-weight: 600; }
+    .hero { padding: 80px 48px 64px; max-width: 800px; margin: 0 auto; }
+    .badge { display: inline-block; font-size: 11px; font-weight: 700; color: #0284C7; text-transform: uppercase; letter-spacing: 0.12em; background: #EFF6FF; padding: 4px 12px; border-radius: 100px; margin-bottom: 20px; }
+    h1 { font-size: clamp(28px, 5vw, 44px); font-weight: 900; color: #0A0A0A; letter-spacing: -1px; line-height: 1.15; margin-bottom: 20px; }
+    .lead { font-size: 18px; color: #6B7280; line-height: 1.75; margin-bottom: 48px; max-width: 600px; }
+    .divider { height: 1px; background: #E5E7EB; margin: 0 48px 64px; }
+    .section { max-width: 800px; margin: 0 auto; padding: 0 48px 64px; }
+    h2 { font-size: 22px; font-weight: 800; color: #0A0A0A; margin-bottom: 16px; letter-spacing: -0.3px; }
+    p { font-size: 15px; color: #374151; line-height: 1.8; margin-bottom: 16px; }
+    .founder { display: flex; gap: 24px; align-items: flex-start; background: #F8FAFC; border-radius: 16px; padding: 28px; margin-bottom: 48px; border: 1px solid #E5E7EB; }
+    .founder-avatar { width: 64px; height: 64px; border-radius: 50%; background: #0284C7; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; flex-shrink: 0; }
+    .founder-name { font-size: 16px; font-weight: 700; color: #0A0A0A; margin-bottom: 4px; }
+    .founder-title { font-size: 13px; color: #0284C7; font-weight: 600; margin-bottom: 12px; }
+    .founder-bio { font-size: 14px; color: #6B7280; line-height: 1.7; margin: 0; }
+    .values { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 48px; }
+    .value { background: #F8FAFC; border-radius: 12px; padding: 20px; border: 1px solid #E5E7EB; }
+    .value-icon { font-size: 20px; margin-bottom: 10px; }
+    .value-title { font-size: 14px; font-weight: 700; color: #0A0A0A; margin-bottom: 6px; }
+    .value-text { font-size: 13px; color: #6B7280; line-height: 1.65; margin: 0; }
+    .cta-block { background: #0A0A0A; border-radius: 16px; padding: 40px; text-align: center; }
+    .cta-block h2 { color: #fff; margin-bottom: 12px; }
+    .cta-block p { color: #9CA3AF; margin-bottom: 24px; }
+    .cta-block a { display: inline-block; background: #0284C7; color: #fff; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 600; text-decoration: none; }
+    footer { padding: 24px 48px; border-top: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    footer p { font-size: 13px; color: #9CA3AF; }
+    footer a { font-size: 13px; color: #9CA3AF; text-decoration: none; margin-left: 16px; }
+    @media (max-width: 600px) { nav, .hero, .section, footer { padding-left: 20px; padding-right: 20px; } .divider { margin-left: 20px; margin-right: 20px; } }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="https://pmbuddy-v3.vercel.app"><span class="dot"></span> PM Buddy</a>
+    <a href="https://pmbuddy-v3.vercel.app" class="cta">Get started</a>
+  </nav>
+
+  <div class="hero">
+    <div class="badge">About PM Buddy</div>
+    <h1>Project management for people who are not project managers</h1>
+    <p class="lead">Most people managing projects never asked for the job. They just found themselves responsible for making something happen. PM Buddy was built for them.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:40px;">
+      <div style="background:#F8FAFC;border:1px solid #E5E7EB;border-radius:12px;padding:24px;">
+        <p style="font-size:11px;font-weight:700;color:#0284C7;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:10px;">Our Mission</p>
+        <p style="font-size:15px;color:#0A0A0A;line-height:1.75;font-weight:500;margin:0;">To give every person managing a project the structure, clarity and confidence of a professional project manager. Before they can afford one, and before they know they need one.</p>
+      </div>
+      <div style="background:#0A0A0A;border-radius:12px;padding:24px;">
+        <p style="font-size:11px;font-weight:700;color:#0284C7;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:10px;">Our Vision</p>
+        <p style="font-size:15px;color:#ffffff;line-height:1.75;font-weight:500;margin:0;">A world where no project starts on vibes and hope. Where founders, team leads, and builders of all kinds know their goal, own their risks and speak about their work with clarity.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section">
+    <h2>Why PM Buddy exists</h2>
+    <p>Across Africa and around the world, millions of founders, team leads, consultants, and community builders are running projects every day without the training, tools, or support that professional project managers have.</p>
+    <p>They are managing launches, campaigns, product builds, and community initiatives on WhatsApp, spreadsheets, and hope. When things go wrong. missed deadlines, scope creep, poor documentation, no one knowing who owns what. it is not because they are bad at their work. It is because they were never given the right structure.</p>
+    <p>PM Buddy gives them that structure. Without requiring a certification. Without the complexity of enterprise tools. Without the learning curve that makes people give up before they start.</p>
+  </div>
+
+  <div class="section">
+    <h2>Built by a certified PMP</h2>
+    <div class="founder">
+      <div class="founder-avatar">D</div>
+      <div>
+        <p class="founder-name">Deborah Akpokighe</p>
+        <p class="founder-title">Founder and PMP-certified Project Manager</p>
+        <p class="founder-bio">Deborah built PM Buddy after seeing talented people struggle with project execution not because of a lack of skill but because of a lack of structure. As a PMP-certified practitioner, she translated years of project management knowledge into a tool that works for everyone. not just those with the credentials. PM Buddy is her way of putting professional PM thinking in the hands of anyone who needs it.</p>
+      </div>
+    </div>
+
+    <h2>What we believe</h2>
+    <div class="values">
+      <div class="value">
+        <div class="value-icon">◈</div>
+        <p class="value-title">Structure should not be complicated</p>
+        <p class="value-text">Good project management is not about frameworks and jargon. It is about clarity, accountability, and knowing what comes next.</p>
+      </div>
+      <div class="value">
+        <div class="value-icon">◉</div>
+        <p class="value-title">Everyone deserves good tools</p>
+        <p class="value-text">Enterprise PM software was built for enterprise teams. PM Buddy is built for the rest of us. solo builders, small teams, and growing organisations.</p>
+      </div>
+      <div class="value">
+        <div class="value-icon">✦</div>
+        <p class="value-title">AI should guide, not replace</p>
+        <p class="value-text">PM Buddy uses AI to surface what matters, flag risks, and generate documents. The decisions still belong to you.</p>
+      </div>
+      <div class="value">
+        <div class="value-icon">→</div>
+        <p class="value-title">Built for the underserved majority</p>
+        <p class="value-text">PM Buddy was built for the growing majority of people who manage projects without the title. Founders, team leads, consultants and builders working in small teams around the world.</p>
+      </div>
+    </div>
+
+    <div class="cta-block">
+      <h2>Start managing your projects properly</h2>
+      <p>Free to get started. No PM background required.</p>
+      <a href="https://pmbuddy-v3.vercel.app">Create your free account</a>
+    </div>
+  </div>
+
+  <footer>
+    <p>PM Buddy. Think, Plan and Execute Like a Professional PM.</p>
+    <div>
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+      <a href="https://pmbuddy-v3.vercel.app">App</a>
+    </div>
+  </footer>
+</body>
+</html>
