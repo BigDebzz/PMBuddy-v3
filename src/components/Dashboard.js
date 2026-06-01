@@ -37,6 +37,13 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   const [activeNav, setActiveNav] = useState('home');
   const [viewingDoc, setViewingDoc] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
 
@@ -128,7 +135,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
       {sidebarOpen && <div style={s.overlay} onClick={() => setSidebarOpen(false)} />}
 
       {/* Sidebar */}
-      <aside style={{ ...s.sidebar, transform: sidebarOpen ? 'translateX(0)' : undefined }}>
+      <aside style={{ ...s.sidebar, transform: isMobile && !sidebarOpen ? 'translateX(-100%)' : 'translateX(0)' }}>
         <div style={s.sidebarTop}>
           <div style={s.brand}>
             <div style={s.brandDot} />
@@ -175,7 +182,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
       </aside>
 
       {/* Main content */}
-      <main style={s.main}>
+      <main style={{ ...s.main, marginLeft: isMobile ? 0 : SIDEBAR_W }}>
         {/* Top bar */}
         <div style={s.topBar}>
           <button style={s.menuBtn} onClick={() => setSidebarOpen(p => !p)}>☰</button>
@@ -654,9 +661,9 @@ const s = {
   miniBar: { height: 4, background: RULE, borderRadius: 2, overflow: 'hidden' },
   miniBarFill: { height: '100%', background: BLUE, borderRadius: 2, transition: 'width 0.4s' },
   logoutBtn: { width: '100%', padding: '9px', background: 'none', border: `1px solid ${RULE}`, borderRadius: 8, fontSize: 13, color: '#6B7280', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center' },
-  main: { flex: 1, marginLeft: SIDEBAR_W, minHeight: '100vh', display: 'flex', flexDirection: 'column' },
+  main: { flex: 1, marginLeft: SIDEBAR_W, minHeight: '100vh', display: 'flex', flexDirection: 'column', transition: 'margin-left 0.25s' },
   topBar: { position: 'sticky', top: 0, background: WH, borderBottom: `1px solid ${RULE}`, padding: '0 28px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 30 },
-  menuBtn: { background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6B7280', display: 'none', fontFamily: 'inherit' },
+  menuBtn: { background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6B7280', fontFamily: 'inherit' },
   topActions: { display: 'flex', alignItems: 'center', gap: 10 },
   installChip: { display: 'flex', alignItems: 'center', gap: 4, background: BL, borderRadius: 8, padding: '4px 4px 4px 12px' },
   installChipBtn: { background: 'none', border: 'none', color: WH, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
