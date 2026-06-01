@@ -103,7 +103,7 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
             <div style={s.pcTop}>
               <div>
                 <p style={s.pcLabel}>Active Project</p>
-                <p style={s.pcName}>Fintech MVP — Lagos</p>
+                <p style={s.pcName}>Fintech MVP Lagos</p>
               </div>
               <span style={s.pcStatus}>On Track</span>
             </div>
@@ -311,7 +311,12 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
               <p style={s.footerLogo}>PM Buddy</p>
               <p style={s.footerTagline}>PM Buddy helps you think, plan and execute like a professional PM without being one.</p>
             </div>
-            <p style={s.footerCredit}>Built by <strong style={{ color: '#E5E7EB' }}>Deborah Akpokighe</strong></p>
+            <div style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
+              <a href="/about.html" style={s.footerLink}>About</a>
+              <a href="/privacy.html" style={s.footerLink}>Privacy</a>
+              <a href="/terms.html" style={s.footerLink}>Terms</a>
+              <p style={s.footerCredit}>Built by <strong style={{ color: '#E5E7EB' }}>Deborah Akpokighe</strong></p>
+            </div>
           </div>
         </div>
       </div>
@@ -405,5 +410,6 @@ const s = {
   footerInner: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 16 },
   footerLogo: { fontSize: 16, fontWeight: 600, color: WH, letterSpacing: '-0.3px', marginBottom: 6 },
   footerTagline: { fontSize: 13, color: '#4B5563', maxWidth: 360, lineHeight: 1.6 },
+  footerLink: { fontSize: 12, color: '#4B5563', textDecoration: 'none' },
   footerCredit: { fontSize: 12, color: '#4B5563' },
 };
