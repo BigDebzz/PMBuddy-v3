@@ -180,6 +180,7 @@ export default function PMBuddyAssistant({ project, context }) {
   const [hasPopped, setHasPopped] = useState(false);
   const [unread, setUnread] = useState(0);
   const [userId, setUserId] = useState(null);
+  const [sessionToken, setSessionToken] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const openRef = useRef(open);
@@ -187,10 +188,13 @@ export default function PMBuddyAssistant({ project, context }) {
 
   useEffect(function() { openRef.current = open; }, [open]);
 
-  // Get current user
+  // Get current user and session token
   useEffect(function() {
-    supabase.auth.getUser().then(function(res) {
-      if (res.data && res.data.user) setUserId(res.data.user.id);
+    supabase.auth.getSession().then(function(res) {
+      if (res.data && res.data.session) {
+        setUserId(res.data.session.user.id);
+        setSessionToken(res.data.session.access_token);
+      }
     });
   }, []);
 
@@ -271,7 +275,10 @@ export default function PMBuddyAssistant({ project, context }) {
       var timeout = setTimeout(function() { controller.abort(); }, 20000);
       var response = await fetch('/api/gemini', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(sessionToken ? { 'Authorization': 'Bearer ' + sessionToken } : {}),
+        },
         body: JSON.stringify({ prompt: prompt }),
         signal: controller.signal,
       });
