@@ -10,9 +10,9 @@ const BL = '#0A0A0A';
 const WH = '#FFFFFF';
 const GREY = '#F8FAFC';
 
-const AGILE_TABS = ['Overview', 'What We Are Building', 'Requirements', 'Work Cycles', 'Progress', 'What We Learned', 'Risks', 'Documents', 'Team', 'Reminders'];
-const PREDICTIVE_TABS = ['Overview', 'Who Is Involved', 'Scope', 'Requirements', 'Planning', 'Risks and Compliance', 'Progress', 'Documents', 'Team', 'Reminders'];
-const HYBRID_TABS = ['Overview', 'What We Are Building', 'Requirements', 'Who Is Involved', 'Planning', 'Risks and Compliance', 'Progress', 'Documents', 'Team', 'Reminders'];
+const AGILE_TABS = ['Overview', 'What We Are Building', 'Requirements', 'Work Cycles', 'Progress', 'What We Learned', 'Risks', 'Documents', 'Team', 'Reminders', 'History'];
+const PREDICTIVE_TABS = ['Overview', 'Who Is Involved', 'Scope', 'Requirements', 'Planning', 'Risks and Compliance', 'Progress', 'Documents', 'Team', 'Reminders', 'History'];
+const HYBRID_TABS = ['Overview', 'What We Are Building', 'Requirements', 'Who Is Involved', 'Planning', 'Risks and Compliance', 'Progress', 'Documents', 'Team', 'Reminders', 'History'];
 
 const METHODOLOGY_INFO = {
   Agile: { color: '#0284C7', bg: '#EFF6FF', label: 'Agile', reason: 'Best for projects where things will change as you go. You build in short cycles, review often and adjust based on what you learn.' },
@@ -57,18 +57,23 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
       .then(({ data: members }) => setAcceptedMembers(members || []));
   }, [project.id]);
 
-  const save = useCallback(async (updates) => {
-    const updated = { ...data, ...updates, updated_at: new Date().toISOString() };
+  const save = useCallback(async (updates, historyEntry) => {
+    const currentHistory = data.history || [];
+    const newHistory = historyEntry
+      ? [...currentHistory, { ...historyEntry, timestamp: new Date().toISOString(), by: project._currentUser?.user_metadata?.first_name || project._currentUser?.email || 'You' }]
+      : currentHistory;
+    const finalUpdates = historyEntry ? { ...updates, history: newHistory } : updates;
+    const updated = { ...data, ...finalUpdates, updated_at: new Date().toISOString() };
     setData(updated);
     setSaveStatus('unsaved');
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
       setSaveStatus('saving');
-      await supabase.from('pm_projects').update(updates).eq('id', project.id);
+      await supabase.from('pm_projects').update(finalUpdates).eq('id', project.id);
       setSaveStatus('saved');
       if (onUpdate) onUpdate(updated);
     }, 1500);
-  }, [data, project.id, onUpdate]);
+  }, [data, project.id, onUpdate, project._currentUser]);
 
   const tabs = methodology === 'Agile' ? AGILE_TABS : methodology === 'Predictive' ? PREDICTIVE_TABS : HYBRID_TABS;
 
@@ -141,6 +146,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
           {tab === 'Risks and Compliance' && <RisksComplianceTab data={data} onSave={save} />}
           {tab === 'Requirements' && <RequirementsTab data={data} onSave={save} project={project} />}
           {tab === 'Documents' && <DocumentGenerator data={data} methodology={methodology} user={project.user_id} openDoc={project._openDoc} />}
+          {tab === 'History' && <HistoryTab data={data} onSave={save} project={project} />}
           {tab === 'Team' && <TeamTab project={data} currentUser={project._currentUser} onSave={save} />}
           {tab === 'Reminders' && <RemindersPanel project={data} onUpdate={(updated) => { setData(updated); onUpdate(updated); }} />}
         </div>
@@ -369,7 +375,7 @@ function OverviewTab({ data, methodology, info, onSave, acceptedMembers = [] }) 
       </div>
 
       <div style={s.overviewSection}>
-        <GoalRefineSection label="Your Project Goal" value={data.scope?.goal} field="goal" onAccept={(val) => { onSave({ scope: { ...data.scope, goal: val } }); notify('goal_updated', data, { goal: val }); }} />
+        <GoalRefineSection label="Your Project Goal" value={data.scope?.goal} field="goal" onAccept={(val) => { onSave({ scope: { ...data.scope, goal: val } }, { type: 'goal_updated', label: 'Project goal updated', detail: val.substring(0, 80) }); notify('goal_updated', data, { goal: val }); }} />
       </div>
 
       <div style={s.overviewSection}>
@@ -421,7 +427,7 @@ function ProgressTab({ data, onSave }) {
     const current = milestones[i].status;
     const next = current === 'pending' ? 'in_progress' : current === 'in_progress' ? 'done' : 'pending';
     onSave({ milestones: milestones.map((m, idx) => idx === i ? { ...m, status: next } : m) });
-    if (next === 'done') notify('milestone_done', data, { milestone: milestones[i].title });
+    if (next === 'done') { notify('milestone_done', data, { milestone: milestones[i].title }); onSave({ milestones: milestones.map((m, idx) => idx === i ? { ...m, status: next } : m) }, { type: 'milestone_done', label: `Milestone completed`, detail: milestones[i].title }); return; }
     if (next === 'in_progress') notify('milestone_in_progress', data, { milestone: milestones[i].title });
   };
 
@@ -723,7 +729,7 @@ function RisksComplianceTab({ data, onSave }) {
   const addRisk = () => {
     if (!newRisk.trim()) return;
     onSave({ risks: [...risks, { title: newRisk.trim(), level: newLevel, status: 'open' }] });
-    if (newLevel === 'high') notify('risk_high', data, { risk: newRisk.trim(), level: newLevel });
+    if (newLevel === 'high') { notify('risk_high', data, { risk: newRisk.trim(), level: newLevel }); onSave({ risks: [...risks, { title: newRisk.trim(), level: newLevel, status: 'open' }] }, { type: 'risk_added', label: 'High risk flagged', detail: newRisk.trim() }); setNewRisk(''); return; }
     else notify('risk_added', data, { risk: newRisk.trim(), level: newLevel });
     setNewRisk('');
   };
@@ -941,6 +947,165 @@ Rules:
             ))}
           </div>
           <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.7 }}>Start with a simple flow: what does a user do first? What happens next? Where does the data go? Even a rough sketch in 20 minutes will save you hours of confusion later.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+function HistoryTab({ data, onSave, project }) {
+  const history = (data.history || []).slice().reverse(); // most recent first
+  const [showMap, setShowMap] = useState(false);
+  const [generatingMap, setGeneratingMap] = useState(false);
+  const [progressMap, setProgressMap] = useState(null);
+
+  const milestones = data.milestones || [];
+  const risks = data.risks || [];
+  const requirements = data.requirements || {};
+  const totalReqs = Object.values(requirements).reduce((s, arr) => s + (arr || []).length, 0);
+  const doneMilestones = milestones.filter(m => m.status === 'done').length;
+  const mitigatedRisks = risks.filter(r => r.status === 'mitigated').length;
+
+  const typeConfig = {
+    goal_updated: { icon: '◈', color: '#0284C7', bg: '#EFF6FF', label: 'Goal updated' },
+    milestone_done: { icon: '✓', color: '#15803D', bg: '#F0FDF4', label: 'Milestone completed' },
+    milestone_added: { icon: '+', color: '#0284C7', bg: '#EFF6FF', label: 'Milestone added' },
+    risk_added: { icon: '⚠', color: '#DC2626', bg: '#FEF2F2', label: 'Risk flagged' },
+    requirement_added: { icon: '◉', color: '#7C3AED', bg: '#F5F3FF', label: 'Requirement added' },
+    document_generated: { icon: '✎', color: '#C2410C', bg: '#FFF7ED', label: 'Document generated' },
+    description_updated: { icon: '✏', color: '#6B7280', bg: '#F9FAFB', label: 'Description updated' },
+    default: { icon: '·', color: '#9CA3AF', bg: '#F9FAFB', label: 'Update' },
+  };
+
+  const generateProgressMap = async () => {
+    setGeneratingMap(true);
+    setProgressMap(null);
+    const prompt = `You are PM Buddy. Write a plain-English progress summary for this project based on the data below.
+
+Project: ${data.name}
+Goal: ${data.scope?.goal || 'Not specified'}
+Started: ${data.timeline?.start ? new Date(data.timeline.start).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Not set'}
+End date: ${data.timeline?.end ? new Date(data.timeline.end).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Not set'}
+Milestones: ${milestones.length} total, ${doneMilestones} completed
+Risks: ${risks.length} flagged, ${mitigatedRisks} resolved
+Requirements: ${totalReqs} defined across all categories
+History entries: ${data.history?.length || 0} recorded changes
+
+Recent activity:
+${(data.history || []).slice(-5).map(h => `- ${h.label}: ${h.detail || ''} (by ${h.by})`).join('
+') || 'No recorded activity yet'}
+
+Write 3 to 4 paragraphs in plain English:
+1. Where the project started and what has been achieved so far
+2. What the numbers tell you about the health of this project
+3. What momentum looks like and what to focus on next
+4. One honest observation about where this project could go wrong
+
+Be specific, warm but direct. No bullet points. No jargon.`;
+
+    try {
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+      const result = await res.json();
+      setProgressMap(result.result || 'Could not generate progress map right now. Try again.');
+      setShowMap(true);
+    } catch { setProgressMap('Could not generate progress map right now. Try again.'); setShowMap(true); }
+    setGeneratingMap(false);
+  };
+
+  const formatTime = (ts) => {
+    const d = new Date(ts);
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) + ' at ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  return (
+    <div>
+      <SectionHead
+        title="Project History"
+        sub="Every recorded change to this project. See how far you have come from where you started."
+      />
+
+      {/* Stats row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 24 }}>
+        {[
+          { label: 'Changes recorded', value: data.history?.length || 0, color: BLUE },
+          { label: 'Milestones done', value: `${doneMilestones}/${milestones.length}`, color: '#15803D' },
+          { label: 'Risks resolved', value: `${mitigatedRisks}/${risks.length}`, color: '#D97706' },
+          { label: 'Requirements', value: totalReqs, color: '#7C3AED' },
+        ].map((stat, i) => (
+          <div key={i} style={{ background: GREY, border: '1px solid #E5E7EB', borderRadius: 12, padding: '16px' }}>
+            <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{stat.label}</p>
+            <p style={{ fontSize: 24, fontWeight: 800, color: stat.color, letterSpacing: '-0.5px' }}>{stat.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Progress map button */}
+      <div style={{ background: '#0A0A0A', borderRadius: 14, padding: '20px 24px', marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <p style={{ fontSize: 14, fontWeight: 700, color: WH, marginBottom: 4 }}>Generate your Progress Map</p>
+          <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>PM Buddy reads your project history and tells you how far you have come and what to focus on next.</p>
+        </div>
+        <button
+          style={{ padding: '10px 20px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0, opacity: generatingMap ? 0.6 : 1 }}
+          onClick={generateProgressMap}
+          disabled={generatingMap}
+        >{generatingMap ? 'Generating...' : '✦ Generate Progress Map'}</button>
+      </div>
+
+      {/* Progress map output */}
+      {showMap && progressMap && (
+        <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 14, padding: '24px', marginBottom: 24 }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: BLUE, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>Your Progress Map</p>
+          <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.85, whiteSpace: 'pre-wrap' }}>{progressMap}</div>
+          <button style={{ marginTop: 16, background: 'none', border: 'none', color: '#9CA3AF', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setShowMap(false)}>Close</button>
+        </div>
+      )}
+
+      {/* History log */}
+      <p style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 16 }}>Activity log</p>
+
+      {history.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '40px 0', background: GREY, borderRadius: 12, border: '1px solid #E5E7EB' }}>
+          <p style={{ fontSize: 14, fontWeight: 600, color: BL, marginBottom: 6 }}>No history yet</p>
+          <p style={{ fontSize: 13, color: '#9CA3AF', lineHeight: 1.7 }}>As you update goals, complete milestones and add requirements, your history will build up here.</p>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+        {history.map((entry, i) => {
+          const cfg = typeConfig[entry.type] || typeConfig.default;
+          return (
+            <div key={i} style={{ display: 'flex', gap: 14, padding: '14px 0', borderBottom: '1px solid #F3F4F6', alignItems: 'flex-start' }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: cfg.color, flexShrink: 0, fontWeight: 700 }}>{cfg.icon}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, flexWrap: 'wrap' }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: BL }}>{entry.label}</p>
+                  <p style={{ fontSize: 11, color: '#9CA3AF', flexShrink: 0 }}>{entry.timestamp ? formatTime(entry.timestamp) : ''}</p>
+                </div>
+                {entry.detail && <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6, marginTop: 2 }}>{entry.detail}</p>}
+                {entry.by && <p style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>by {entry.by}</p>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Project created entry always at bottom */}
+      {data.created_at && (
+        <div style={{ display: 'flex', gap: 14, padding: '14px 0', alignItems: 'flex-start' }}>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#15803D', flexShrink: 0 }}>◈</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, flexWrap: 'wrap' }}>
+              <p style={{ fontSize: 14, fontWeight: 600, color: BL }}>Project created</p>
+              <p style={{ fontSize: 11, color: '#9CA3AF' }}>{formatTime(data.created_at)}</p>
+            </div>
+            <p style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>{data.name} was created</p>
+          </div>
         </div>
       )}
     </div>
