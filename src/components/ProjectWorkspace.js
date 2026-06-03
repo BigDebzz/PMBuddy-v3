@@ -10,15 +10,24 @@ const BL = '#0A0A0A';
 const WH = '#FFFFFF';
 const GREY = '#F8FAFC';
 
-const AGILE_TABS = ['Overview', 'What We Are Building', 'Work Cycles', 'Progress', 'What We Learned', 'Risks', 'Documents', 'Team', 'Reminders'];
-const PREDICTIVE_TABS = ['Overview', 'Who Is Involved', 'Scope', 'Planning', 'Risks and Compliance', 'Progress', 'Documents', 'Team', 'Reminders'];
-const HYBRID_TABS = ['Overview', 'What We Are Building', 'Who Is Involved', 'Planning', 'Risks and Compliance', 'Progress', 'Documents', 'Team', 'Reminders'];
+const AGILE_TABS = ['Overview', 'What We Are Building', 'Requirements', 'Work Cycles', 'Progress', 'What We Learned', 'Risks', 'Documents', 'Team', 'Reminders'];
+const PREDICTIVE_TABS = ['Overview', 'Who Is Involved', 'Scope', 'Requirements', 'Planning', 'Risks and Compliance', 'Progress', 'Documents', 'Team', 'Reminders'];
+const HYBRID_TABS = ['Overview', 'What We Are Building', 'Requirements', 'Who Is Involved', 'Planning', 'Risks and Compliance', 'Progress', 'Documents', 'Team', 'Reminders'];
 
 const METHODOLOGY_INFO = {
   Agile: { color: '#0284C7', bg: '#EFF6FF', label: 'Agile', reason: 'Best for projects where things will change as you go. You build in short cycles, review often and adjust based on what you learn.' },
   Predictive: { color: '#7C3AED', bg: '#F5F3FF', label: 'Predictive', reason: 'Best for projects where the requirements are clear from the start. You plan everything upfront and follow the plan step by step.' },
   Hybrid: { color: '#0369A1', bg: '#E0F2FE', label: 'Hybrid', reason: 'A mix of both. You plan the big picture upfront but stay flexible on how you execute each part.' },
 };
+
+const REQ_CATEGORIES = [
+  { key: 'must_do', title: 'What it must do', hint: 'List every feature and action your product or output must be able to perform. If a user needs to be able to do something, it goes here.', example: 'e.g. Users must be able to sign up with their email address', icon: '◈', color: '#0284C7', bg: '#EFF6FF' },
+  { key: 'must_work', title: 'How it must work', hint: 'Describe how well it needs to perform. Speed, security, reliability, accessibility. These are things the user may not see directly but will definitely feel.', example: 'e.g. The app must load within 3 seconds on a mobile connection', icon: '⚡', color: '#D97706', bg: '#FFFBEB' },
+  { key: 'must_look', title: 'What it must look like', hint: 'Describe design and interface expectations. Brand colours, fonts, layout, mobile versus desktop. What should the experience feel like?', example: 'e.g. Must work on mobile and follow the brand colour palette', icon: '◉', color: '#7C3AED', bg: '#F5F3FF' },
+  { key: 'must_connect', title: 'What it must connect to', hint: 'List any third-party tools, payment systems, APIs or platforms it needs to work with. If something else has to talk to this product, it goes here.', example: 'e.g. Must integrate with Paystack for payment processing', icon: '⟷', color: '#0369A1', bg: '#E0F2FE' },
+  { key: 'rules', title: 'What the rules say', hint: 'Any legal, regulatory or business rules the product must follow. These are things you are not allowed to ignore regardless of timeline or cost.', example: 'e.g. Must comply with NDPR data protection requirements', icon: '⚖', color: '#DC2626', bg: '#FEF2F2' },
+  { key: 'done_when', title: 'How we know it is done', hint: 'Define what finished looks like. What must be true before you can hand this over and call it complete? This prevents endless scope creep.', example: 'e.g. All test cases pass and the client has signed off on the final version', icon: '✓', color: '#15803D', bg: '#F0FDF4' },
+];
 
 async function notify(type, project, data) {
   try {
@@ -130,6 +139,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
           {tab === 'Planning' && <PlanningTab data={data} onSave={save} methodology={methodology} />}
           {tab === 'Risks' && <RisksComplianceTab data={data} onSave={save} />}
           {tab === 'Risks and Compliance' && <RisksComplianceTab data={data} onSave={save} />}
+          {tab === 'Requirements' && <RequirementsTab data={data} onSave={save} project={project} />}
           {tab === 'Documents' && <DocumentGenerator data={data} methodology={methodology} user={project.user_id} openDoc={project._openDoc} />}
           {tab === 'Team' && <TeamTab project={data} currentUser={project._currentUser} onSave={save} />}
           {tab === 'Reminders' && <RemindersPanel project={data} onUpdate={(updated) => { setData(updated); onUpdate(updated); }} />}
@@ -734,6 +744,201 @@ function RisksComplianceTab({ data, onSave }) {
     </div>
   );
 }
+
+// REQUIREMENTS TAB
+
+function RequirementsTab({ data, onSave, project }) {
+  const requirements = data.requirements || {};
+  const [openCategory, setOpenCategory] = useState(null);
+  const [newItems, setNewItems] = useState({});
+  const [suggesting, setSuggesting] = useState({});
+  const [suggestions, setSuggestions] = useState({});
+  const [showAdvice, setShowAdvice] = useState(false);
+
+  const totalItems = REQ_CATEGORIES.reduce((sum, cat) => sum + (requirements[cat.key] || []).length, 0);
+
+  const addItem = (key, value) => {
+    if (!value.trim()) return;
+    const updated = { ...requirements, [key]: [...(requirements[key] || []), { text: value.trim(), addedAt: new Date().toISOString(), addedBy: project._currentUser?.user_metadata?.first_name || project._currentUser?.email || 'You' }] };
+    onSave({ requirements: updated });
+    setNewItems(p => ({ ...p, [key]: '' }));
+    if (totalItems + 1 >= 3) setShowAdvice(true);
+  };
+
+  const removeItem = (key, idx) => {
+    const updated = { ...requirements, [key]: (requirements[key] || []).filter((_, i) => i !== idx) };
+    onSave({ requirements: updated });
+  };
+
+  const getSuggestions = async (cat) => {
+    setSuggesting(p => ({ ...p, [cat.key]: true }));
+    setSuggestions(p => ({ ...p, [cat.key]: null }));
+    const existing = (requirements[cat.key] || []).map(i => i.text).join('\n');
+    const prompt = `You are PM Buddy, a plain-English project management coach.
+
+Project: ${data.name}
+Goal: ${data.scope?.goal || data.description || 'Not specified'}
+Industry: ${data.industry || 'Not specified'}
+Description: ${data.description || 'Not specified'}
+
+The user is filling in requirements for the category: "${cat.title}"
+What this category means: ${cat.hint}
+
+${existing ? `They already have these:\n${existing}\n\nSuggest 3 to 5 MORE that they may have missed.` : 'Suggest 4 to 6 requirements for this category.'}
+
+Rules:
+- Plain English only. No technical jargon unless essential.
+- Each item should be one clear sentence starting with a verb.
+- Be specific to this project, not generic.
+- Return ONLY a JSON array of strings. No markdown. No explanation. Example: ["Item one", "Item two"]`;
+
+    try {
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+      const result = await res.json();
+      const text = (result.result || '').replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed)) setSuggestions(p => ({ ...p, [cat.key]: parsed }));
+    } catch { setSuggestions(p => ({ ...p, [cat.key]: ['Could not generate suggestions right now. Try again.'] })); }
+    setSuggesting(p => ({ ...p, [cat.key]: false }));
+  };
+
+  const acceptSuggestion = (key, item) => {
+    const updated = { ...requirements, [key]: [...(requirements[key] || []), { text: item, addedAt: new Date().toISOString(), addedBy: 'PM Buddy AI' }] };
+    onSave({ requirements: updated });
+    setSuggestions(p => ({ ...p, [key]: (p[key] || []).filter(s => s !== item) }));
+    if (totalItems + 1 >= 3) setShowAdvice(true);
+  };
+
+  return (
+    <div>
+      <SectionHead
+        title="Requirements"
+        sub="Define exactly what you are building before you start building it. Fill in what you know. Ask PM Buddy to suggest what you might have missed."
+      />
+
+      {totalItems === 0 && (
+        <div style={{ background: '#F8FAFC', border: '1px solid #E5E7EB', borderRadius: 12, padding: '20px', marginBottom: 24, textAlign: 'center' }}>
+          <p style={{ fontSize: 15, fontWeight: 600, color: '#0A0A0A', marginBottom: 6 }}>Start with what you know</p>
+          <p style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.7, maxWidth: 480, margin: '0 auto' }}>Click any category below and add what your project must do. Once you have added a few, click "Suggest more" and PM Buddy will fill in what you may have missed.</p>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28 }}>
+        {REQ_CATEGORIES.map((cat) => {
+          const items = requirements[cat.key] || [];
+          const isOpen = openCategory === cat.key;
+          const isSuggesting = suggesting[cat.key];
+          const catSuggestions = suggestions[cat.key] || [];
+
+          return (
+            <div key={cat.key} style={{ background: '#FFFFFF', border: `1px solid ${isOpen ? cat.color + '40' : '#E5E7EB'}`, borderRadius: 14, overflow: 'hidden', transition: 'border-color 0.2s' }}>
+              <button
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '16px 18px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
+                onClick={() => setOpenCategory(isOpen ? null : cat.key)}
+              >
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: cat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: cat.color, flexShrink: 0 }}>{cat.icon}</div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: '#0A0A0A', marginBottom: 2 }}>{cat.title}</p>
+                  <p style={{ fontSize: 12, color: '#9CA3AF' }}>{items.length > 0 ? `${items.length} item${items.length !== 1 ? 's' : ''} added` : 'Nothing added yet'}</p>
+                </div>
+                <span style={{ fontSize: 12, color: '#9CA3AF' }}>{isOpen ? '▲' : '▼'}</span>
+              </button>
+
+              {isOpen && (
+                <div style={{ padding: '0 18px 18px', borderTop: `1px solid ${cat.color}20` }}>
+                  <div style={{ background: cat.bg, borderRadius: 10, padding: '10px 14px', marginBottom: 14, marginTop: 14 }}>
+                    <p style={{ fontSize: 13, color: cat.color, lineHeight: 1.65, fontWeight: 500 }}>{cat.hint}</p>
+                  </div>
+
+                  {items.length > 0 && (
+                    <div style={{ marginBottom: 14 }}>
+                      {items.map((item, idx) => (
+                        <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 0', borderBottom: '1px solid #F3F4F6' }}>
+                          <div style={{ width: 6, height: 6, borderRadius: '50%', background: cat.color, flexShrink: 0, marginTop: 6 }} />
+                          <div style={{ flex: 1 }}>
+                            <p style={{ fontSize: 14, color: '#0A0A0A', lineHeight: 1.6 }}>{item.text}</p>
+                            <p style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>Added by {item.addedBy}</p>
+                          </div>
+                          <button style={{ background: 'none', border: 'none', color: '#D1D5DB', cursor: 'pointer', fontSize: 14, flexShrink: 0, fontFamily: 'inherit' }} onClick={() => removeItem(cat.key, idx)}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                    <input
+                      style={{ flex: 1, border: '1.5px solid #E5E7EB', borderRadius: 8, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', color: '#0A0A0A', outline: 'none', background: '#FFFFFF' }}
+                      placeholder={cat.example}
+                      value={newItems[cat.key] || ''}
+                      onChange={e => setNewItems(p => ({ ...p, [cat.key]: e.target.value }))}
+                      onKeyDown={e => e.key === 'Enter' && addItem(cat.key, newItems[cat.key] || '')}
+                    />
+                    <button
+                      style={{ padding: '10px 16px', background: cat.color, color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
+                      onClick={() => addItem(cat.key, newItems[cat.key] || '')}
+                    >Add</button>
+                  </div>
+
+                  <button
+                    style={{ padding: '8px 16px', background: '#F8FAFC', color: cat.color, border: `1px solid ${cat.color}40`, borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: isSuggesting ? 0.6 : 1 }}
+                    onClick={() => getSuggestions(cat)}
+                    disabled={isSuggesting}
+                  >
+                    {isSuggesting ? 'PM Buddy is thinking...' : '✦ Suggest more'}
+                  </button>
+
+                  {catSuggestions.length > 0 && (
+                    <div style={{ marginTop: 14, background: '#F8FAFC', borderRadius: 10, padding: '14px', border: '1px solid #E5E7EB' }}>
+                      <p style={{ fontSize: 11, fontWeight: 700, color: cat.color, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>PM Buddy Suggestions</p>
+                      {catSuggestions.map((suggestion, idx) => (
+                        <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 0', borderBottom: '1px solid #F3F4F6' }}>
+                          <p style={{ flex: 1, fontSize: 13, color: '#374151', lineHeight: 1.6 }}>{suggestion}</p>
+                          <button
+                            style={{ padding: '4px 12px', background: cat.color, color: '#FFFFFF', border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
+                            onClick={() => acceptSuggestion(cat.key, suggestion)}
+                          >Add</button>
+                        </div>
+                      ))}
+                      <button style={{ background: 'none', border: 'none', color: '#9CA3AF', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', marginTop: 8 }} onClick={() => setSuggestions(p => ({ ...p, [cat.key]: [] }))}>Dismiss</button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {(showAdvice || totalItems >= 3) && (
+        <div style={{ background: '#0A0A0A', borderRadius: 16, padding: '24px', marginTop: 8 }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Before you start building</p>
+          <p style={{ fontSize: 15, fontWeight: 600, color: '#FFFFFF', marginBottom: 10, lineHeight: 1.5 }}>You have your requirements. Now map out how everything connects.</p>
+          <p style={{ fontSize: 14, color: '#9CA3AF', lineHeight: 1.75, marginBottom: 16 }}>A simple diagram showing how your product flows from one step to the next can save you from expensive blockers mid-build. You do not need to be technical. A box-and-arrow sketch is enough to catch gaps before they become problems.</p>
+          <p style={{ fontSize: 13, fontWeight: 700, color: '#E5E7EB', marginBottom: 10 }}>Free tools to create your diagram</p>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+            {[
+              { name: 'draw.io', url: 'https://draw.io', note: 'Free, no signup needed' },
+              { name: 'Miro', url: 'https://miro.com', note: 'Great for team collaboration' },
+              { name: 'Figma', url: 'https://figma.com', note: 'If you want it to look polished' },
+              { name: 'Lucidchart', url: 'https://lucidchart.com', note: 'Simple and structured' },
+            ].map(tool => (
+              <a key={tool.name} href={tool.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', flexDirection: 'column', background: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: 10, padding: '10px 14px', textDecoration: 'none', minWidth: 130 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#FFFFFF', marginBottom: 3 }}>{tool.name}</span>
+                <span style={{ fontSize: 11, color: '#6B7280' }}>{tool.note}</span>
+              </a>
+            ))}
+          </div>
+          <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.7 }}>Start with a simple flow: what does a user do first? What happens next? Where does the data go? Even a rough sketch in 20 minutes will save you hours of confusion later.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 function SectionHead({ title, sub }) {
   return (<div style={s.sectionHeadWrap}><h3 style={s.sectionHeadTitle}>{title}</h3><p style={s.sectionHeadSub}>{sub}</p></div>);
