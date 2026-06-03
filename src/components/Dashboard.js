@@ -37,6 +37,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   const [activeNav, setActiveNav] = useState('home');
   const [viewingDoc, setViewingDoc] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(null); // { type, id, name }
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -99,9 +100,16 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
     setLoading(false);
   };
 
-  const deleteValidation = async (id) => { await supabase.from('projects').delete().eq('id', id); setValidations(validations.filter(p => p.id !== id)); };
-  const deleteProject = async (id) => { await supabase.from('pm_projects').delete().eq('id', id); setProjects(projects.filter(p => p.id !== id)); };
-  const deleteCampaign = async (id) => { await supabase.from('pm_projects').delete().eq('id', id); setCampaigns(campaigns.filter(p => p.id !== id)); };
+  const confirmAndDelete = (type, id, name) => setConfirmDelete({ type, id, name });
+
+  const executeDelete = async () => {
+    if (!confirmDelete) return;
+    const { type, id } = confirmDelete;
+    if (type === 'validation') { await supabase.from('projects').delete().eq('id', id); setValidations(v => v.filter(p => p.id !== id)); }
+    if (type === 'project') { await supabase.from('pm_projects').delete().eq('id', id); setProjects(p => p.filter(p => p.id !== id)); }
+    if (type === 'campaign') { await supabase.from('pm_projects').delete().eq('id', id); setCampaigns(c => c.filter(p => p.id !== id)); }
+    setConfirmDelete(null);
+  };
 
   const quickDocs = documents.filter(d => d.type === 'quick' || !d.project_id);
   const projectDocs = documents.filter(d => d.type !== 'quick' && d.project_id);
@@ -284,7 +292,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                     <button style={s.seeAll} onClick={() => setActiveNav('projects')}>See all</button>
                   </div>
                   <div style={s.projectsGrid}>
-                    {projects.slice(0, 3).map(p => <ProjectCard key={p.id} p={p} onOpen={() => onOpenProject(p)} onDelete={() => deleteProject(p.id)} />)}
+                    {projects.slice(0, 3).map(p => <ProjectCard key={p.id} p={p} onOpen={() => onOpenProject(p)} onDelete={() => confirmAndDelete('project', p.id, p.name)} />)}
                   </div>
                 </>
               )}
@@ -312,7 +320,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
               )}
               {!loading && projects.length > 0 && (
                 <div style={s.projectsGrid}>
-                  {projects.map(p => <ProjectCard key={p.id} p={p} onOpen={() => onOpenProject(p)} onDelete={() => deleteProject(p.id)} />)}
+                  {projects.map(p => <ProjectCard key={p.id} p={p} onOpen={() => onOpenProject(p)} onDelete={() => confirmAndDelete('project', p.id, p.name)} />)}
                 </div>
               )}
               {!loading && invitedProjects.length > 0 && (
@@ -357,7 +365,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
               )}
               {!loading && campaigns.length > 0 && (
                 <div style={s.projectsGrid}>
-                  {campaigns.map(p => <ProjectCard key={p.id} p={p} onOpen={() => onOpenProject(p)} onDelete={() => deleteCampaign(p.id)} isCampaign />)}
+                  {campaigns.map(p => <ProjectCard key={p.id} p={p} onOpen={() => onOpenProject(p)} onDelete={() => confirmAndDelete('campaign', p.id, p.name)} isCampaign />)}
                 </div>
               )}
             </div>
@@ -401,7 +409,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                         </div>
                         <div style={{ display: 'flex', gap: 8 }}>
                           <button style={s.openBtn} onClick={() => onOpenValidation(v)}>Open</button>
-                          <button style={s.deleteBtn} onClick={() => deleteValidation(v.id)}>Delete</button>
+                          <button style={s.deleteBtn} onClick={() => confirmAndDelete('validation', v.id, v.title || 'Untitled Validation')}>Delete</button>
                         </div>
                       </div>
                     </div>
@@ -516,6 +524,29 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
 
         </div>
       </main>
+
+      {confirmDelete && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div style={{ background: WH, borderRadius: 16, padding: '32px', maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, marginBottom: 16 }}>🗑</div>
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: BL, marginBottom: 8 }}>Delete this {confirmDelete.type}?</h3>
+            <p style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.7, marginBottom: 8 }}>
+              <strong style={{ color: BL }}>{confirmDelete.name}</strong> will be permanently deleted.
+            </p>
+            <p style={{ fontSize: 13, color: '#DC2626', fontWeight: 600, marginBottom: 24 }}>This cannot be undone.</p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                style={{ flex: 1, padding: '11px', background: '#DC2626', color: WH, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                onClick={executeDelete}
+              >Yes, delete it</button>
+              <button
+                style={{ flex: 1, padding: '11px', background: 'none', color: '#6B7280', border: `1px solid ${RULE}`, borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
+                onClick={() => setConfirmDelete(null)}
+              >Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {viewingDoc && (
         <DocViewerModal
