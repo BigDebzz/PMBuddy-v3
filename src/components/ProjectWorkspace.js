@@ -427,7 +427,14 @@ function ProgressTab({ data, onSave }) {
 
   const startEdit = (i) => { setEditingIdx(i); setEditDraft({ ...milestones[i] }); };
   const saveEdit = () => { onSave({ milestones: milestones.map((m, idx) => idx === editingIdx ? { ...editDraft } : m) }); setEditingIdx(null); };
-  const deleteMilestone = (i) => { onSave({ milestones: milestones.filter((_, idx) => idx !== i) }); if (editingIdx === i) setEditingIdx(null); };
+  const [confirmDeleteMilestone, setConfirmDeleteMilestone] = useState(null);
+  const deleteMilestone = (i) => setConfirmDeleteMilestone(i);
+  const executeDeleteMilestone = () => {
+    const i = confirmDeleteMilestone;
+    onSave({ milestones: milestones.filter((_, idx) => idx !== i) });
+    if (editingIdx === i) setEditingIdx(null);
+    setConfirmDeleteMilestone(null);
+  };
   const [milestoneError, setMilestoneError] = useState('');
   const addMilestone = () => {
     if (!newTitle.trim()) return;
@@ -488,6 +495,7 @@ function ProgressTab({ data, onSave }) {
             <button style={s.sprintBtn} onClick={() => cycleMilestone(i)}>{sc.next}</button>
             <button style={s.sprintBtn} onClick={() => startEdit(i)}>Edit</button>
             <button style={{ ...s.sprintBtn, color: '#DC2626', borderColor: '#FECACA' }} onClick={() => deleteMilestone(i)}>Delete</button>
+            {confirmDeleteMilestone === i && <DeleteConfirmModal item={m.title} type="milestone" onConfirm={executeDeleteMilestone} onCancel={() => setConfirmDeleteMilestone(null)} />}
           </div>
         );
       })}
@@ -935,6 +943,26 @@ Rules:
           <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.7 }}>Start with a simple flow: what does a user do first? What happens next? Where does the data go? Even a rough sketch in 20 minutes will save you hours of confusion later.</p>
         </div>
       )}
+    </div>
+  );
+}
+
+
+function DeleteConfirmModal({ item, type, onConfirm, onCancel }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div style={{ background: WH, borderRadius: 16, padding: '32px', maxWidth: 400, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+        <div style={{ width: 44, height: 44, borderRadius: 12, background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, marginBottom: 16 }}>🗑</div>
+        <h3 style={{ fontSize: 18, fontWeight: 700, color: BL, marginBottom: 8 }}>Delete this {type}?</h3>
+        <p style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.7, marginBottom: 6 }}>
+          <strong style={{ color: BL }}>{item}</strong> will be permanently removed.
+        </p>
+        <p style={{ fontSize: 13, color: '#DC2626', fontWeight: 600, marginBottom: 24 }}>This cannot be undone.</p>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button style={{ flex: 1, padding: '11px', background: '#DC2626', color: WH, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={onConfirm}>Yes, delete it</button>
+          <button style={{ flex: 1, padding: '11px', background: 'none', color: '#6B7280', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }} onClick={onCancel}>Cancel</button>
+        </div>
+      </div>
     </div>
   );
 }
