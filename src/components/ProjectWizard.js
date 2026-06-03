@@ -11,6 +11,14 @@ const INDUSTRIES = [
   'E-commerce', 'Real Estate', 'Media', 'Government', 'Other'
 ];
 
+async function getAuthHeader() {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  } catch { return {}; }
+}
+
 function useSpeech() {
   const recognitionRef = useRef(null);
   const baseTextRef = useRef('');
@@ -119,7 +127,11 @@ Respond with ONLY a raw JSON array. No explanation. No markdown. No code blocks.
 [{"title":"milestone name","status":"pending"},{"title":"milestone name","status":"pending"}]`;
 
     try {
-      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) },
+        body: JSON.stringify({ prompt }),
+      });
       if (!res.ok) throw new Error('API error');
       const result = await res.json();
       const raw = result.result || result.text || '';
@@ -262,7 +274,11 @@ Use simple everyday language. No jargon. Write it as one or two sentences starti
 Return ONLY the rewritten goal. Nothing else.`,
     };
     try {
-      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: prompts[field] }) });
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) },
+        body: JSON.stringify({ prompt: prompts[field] }),
+      });
       const result = await res.json();
       const refined = (result.result || '').trim();
       if (refined) setSuggestions(p => ({ ...p, [field]: refined }));
@@ -332,12 +348,16 @@ Milestones: ${data.milestones.filter(m => m.title).map(m => m.title).join(', ')}
 
 Write a professional project brief in HTML (h1 for title, h2 for sections, p for paragraphs). No html/head/body tags. Include: Project Overview, Objectives, Scope, Team and Roles, Timeline, Key Risks, Success Metrics. Make it specific to their actual inputs. Minimum 400 words.`;
 
-      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: briefPrompt, mode: 'document' }) });
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) },
+        body: JSON.stringify({ prompt: briefPrompt, mode: 'document' }),
+      });
       if (res.ok) {
         const result = await res.json();
         const content = (result.result || '').replace(/```html|```/g, '').trim();
         if (content && content.length > 100) {
-          await supabase.from('documents').insert({ user_id: userId, project_id: project.id, project_name: data.name, type: 'pm', title: `${data.name} — Project Brief`, content });
+          await supabase.from('documents').insert({ user_id: userId, project_id: project.id, project_name: data.name, type: 'pm', title: `${data.name} Project Brief`, content });
         }
       }
     } catch (err) { console.error('Brief generation error:', err); }
