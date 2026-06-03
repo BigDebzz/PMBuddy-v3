@@ -29,11 +29,20 @@ const REQ_CATEGORIES = [
   { key: 'done_when', title: 'How we know it is done', hint: 'Define what finished looks like. What must be true before you can hand this over and call it complete? This prevents endless scope creep.', example: 'e.g. All test cases pass and the client has signed off on the final version', icon: '✓', color: '#15803D', bg: '#F0FDF4' },
 ];
 
+async function getAuthHeader() {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  } catch { return {}; }
+}
+
 async function notify(type, project, data) {
   try {
+    const authHeader = await getAuthHeader();
     await fetch('/api/notify', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeader },
       body: JSON.stringify({ type, projectId: project.id, projectName: project.name, ownerEmail: project.owner_email, data }),
     });
   } catch (err) { console.error('Notify error:', err); }
@@ -168,7 +177,7 @@ function InsightCard({ title, icon, description, savedValue, savedEdited, onSave
   const generate = async () => {
     setGenerating(true);
     try {
-      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: generatePrompt }) });
+      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) }, body: JSON.stringify({ prompt: generatePrompt }) });
       const result = await res.json();
       const text = (result.result || '').trim().replace(/\*\*/g, '').replace(/\*/g, '').replace(/#{1,6} /g, '').trim();
       if (text) { setContent(text); setEdited(false); onSave(text, false); }
@@ -249,7 +258,7 @@ function CurrentStatusSection({ data, onSave }) {
     setAiReview('');
     const prompt = `You are PM Buddy. Review this project status and give honest plain-English feedback.\n\nProject: ${data.name}\nGoal: ${scope.goal}\nPhase: ${draft.currentPhase || 'Not specified'}\nDone: ${draft.completedWork || 'Not specified'}\nRemaining: ${draft.remainingWork || 'Not specified'}\nBlockers: ${draft.blockers || 'None'}\n\nGive 3 to 4 sentences. What looks good, what is concerning, what to focus on. Simple language. No bullet points.`;
     try {
-      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
+      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) }, body: JSON.stringify({ prompt }) });
       const result = await res.json();
       setAiReview(result.result || 'Could not get feedback right now. Try again.');
     } catch { setAiReview('Could not get feedback right now. Try again.'); }
@@ -295,7 +304,7 @@ function GoalRefineSection({ label, value, field, onAccept }) {
       description: `You are PM Buddy. Rewrite this project description clearly: "${draft}"\n\n2-3 sentences. What it is, who it is for, what it does. No jargon. Return ONLY the rewritten description.`,
     };
     try {
-      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: prompts[field] || prompts.goal }) });
+      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) }, body: JSON.stringify({ prompt: prompts[field] || prompts.goal }) });
       const result = await res.json();
       const refined = (result.result || '').trim();
       if (refined) setSuggestion(refined);
@@ -809,7 +818,7 @@ Rules:
     try {
       const res = await fetch('/api/gemini', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) },
         body: JSON.stringify({ prompt }),
       });
       const result = await res.json();
@@ -1006,7 +1015,7 @@ Be specific, warm but direct. No bullet points. No jargon.`;
     try {
       const res = await fetch('/api/gemini', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) },
         body: JSON.stringify({ prompt }),
       });
       const result = await res.json();
