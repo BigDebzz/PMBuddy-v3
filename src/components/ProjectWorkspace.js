@@ -993,8 +993,7 @@ Requirements: ${totalReqs} defined across all categories
 History entries: ${data.history?.length || 0} recorded changes
 
 Recent activity:
-${(data.history || []).slice(-5).map(h => `- ${h.label}: ${h.detail || ''} (by ${h.by})`).join('
-') || 'No recorded activity yet'}
+${(data.history || []).slice(-5).map(h => `- ${h.label}: ${h.detail || ''} (by ${h.by})`).join('\n') || 'No recorded activity yet'}
 
 Write 3 to 4 paragraphs in plain English:
 1. Where the project started and what has been achieved so far
