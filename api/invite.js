@@ -1,7 +1,31 @@
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
+
 export const config = { api: { bodyParser: true } };
+
+async function verifyAuth(request) {
+  const authHeader = request.headers['authorization'] || request.headers['Authorization'];
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  const token = authHeader.replace('Bearer ', '').trim();
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        'apikey': SUPABASE_SERVICE_ROLE_KEY,
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!res.ok) return null;
+    const user = await res.json();
+    return user?.id ? user : null;
+  } catch { return null; }
+}
 
 export default async function handler(request, response) {
   if (request.method !== 'POST') return response.status(405).json({ error: 'Method not allowed' });
+
+  const user = await verifyAuth(request);
+  if (!user) return response.status(401).json({ error: 'Unauthorised. Please log in.' });
 
   try {
     let body = request.body;
@@ -10,14 +34,6 @@ export default async function handler(request, response) {
     const { email, role, projectId, projectName, inviterName, token } = body;
     if (!email || !projectId || !token) return response.status(400).json({ error: 'Missing fields' });
 
-const authHeader = request.headers['authorization'] || request.headers['Authorization'];
-if (!authHeader || !authHeader.startsWith('Bearer ')) return response.status(401).json({ error: 'Unauthorised' });
-const supaToken = authHeader.replace('Bearer ', '').trim();
-const supaRes = await fetch(`${process.env.SUPABASE_URL}/auth/v1/user`, {
-  headers: { 'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY, 'Authorization': `Bearer ${supaToken}` },
-});
-if (!supaRes.ok) return response.status(401).json({ error: 'Unauthorised' });
-    const BREVO_API_KEY = process.env.BREVO_API_KEY;
     if (!BREVO_API_KEY) return response.status(500).json({ error: 'Email service not configured' });
 
     const inviteUrl = `https://pmbuddy-v3.vercel.app?invite=${token}`;
@@ -41,7 +57,7 @@ if (!supaRes.ok) return response.status(401).json({ error: 'Unauthorised' });
       <p style="margin:0;font-size:13px;color:#9CA3AF;line-height:1.6;">If you do not have a PM Buddy account, you will be asked to create one. If you did not expect this invitation, you can ignore this email.</p>
     </div>
     <div style="padding:20px 32px;border-top:1px solid #F3F4F6;">
-      <p style="margin:0;font-size:12px;color:#9CA3AF;">PM Buddy — Think, Plan and Execute Like a Professional PM</p>
+      <p style="margin:0;font-size:12px;color:#9CA3AF;">PM Buddy. Think, Plan and Execute Like a Professional PM</p>
     </div>
   </div>
 </body>
