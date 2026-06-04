@@ -13,6 +13,7 @@ const GREY = '#F8FAFC';
 const AGILE_TABS = ['Overview', 'What We Are Building', 'Requirements', 'Work Cycles', 'Progress', 'What We Learned', 'Risks', 'Documents', 'Team', 'Reminders', 'History'];
 const PREDICTIVE_TABS = ['Overview', 'Who Is Involved', 'Scope', 'Requirements', 'Planning', 'Risks and Compliance', 'Progress', 'Documents', 'Team', 'Reminders', 'History'];
 const HYBRID_TABS = ['Overview', 'What We Are Building', 'Requirements', 'Who Is Involved', 'Planning', 'Risks and Compliance', 'Progress', 'Documents', 'Team', 'Reminders', 'History'];
+const CAMPAIGN_TABS = ['Overview', 'Progress', 'Risks', 'Documents', 'Team', 'History'];
 
 const METHODOLOGY_INFO = {
   Agile: { color: '#0284C7', bg: '#EFF6FF', label: 'Agile', reason: 'Best for projects where things will change as you go. You build in short cycles, review often and adjust based on what you learn.' },
@@ -84,8 +85,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
     }, 1500);
   }, [data, project.id, onUpdate, project._currentUser]);
 
-  const tabs = methodology === 'Agile' ? AGILE_TABS : methodology === 'Predictive' ? PREDICTIVE_TABS : HYBRID_TABS;
-
+  const tabs = data.industry === 'Campaign' ? CAMPAIGN_TABS : methodology === 'Agile' ? AGILE_TABS : methodology === 'Predictive' ? PREDICTIVE_TABS : HYBRID_TABS;
   const changeMethodology = async (m) => {
     setMethodology(m);
     setTab('Overview');
