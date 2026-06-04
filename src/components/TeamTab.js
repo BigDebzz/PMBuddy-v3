@@ -18,6 +18,14 @@ function generateToken() {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
 }
 
+async function getAuthHeader() {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  } catch { return {}; }
+}
+
 export default function TeamTab({ project, currentUser, onSave }) {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -73,9 +81,10 @@ export default function TeamTab({ project, currentUser, onSave }) {
     }
 
     try {
+      const authHeader = await getAuthHeader();
       const res = await fetch('/api/invite', {
         method: 'POST',
-headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${(await supabase.auth.getSession()).data?.session?.access_token || ''}` },
+        headers: { 'Content-Type': 'application/json', ...authHeader },
         body: JSON.stringify({ email: email.trim(), role, projectId: project.id, projectName: project.name, inviterName, token }),
       });
       const result = await res.json();
@@ -97,13 +106,22 @@ headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${(await
 
   const resendInvite = async (member) => {
     const inviterName = currentUser?.user_metadata?.first_name || currentUser?.email?.split('@')[0] || 'A team member';
-    const res = await fetch('/api/invite', {
-      method: 'POST',
-headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${(await supabase.auth.getSession()).data?.session?.access_token || ''}` },
-      body: JSON.stringify({ email: member.email, role: member.role, projectId: project.id, projectName: project.name, inviterName, token: member.token }),
-    });
-    if (res.ok) { setInviteMsg(`Invite resent to ${member.email}`); }
-    else { const r = await res.json(); setInviteError(`Could not resend: ${r.error || 'Unknown error'}`); }
+    try {
+      const authHeader = await getAuthHeader();
+      const res = await fetch('/api/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader },
+        body: JSON.stringify({ email: member.email, role: member.role, projectId: project.id, projectName: project.name, inviterName, token: member.token }),
+      });
+      if (res.ok) {
+        setInviteMsg(`Invite resent to ${member.email}`);
+      } else {
+        const r = await res.json();
+        setInviteError(`Could not resend: ${r.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      setInviteError(`Network error: ${err.message}`);
+    }
   };
 
   return (
@@ -205,7 +223,6 @@ const s = {
   viewerNoteText: { fontSize: 13, color: '#9CA3AF' },
 };
 
-// ─── Who Does What ────────────────────────────────────────────────────────────
 export function WhoDoesWhat({ project, onSave }) {
   const tasks = project.who_does_what || [];
   const team = project.team || [];
@@ -237,17 +254,9 @@ export function WhoDoesWhat({ project, onSave }) {
       {tasks.length === 0 && <p style={wStyle.empty}>No tasks added yet. Add who is responsible for what.</p>}
       {tasks.map((t, i) => (
         <div key={i} style={wStyle.row}>
-          <div style={{ flex: 2 }}>
-            <p style={wStyle.taskName}>{t.task}</p>
-          </div>
-          <div style={{ flex: 1 }}>
-            <p style={wStyle.metaLabel}>Does it</p>
-            <p style={wStyle.metaVal}>{t.owner || '—'}</p>
-          </div>
-          <div style={{ flex: 1 }}>
-            <p style={wStyle.metaLabel}>In the loop</p>
-            <p style={wStyle.metaVal}>{t.loop || '—'}</p>
-          </div>
+          <div style={{ flex: 2 }}><p style={wStyle.taskName}>{t.task}</p></div>
+          <div style={{ flex: 1 }}><p style={wStyle.metaLabel}>Does it</p><p style={wStyle.metaVal}>{t.owner || '—'}</p></div>
+          <div style={{ flex: 1 }}><p style={wStyle.metaLabel}>In the loop</p><p style={wStyle.metaVal}>{t.loop || '—'}</p></div>
           <button style={wStyle.removeBtn} onClick={() => remove(i)}>✕</button>
         </div>
       ))}
@@ -255,7 +264,6 @@ export function WhoDoesWhat({ project, onSave }) {
   );
 }
 
-// ─── Communication Plan ───────────────────────────────────────────────────────
 export function CommunicationPlan({ project, onSave }) {
   const comms = project.comms_plan || [];
   const team = project.team || [];
@@ -289,22 +297,10 @@ export function CommunicationPlan({ project, onSave }) {
       {comms.length === 0 && <p style={wStyle.empty}>No communication plan yet. Add who needs to know what and how often.</p>}
       {comms.map((c, i) => (
         <div key={i} style={wStyle.row}>
-          <div style={{ flex: 1 }}>
-            <p style={wStyle.metaLabel}>Who</p>
-            <p style={wStyle.metaVal}>{c.who}</p>
-          </div>
-          <div style={{ flex: 2 }}>
-            <p style={wStyle.metaLabel}>What they need to know</p>
-            <p style={wStyle.metaVal}>{c.what || '—'}</p>
-          </div>
-          <div style={{ flex: 1 }}>
-            <p style={wStyle.metaLabel}>How</p>
-            <p style={wStyle.metaVal}>{c.how || '—'}</p>
-          </div>
-          <div style={{ flex: 1 }}>
-            <p style={wStyle.metaLabel}>How often</p>
-            <p style={wStyle.metaVal}>{c.when || '—'}</p>
-          </div>
+          <div style={{ flex: 1 }}><p style={wStyle.metaLabel}>Who</p><p style={wStyle.metaVal}>{c.who}</p></div>
+          <div style={{ flex: 2 }}><p style={wStyle.metaLabel}>What they need to know</p><p style={wStyle.metaVal}>{c.what || '—'}</p></div>
+          <div style={{ flex: 1 }}><p style={wStyle.metaLabel}>How</p><p style={wStyle.metaVal}>{c.how || '—'}</p></div>
+          <div style={{ flex: 1 }}><p style={wStyle.metaLabel}>How often</p><p style={wStyle.metaVal}>{c.when || '—'}</p></div>
           <button style={wStyle.removeBtn} onClick={() => remove(i)}>✕</button>
         </div>
       ))}
