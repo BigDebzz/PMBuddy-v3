@@ -75,7 +75,7 @@ export default function TeamTab({ project, currentUser, onSave }) {
     try {
       const res = await fetch('/api/invite', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${(await supabase.auth.getSession()).data?.session?.access_token || ''}` },
         body: JSON.stringify({ email: email.trim(), role, projectId: project.id, projectName: project.name, inviterName, token }),
       });
       const result = await res.json();
@@ -99,7 +99,7 @@ export default function TeamTab({ project, currentUser, onSave }) {
     const inviterName = currentUser?.user_metadata?.first_name || currentUser?.email?.split('@')[0] || 'A team member';
     const res = await fetch('/api/invite', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${(await supabase.auth.getSession()).data?.session?.access_token || ''}` },
       body: JSON.stringify({ email: member.email, role: member.role, projectId: project.id, projectName: project.name, inviterName, token: member.token }),
     });
     if (res.ok) { setInviteMsg(`Invite resent to ${member.email}`); }
