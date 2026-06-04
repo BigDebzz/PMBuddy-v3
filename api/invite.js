@@ -10,6 +10,13 @@ export default async function handler(request, response) {
     const { email, role, projectId, projectName, inviterName, token } = body;
     if (!email || !projectId || !token) return response.status(400).json({ error: 'Missing fields' });
 
+const authHeader = request.headers['authorization'] || request.headers['Authorization'];
+if (!authHeader || !authHeader.startsWith('Bearer ')) return response.status(401).json({ error: 'Unauthorised' });
+const supaToken = authHeader.replace('Bearer ', '').trim();
+const supaRes = await fetch(`${process.env.SUPABASE_URL}/auth/v1/user`, {
+  headers: { 'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY, 'Authorization': `Bearer ${supaToken}` },
+});
+if (!supaRes.ok) return response.status(401).json({ error: 'Unauthorised' });
     const BREVO_API_KEY = process.env.BREVO_API_KEY;
     if (!BREVO_API_KEY) return response.status(500).json({ error: 'Email service not configured' });
 
@@ -47,7 +54,7 @@ export default async function handler(request, response) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        sender: { name: 'PM Buddy', email: 'debbiescorner7@gmail.com' },
+        sender: { name: 'PM Buddy', email: 'pmbuddy1@gmail.com' },
         to: [{ email }],
         subject: `You have been invited to ${projectName} on PM Buddy`,
         htmlContent: emailHtml,
