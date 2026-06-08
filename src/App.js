@@ -102,7 +102,6 @@ export default function App() {
   const [inviteAccepting, setInviteAccepting] = useState(false);
   const [showValidationModal, setShowValidationModal] = useState(false);
 
-  // Keep refs so onAuth callback always has latest values
   const modeRef = useRef(mode);
   const answersRef = useRef(answers);
   const analysisRef = useRef(analysis);
@@ -113,7 +112,10 @@ export default function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('invite');
+
+    // Save token to localStorage so it survives login/signup redirects
     if (token) {
+      localStorage.setItem('pmbuddy_pending_invite', token);
       window.history.replaceState(null, '', window.location.pathname);
     }
 
@@ -129,6 +131,7 @@ export default function App() {
         return;
       }
       if (member.status === 'accepted') {
+        localStorage.removeItem('pmbuddy_pending_invite');
         setScreen(S.DASHBOARD);
         return;
       }
@@ -153,13 +156,18 @@ export default function App() {
       }
 
       const { data: { session } } = await supabase.auth.getSession();
+      const pendingToken = token || localStorage.getItem('pmbuddy_pending_invite');
+
       if (session?.user) {
         setUser(session.user);
-        if (token) {
-          loadInvite(token);
+        if (pendingToken) {
+          loadInvite(pendingToken);
         } else {
           setScreen(S.DASHBOARD);
         }
+      } else if (pendingToken) {
+        // Not logged in but has an invite — show invite screen so they can log in
+        loadInvite(pendingToken);
       }
     };
 
@@ -187,9 +195,14 @@ export default function App() {
     }).eq('id', inviteData.id);
 
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
       await fetch('/api/notify', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           type: 'member_joined',
           projectId: inviteData.project_id,
@@ -200,6 +213,7 @@ export default function App() {
       });
     } catch (err) { console.error('Notify error:', err); }
 
+    localStorage.removeItem('pmbuddy_pending_invite');
     setInviteAccepting(false);
     setScreen(S.DASHBOARD);
   };
@@ -208,10 +222,10 @@ export default function App() {
     if (inviteData) {
       await supabase.from('project_members').delete().eq('id', inviteData.id);
     }
+    localStorage.removeItem('pmbuddy_pending_invite');
     setScreen(S.DASHBOARD);
   };
 
-  // Auto-save pending validation after user signs up or logs in
   const autoSavePendingValidation = async (u) => {
     const currentAnalysis = analysisRef.current;
     const currentMode = modeRef.current;
@@ -239,10 +253,29 @@ export default function App() {
   const openProject = (p) => { setActiveProject({ ...p, _currentUser: user }); setScreen(S.PROJECT_OPEN); };
   const logout = async () => { await supabase.auth.signOut(); setUser(null); reset(); };
 
-  // onAuth — called when user signs up or logs in from AuthScreen
   const handleAuthSuccess = async (u) => {
     setUser(u);
     await autoSavePendingValidation(u);
+    // Check if there is a pending invite to handle after login
+    const pendingToken = localStorage.getItem('pmbuddy_pending_invite');
+    if (pendingToken) {
+      const { data: member } = await supabase
+        .from('project_members')
+        .select('*')
+        .eq('token', pendingToken)
+        .single();
+      if (member && member.status !== 'accepted') {
+        const { data: project } = await supabase
+          .from('pm_projects')
+          .select('*')
+          .eq('id', member.project_id)
+          .single();
+        setInviteData({ ...member, pm_projects: project });
+        setScreen(S.INVITE);
+        return;
+      }
+      localStorage.removeItem('pmbuddy_pending_invite');
+    }
     setScreen(S.DASHBOARD);
   };
 
@@ -265,14 +298,36 @@ export default function App() {
                 You have been invited to join <strong style={{ color: '#0A0A0A' }}>{inviteData.pm_projects?.name}</strong> as a <strong style={{ color: '#0A0A0A' }}>{inviteData.role}</strong>.
               </p>
               <p style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 28 }}>{inviteData.pm_projects?.description}</p>
-              <div style={{ display: 'flex', gap: 12 }}>
-                <button style={{ flex: 1, padding: '12px', background: '#0284C7', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: inviteAccepting ? 0.6 : 1 }} onClick={acceptInvite} disabled={inviteAccepting}>
-                  {inviteAccepting ? 'Accepting...' : 'Accept Invitation'}
+              {!user && (
+                <p style={{ fontSize: 13, color: '#DC2626', marginBottom: 16, fontWeight: 600 }}>
+                  You need to log in or sign up to accept this invitation.
+                </p>
+              )}
+              {!user && (
+                <button
+                  style={{ width: '100%', padding: '12px', background: '#0A0A0A', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 12 }}
+                  onClick={() => setScreen(S.AUTH)}
+                >
+                  Log in or Sign up to Accept
                 </button>
-                <button style={{ padding: '12px 20px', background: 'none', color: '#6B7280', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }} onClick={declineInvite}>
-                  Decline
-                </button>
-              </div>
+              )}
+              {user && (
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <button
+                    style={{ flex: 1, padding: '12px', background: '#0284C7', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: inviteAccepting ? 0.6 : 1 }}
+                    onClick={acceptInvite}
+                    disabled={inviteAccepting}
+                  >
+                    {inviteAccepting ? 'Accepting...' : 'Accept Invitation'}
+                  </button>
+                  <button
+                    style={{ padding: '12px 20px', background: 'none', color: '#6B7280', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
+                    onClick={declineInvite}
+                  >
+                    Decline
+                  </button>
+                </div>
+              )}
             </>
           ) : (
             <p style={{ color: '#9CA3AF' }}>Loading invite...</p>
