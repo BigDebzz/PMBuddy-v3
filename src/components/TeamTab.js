@@ -57,7 +57,21 @@ export default function TeamTab({ project, currentUser, onSave }) {
   };
 
   const sendInvite = async () => {
-    if (!email.trim()) return;
+   // Check if this email is already invited to this project
+const { data: existing } = await supabase
+  .from('project_members')
+  .select('id, status')
+  .eq('project_id', project.id)
+  .eq('email', email.trim().toLowerCase())
+  .single();
+
+if (existing) {
+  setInviteError(existing.status === 'accepted'
+    ? 'This person is already a member of this project.'
+    : 'This person has already been invited. Use Resend to send the invite again.');
+  setSending(false);
+  return;
+}
     setInviteError('');
     setInviteMsg('');
     setSending(true);
