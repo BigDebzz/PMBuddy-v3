@@ -13,7 +13,6 @@ const GREY = '#F8FAFC';
 const AGILE_TABS = ['Overview', 'What We Are Building', 'Requirements', 'Work Cycles', 'Progress', 'What We Learned', 'Risks', 'Documents', 'Team', 'Reminders', 'History'];
 const PREDICTIVE_TABS = ['Overview', 'Who Is Involved', 'Scope', 'Requirements', 'Planning', 'Risks and Compliance', 'Progress', 'Documents', 'Team', 'Reminders', 'History'];
 const HYBRID_TABS = ['Overview', 'What We Are Building', 'Requirements', 'Who Is Involved', 'Planning', 'Risks and Compliance', 'Progress', 'Documents', 'Team', 'Reminders', 'History'];
-const CAMPAIGN_TABS = ['Overview', 'Progress', 'Risks', 'Documents', 'Team', 'History'];
 
 const METHODOLOGY_INFO = {
   Agile: { color: '#0284C7', bg: '#EFF6FF', label: 'Agile', reason: 'Best for projects where things will change as you go. You build in short cycles, review often and adjust based on what you learn.' },
@@ -85,7 +84,8 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
     }, 1500);
   }, [data, project.id, onUpdate, project._currentUser]);
 
-  const tabs = data.industry === 'Campaign' ? CAMPAIGN_TABS : methodology === 'Agile' ? AGILE_TABS : methodology === 'Predictive' ? PREDICTIVE_TABS : HYBRID_TABS;
+  const tabs = methodology === 'Agile' ? AGILE_TABS : methodology === 'Predictive' ? PREDICTIVE_TABS : HYBRID_TABS;
+
   const changeMethodology = async (m) => {
     setMethodology(m);
     setTab('Overview');
@@ -300,7 +300,7 @@ function GoalRefineSection({ label, value, field, onAccept }) {
     setRefining(true);
     setSuggestion('');
     const prompts = {
-      goal: `You are PM Buddy. Turn this into a clear measurable project goal: "${draft}"\n\nAnswer WHO benefits, WHAT changes, HOW they will know it worked. One or two sentences starting with "This project will succeed when...". Plain language. Return ONLY the rewritten goal.`,
+      goal: `You are PM Buddy. Turn this into a clear measurable project goal: "${draft}"\n\nAnswer WHO benefits, WHAT changes, HOW they will know it worked. One or two sentences starting with "This project will succeed when...". If there are multiple goals or sections, put each on its own line. Plain language. Return ONLY the rewritten goal.`,
       description: `You are PM Buddy. Rewrite this project description clearly: "${draft}"\n\n2-3 sentences. What it is, who it is for, what it does. No jargon. Return ONLY the rewritten description.`,
     };
     try {
@@ -323,7 +323,7 @@ function GoalRefineSection({ label, value, field, onAccept }) {
           {!editing ? (<><button style={s.smallEditBtn} onClick={() => { setEditing(true); setDraft(value || ''); }}>Edit</button><button style={s.smallRefineBtn} onClick={() => { setEditing(true); setDraft(value || ''); setTimeout(refine, 100); }}>AI Refine</button></>) : (<><button style={{ ...s.smallEditBtn, background: BLUE, color: WH, borderColor: BLUE }} onClick={saveEdit}>Save</button><button style={s.smallEditBtn} onClick={() => { setEditing(false); setSuggestion(''); }}>Cancel</button></>)}
         </div>
       </div>
-      {!editing ? <p style={s.goalText}>{value || 'Not set.'}</p> : <textarea style={{ ...s.textarea, marginBottom: 8, minHeight: 80 }} value={draft} onChange={e => setDraft(e.target.value)} rows={3} />}
+      {!editing ? <div style={{ ...s.goalText, whiteSpace: 'pre-wrap' }}>{value || 'Not set.'}</div> : <textarea style={{ ...s.textarea, marginBottom: 8, minHeight: 80 }} value={draft} onChange={e => setDraft(e.target.value)} rows={3} />}
       {editing && draft.trim().length > 20 && !suggestion && <button style={s.smallRefineBtn} onClick={refine} disabled={refining}>{refining ? 'PM Buddy is refining...' : 'AI Refine'}</button>}
       {suggestion && (
         <div style={s.suggestionBox}>
