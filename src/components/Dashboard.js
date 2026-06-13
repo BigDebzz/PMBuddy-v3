@@ -34,7 +34,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   const [invitedProjects, setInvitedProjects] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeNav, setActiveNav] = useState('home');
+  const [activeNav, setActiveNav] = useState(() => localStorage.getItem('pmbuddy_active_nav') || 'home');
   const [viewingDoc, setViewingDoc] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null); // { type, id, name }
@@ -114,7 +114,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   const quickDocs = documents.filter(d => d.type === 'quick' || !d.project_id);
   const projectDocs = documents.filter(d => d.type !== 'quick' && d.project_id);
 
-  const handleNewCampaign = () => onNewCampaign({ onSaved: () => { fetchAll(); setActiveNav('campaigns'); } });
+  const handleNewCampaign = () => onNewCampaign({ onSaved: () => { fetchAll(); setActiveNav('campaigns'); localStorage.setItem('pmbuddy_active_nav', 'campaigns'); } });
 
   // Onboarding checklist state
   const checklistDone = {
@@ -163,7 +163,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
             <button
               key={item.id}
               style={{ ...s.navItem, background: activeNav === item.id ? '#EFF6FF' : 'none', color: activeNav === item.id ? BLUE : '#374151', fontWeight: activeNav === item.id ? 700 : 500 }}
-              onClick={() => { setActiveNav(item.id); setSidebarOpen(false); }}
+              onClick={() => { setActiveNav(item.id); localStorage.setItem('pmbuddy_active_nav', item.id); setSidebarOpen(false); }}
             >
               <span style={{ ...s.navIcon, color: activeNav === item.id ? BLUE : '#9CA3AF' }}>{item.icon}</span>
               {item.label}
@@ -253,10 +253,10 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
               {/* Stats row */}
               <div style={s.statsRow}>
                 {[
-                  { label: 'Projects', value: projects.length, color: BLUE, action: () => setActiveNav('projects') },
-                  { label: 'Campaigns', value: campaigns.length, color: '#7C3AED', action: () => setActiveNav('campaigns') },
-                  { label: 'Documents', value: documents.length, color: '#C2410C', action: () => setActiveNav('docs') },
-                  { label: 'Validations', value: validations.length, color: '#15803D', action: () => setActiveNav('validations') },
+                  { label: 'Projects', value: projects.length, color: BLUE, action: () => { setActiveNav('projects'); localStorage.setItem('pmbuddy_active_nav', 'projects'); } },
+                  { label: 'Campaigns', value: campaigns.length, color: '#7C3AED', action: () => { setActiveNav('campaigns'); localStorage.setItem('pmbuddy_active_nav', 'campaigns'); } },
+                  { label: 'Documents', value: documents.length, color: '#C2410C', action: () => { setActiveNav('docs'); localStorage.setItem('pmbuddy_active_nav', 'docs'); } },
+                  { label: 'Validations', value: validations.length, color: '#15803D', action: () => { setActiveNav('validations'); localStorage.setItem('pmbuddy_active_nav', 'validations'); } },
                 ].map((stat, i) => (
                   <button key={i} style={s.statCard} onClick={stat.action}>
                     <p style={{ ...s.statNum, color: stat.color }}>{stat.value}</p>
@@ -289,7 +289,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                 <>
                   <div style={s.sectionHead}>
                     <p style={s.sectionLabel}>Recent projects</p>
-                    <button style={s.seeAll} onClick={() => setActiveNav('projects')}>See all</button>
+                    <button style={s.seeAll} onClick={() => { setActiveNav('projects'); localStorage.setItem('pmbuddy_active_nav', 'projects'); }}>See all</button>
                   </div>
                   <div style={s.projectsGrid}>
                     {projects.slice(0, 3).map(p => <ProjectCard key={p.id} p={p} onOpen={() => onOpenProject(p)} onDelete={() => confirmAndDelete('project', p.id, p.name)} />)}
