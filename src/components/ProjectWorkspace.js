@@ -1333,7 +1333,7 @@ ${reportContent}
         <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>Additional context (optional)</label>
         <textarea
           style={{ width: '100%', border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '11px 14px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', resize: 'vertical', lineHeight: 1.65, background: WH, minHeight: 80 }}
-          placeholder="e.g. Reporting period is April to June. Focus on beneficiary outcomes. Funder is Tony Elumelu Foundation."
+          placeholder="e.g. Reporting period is April to June. Focus on beneficiary outcomes. Funder requires results against each objective."
           value={additionalContext}
           onChange={e => setAdditionalContext(e.target.value)}
           rows={3}
