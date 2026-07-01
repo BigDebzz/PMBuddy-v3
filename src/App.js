@@ -174,9 +174,13 @@ export default function App() {
     handleAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user && (_event === 'SIGNED_IN' || _event === 'TOKEN_REFRESHED' || _event === 'INITIAL_SESSION')) {
+      if (session?.user && _event === 'SIGNED_IN') {
         setUser(session.user);
         setScreen(prev => prev === S.INVITE ? S.INVITE : S.DASHBOARD);
+      }
+      if (session?.user && _event === 'TOKEN_REFRESHED') {
+        // Only update user token silently — do not change the screen
+        setUser(session.user);
       }
       if (_event === 'SIGNED_OUT') {
         setUser(null);
