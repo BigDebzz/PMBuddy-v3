@@ -6,6 +6,14 @@ const BL = '#0A0A0A';
 const WH = '#FFFFFF';
 const GREY = '#F8FAFC';
 
+async function getAuthHeader() {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  } catch { return {}; }
+}
+
 export default function DocumentGenerator({ data, methodology, user, openDoc }) {
   const [generating, setGenerating] = useState(null);
   const [preview, setPreview] = useState(openDoc?.content || null);
@@ -32,25 +40,15 @@ export default function DocumentGenerator({ data, methodology, user, openDoc }) 
     setAiReport(null);
     setAiReportError(null);
 
-    // ── Fetch the freshest project data from Supabase ──────────────────────
     let freshProject = data;
     try {
-      const { data: fp } = await supabase
-        .from('pm_projects')
-        .select('*')
-        .eq('id', data.id)
-        .single();
+      const { data: fp } = await supabase.from('pm_projects').select('*').eq('id', data.id).single();
       if (fp) freshProject = fp;
-    } catch (e) { /* use prop data as fallback */ }
+    } catch (e) {}
 
-    // ── Fetch accepted team members from project_members table ─────────────
     let acceptedMembers = [];
     try {
-      const { data: members } = await supabase
-        .from('project_members')
-        .select('*')
-        .eq('project_id', data.id)
-        .eq('status', 'accepted');
+      const { data: members } = await supabase.from('project_members').select('*').eq('project_id', data.id).eq('status', 'accepted');
       acceptedMembers = members || [];
     } catch (e) {}
 
@@ -60,15 +58,13 @@ export default function DocumentGenerator({ data, methodology, user, openDoc }) 
     const wizardTeam = freshProject.team || [];
     const planning = freshProject.planning || {};
 
-    // Combine wizard team + accepted project_members for accurate count
-    const totalTeamSize = 1 + acceptedMembers.length; // owner + accepted members
+    const totalTeamSize = 1 + acceptedMembers.length;
     const teamDescription = acceptedMembers.length > 0
       ? `Owner + ${acceptedMembers.length} accepted member(s): ${acceptedMembers.map(m => `${m.email} (${m.role})`).join(', ')}`
       : wizardTeam.length > 0
         ? wizardTeam.map(m => `${m.name} (${m.role})`).join(', ')
         : 'Solo — no team members added or accepted yet';
 
-    // ── Build honest scoring criteria for Gemini ───────────────────────────
     const hasGoal = !!(scope.goal && scope.goal.trim().length > 20);
     const hasTimeline = !!(freshProject.timeline?.start && freshProject.timeline?.end);
     const hasMilestones = milestones.length >= 2;
@@ -78,8 +74,7 @@ export default function DocumentGenerator({ data, methodology, user, openDoc }) 
     const hasCommunicationPlan = !!(planning.communications && planning.communications.trim().length > 10);
 
     const filledFields = [hasGoal, hasTimeline, hasMilestones, hasRisks, hasTeam, hasDescription, hasCommunicationPlan].filter(Boolean).length;
-    const maxScore = 100;
-    const baseScore = Math.round((filledFields / 7) * maxScore);
+    const baseScore = Math.round((filledFields / 7) * 100);
 
     const prompt = `You are a senior PMP-certified project manager doing an honest health check on this project. Be specific, direct and reference actual project details. Do not give inflated scores.
 
@@ -126,50 +121,30 @@ Rules:
 - Max 3 strengths, max 3 gaps`;
 
     try {
+      const authHeader = await getAuthHeader();
       const res = await fetch('/api/gemini', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeader },
         body: JSON.stringify({ prompt })
       });
-      if (!res.ok) {
-        setAiReportError('AI is busy right now. Please try again in a moment.');
-        setAiReportLoading(false);
-        return;
-      }
+      if (!res.ok) { setAiReportError('AI is busy right now. Please try again in a moment.'); setAiReportLoading(false); return; }
       const result = await res.json();
       if (result.result) {
         const clean = result.result.replace(/```json|```/g, '').trim();
         const firstBrace = clean.indexOf('{');
         const lastBrace = clean.lastIndexOf('}');
-        if (firstBrace === -1 || lastBrace === -1) {
-          setAiReportError('Could not parse AI response. Please try again.');
-          setAiReportLoading(false);
-          return;
-        }
-        const jsonStr = clean.substring(firstBrace, lastBrace + 1);
-        const parsed = JSON.parse(jsonStr);
+        if (firstBrace === -1 || lastBrace === -1) { setAiReportError('Could not parse AI response. Please try again.'); setAiReportLoading(false); return; }
+        const parsed = JSON.parse(clean.substring(firstBrace, lastBrace + 1));
         setAiReport(parsed);
-        // Save to Supabase so it persists
-        await supabase.from('pm_projects')
-          .update({ ai_health_check: parsed })
-          .eq('id', data.id);
-      } else {
-        setAiReportError('No response from AI. Please try again.');
-      }
-    } catch (err) {
-      console.error('AI report error:', err);
-      setAiReportError('Something went wrong. Please try again.');
-    }
+        await supabase.from('pm_projects').update({ ai_health_check: parsed }).eq('id', data.id);
+      } else { setAiReportError('No response from AI. Please try again.'); }
+    } catch (err) { console.error('AI report error:', err); setAiReportError('Something went wrong. Please try again.'); }
     setAiReportLoading(false);
   };
 
   const fetchDocs = async () => {
     setLoadingDocs(true);
-    const { data: docs } = await supabase
-      .from('documents')
-      .select('*')
-      .eq('project_id', data.id)
-      .order('updated_at', { ascending: false });
+    const { data: docs } = await supabase.from('documents').select('*').eq('project_id', data.id).order('updated_at', { ascending: false });
     setSavedDocs(docs || []);
     setLoadingDocs(false);
   };
@@ -185,35 +160,20 @@ Rules:
       const content = type === 'pm'
         ? await generatePMContent(data, methodology)
         : await generateBenefitsContent(data, benefits);
-      if (!content || content.trim().length < 100) {
-        setGenError('The document came back empty. Please try again.');
-        setGenerating(null);
-        return;
-      }
+      if (!content || content.trim().length < 100) { setGenError('The document came back empty. Please try again.'); setGenerating(null); return; }
       setPreview(content);
       setPreviewType(type);
       setEditContent(content);
-
       if (user) {
         const userId = typeof user === 'string' ? user : user?.id;
         const title = type === 'pm' ? 'Project Management Plan' : 'Benefits Management Document';
-        const { data: doc } = await supabase.from('documents').insert({
-          user_id: userId,
-          project_id: data.id,
-          project_name: data.name,
-          type,
-          title,
-          content,
-        }).select().single();
+        const { data: doc } = await supabase.from('documents').insert({ user_id: userId, project_id: data.id, project_name: data.name, type, title, content }).select().single();
         if (doc) { setCurrentDocId(doc.id); fetchDocs(); }
       }
     } catch (err) {
       console.error('Document generation error:', err);
-      if (err.name === 'AbortError') {
-        setGenError('This is taking longer than expected. Please check your connection and try again.');
-      } else {
-        setGenError('AI is experiencing high demand right now. Please wait a moment and try again.');
-      }
+      if (err.name === 'AbortError') { setGenError('This is taking longer than expected. Please check your connection and try again.'); }
+      else { setGenError('AI is experiencing high demand right now. Please wait a moment and try again.'); }
     }
     setGenerating(null);
   };
@@ -224,19 +184,9 @@ Rules:
     const userId = typeof user === 'string' ? user : user?.id;
     const title = previewType === 'pm' ? 'Project Management Plan' : 'Benefits Management Document';
     if (currentDocId) {
-      await supabase.from('documents').update({
-        content: editing ? editContent : preview,
-        updated_at: new Date().toISOString(),
-      }).eq('id', currentDocId);
+      await supabase.from('documents').update({ content: editing ? editContent : preview, updated_at: new Date().toISOString() }).eq('id', currentDocId);
     } else {
-      const { data: doc } = await supabase.from('documents').insert({
-        user_id: userId,
-        project_id: data.id,
-        project_name: data.name,
-        type: previewType,
-        title,
-        content: preview,
-      }).select().single();
+      const { data: doc } = await supabase.from('documents').insert({ user_id: userId, project_id: data.id, project_name: data.name, type: previewType, title, content: preview }).select().single();
       if (doc) setCurrentDocId(doc.id);
     }
     setSaving(false);
@@ -246,44 +196,27 @@ Rules:
   const saveEdits = async () => {
     if (!currentDocId) { await saveDocument(); }
     setSaving(true);
-    await supabase.from('documents').update({
-      content: editContent,
-      updated_at: new Date().toISOString(),
-    }).eq('id', currentDocId);
+    await supabase.from('documents').update({ content: editContent, updated_at: new Date().toISOString() }).eq('id', currentDocId);
     setPreview(editContent);
     setEditing(false);
     setSaving(false);
     fetchDocs();
   };
 
-  const openSavedDoc = (doc) => {
-    setPreview(doc.content);
-    setPreviewType(doc.type);
-    setEditContent(doc.content);
-    setCurrentDocId(doc.id);
-    setEditing(false);
-  };
+  const openSavedDoc = (doc) => { setPreview(doc.content); setPreviewType(doc.type); setEditContent(doc.content); setCurrentDocId(doc.id); setEditing(false); };
+  const deleteDoc = async (id) => { await supabase.from('documents').delete().eq('id', id); if (currentDocId === id) { setPreview(null); setCurrentDocId(null); } fetchDocs(); };
 
-  const deleteDoc = async (id) => {
-    await supabase.from('documents').delete().eq('id', id);
-    if (currentDocId === id) { setPreview(null); setCurrentDocId(null); }
-    fetchDocs();
-  };
-
-  const downloadHTML = (type, content) => {
+  const downloadWord = (type, content) => {
     const html = buildStyledHTML(content || preview, type || previewType, data);
-    const blob = new Blob([html], { type: 'text/html' });
+    const blob = new Blob([html], { type: 'application/msword' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${data.name.replace(/\s+/g, '_')}_${type === 'pm' ? 'PM_Plan' : 'Benefits_Document'}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    a.download = `${data.name.replace(/\s+/g, '_')}_${type === 'pm' ? 'PM_Plan' : 'Benefits_Document'}.doc`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
   };
 
-  const printDocument = (content) => {
+  const downloadPDF = (content) => {
     const html = buildStyledHTML(content || preview, previewType, data);
     const win = window.open('', '_blank');
     win.document.write(html);
@@ -329,44 +262,30 @@ Rules:
           <div style={s.aiReportResult}>
             <div style={s.aiScoreRow}>
               <div style={s.aiScoreBlock}>
-                <span style={{ ...s.aiScore, color: aiReport.score >= 70 ? '#15803D' : aiReport.score >= 45 ? BLUE : '#DC2626' }}>
-                  {aiReport.score}
-                </span>
+                <span style={{ ...s.aiScore, color: aiReport.score >= 70 ? '#15803D' : aiReport.score >= 45 ? BLUE : '#DC2626' }}>{aiReport.score}</span>
                 <span style={s.aiScoreLabel}>/ 100</span>
               </div>
-              <span style={{
-                ...s.aiVerdict,
-                background: aiReport.readyToDocument ? '#F0FDF4' : aiReport.score >= 45 ? '#FFFBEB' : '#FEF2F2',
-                color: aiReport.readyToDocument ? '#15803D' : aiReport.score >= 45 ? '#D97706' : '#DC2626',
-              }}>
+              <span style={{ ...s.aiVerdict, background: aiReport.readyToDocument ? '#F0FDF4' : aiReport.score >= 45 ? '#FFFBEB' : '#FEF2F2', color: aiReport.readyToDocument ? '#15803D' : aiReport.score >= 45 ? '#D97706' : '#DC2626' }}>
                 {aiReport.verdict}
               </span>
             </div>
-
             {aiReport.strengths?.length > 0 && (
               <div style={s.aiSection}>
                 <p style={s.aiSectionLabel}>What is working</p>
                 {aiReport.strengths.map((item, i) => (
                   <div key={i} style={s.aiStrengthCard}>
-                    <div style={s.aiStrengthTop}>
-                      <div style={{ ...s.aiDot, background: '#15803D', marginTop: 2 }} />
-                      <p style={s.aiItemTitle}>{typeof item === 'string' ? item : item.title}</p>
-                    </div>
+                    <div style={s.aiStrengthTop}><div style={{ ...s.aiDot, background: '#15803D', marginTop: 2 }} /><p style={s.aiItemTitle}>{typeof item === 'string' ? item : item.title}</p></div>
                     {item.detail && <p style={s.aiItemDetail}>{item.detail}</p>}
                   </div>
                 ))}
               </div>
             )}
-
             {aiReport.gaps?.length > 0 && (
               <div style={s.aiSection}>
                 <p style={s.aiSectionLabel}>What needs attention</p>
                 {aiReport.gaps.map((item, i) => (
                   <div key={i} style={s.aiGapCard}>
-                    <div style={s.aiGapTop}>
-                      <div style={{ ...s.aiDot, background: '#D97706', marginTop: 2 }} />
-                      <p style={s.aiItemTitle}>{typeof item === 'string' ? item : item.title}</p>
-                    </div>
+                    <div style={s.aiGapTop}><div style={{ ...s.aiDot, background: '#D97706', marginTop: 2 }} /><p style={s.aiItemTitle}>{typeof item === 'string' ? item : item.title}</p></div>
                     {item.why && (
                       <div style={s.aiGapBody}>
                         <p style={s.aiGapWhy}><strong>Why it matters:</strong> {item.why}</p>
@@ -377,7 +296,6 @@ Rules:
                 ))}
               </div>
             )}
-
             {aiReport.recommendation && (
               <div style={s.aiRecommendation}>
                 <p style={s.aiRecLabel}>Top recommendation</p>
@@ -403,7 +321,8 @@ Rules:
               </div>
               <div style={s.savedActions}>
                 <button style={s.smBtn} onClick={() => openSavedDoc(doc)}>Open</button>
-                <button style={s.smBtn} onClick={() => downloadHTML(doc.type, doc.content)}>Download</button>
+                <button style={s.smBtn} onClick={() => downloadWord(doc.type, doc.content)}>Word</button>
+                <button style={{ ...s.smBtn, background: BL, color: WH, borderColor: BL }} onClick={() => { setPreview(doc.content); setPreviewType(doc.type); setCurrentDocId(doc.id); setTimeout(() => downloadPDF(doc.content), 100); }}>PDF</button>
                 <button style={{ ...s.smBtn, color: '#DC2626', borderColor: '#FECACA' }} onClick={() => deleteDoc(doc.id)}>Delete</button>
               </div>
             </div>
@@ -428,10 +347,7 @@ Rules:
         </div>
         {generating === 'pm' && <p style={s.generatingNote}>PM Buddy is writing your project management plan. This can take up to 1 minute.</p>}
         {genError && previewType !== 'pm' && !generating && (
-          <div style={s.errorNote}>
-            <p style={s.errorNoteText}>{genError}</p>
-            <button style={s.retryBtn} onClick={() => generateDocument('pm')}>Try again</button>
-          </div>
+          <div style={s.errorNote}><p style={s.errorNoteText}>{genError}</p><button style={s.retryBtn} onClick={() => generateDocument('pm')}>Try again</button></div>
         )}
       </div>
 
@@ -475,10 +391,7 @@ Rules:
         </div>
         {generating === 'benefits' && <p style={s.generatingNote}>PM Buddy is writing your benefits document. This can take up to 1 minute.</p>}
         {genError && previewType !== 'benefits' && !generating && (
-          <div style={s.errorNote}>
-            <p style={s.errorNoteText}>{genError}</p>
-            <button style={s.retryBtn} onClick={() => generateDocument('benefits')}>Try again</button>
-          </div>
+          <div style={s.errorNote}><p style={s.errorNoteText}>{genError}</p><button style={s.retryBtn} onClick={() => generateDocument('benefits')}>Try again</button></div>
         )}
       </div>
 
@@ -494,10 +407,10 @@ Rules:
               {!editing && (
                 <>
                   <button style={s.smBtn} onClick={() => { setEditing(true); setEditContent(preview); }}>Edit</button>
-                  <button style={s.smBtn} onClick={() => downloadHTML(previewType, preview)}>Download</button>
-                  <button style={s.smBtn} onClick={() => printDocument(preview)}>Print / PDF</button>
+                  <button style={s.smBtn} onClick={() => downloadWord(previewType, preview)}>⬇ Word</button>
+                  <button style={{ ...s.smBtn, background: BL, color: WH, borderColor: BL }} onClick={() => downloadPDF(preview)}>⬇ PDF</button>
                   {!currentDocId && (
-                    <button style={{ ...s.smBtn, background: BL, color: WH, borderColor: BL }} onClick={saveDocument} disabled={saving}>
+                    <button style={{ ...s.smBtn, background: '#15803D', color: WH, borderColor: '#15803D' }} onClick={saveDocument} disabled={saving}>
                       {saving ? 'Saving...' : 'Save'}
                     </button>
                   )}
@@ -505,9 +418,7 @@ Rules:
               )}
               {editing && (
                 <>
-                  <button style={{ ...s.smBtn, background: BL, color: WH, borderColor: BL }} onClick={saveEdits} disabled={saving}>
-                    {saving ? 'Saving...' : 'Save changes'}
-                  </button>
+                  <button style={{ ...s.smBtn, background: BL, color: WH, borderColor: BL }} onClick={saveEdits} disabled={saving}>{saving ? 'Saving...' : 'Save changes'}</button>
                   <button style={s.smBtn} onClick={() => { setEditing(false); setEditContent(preview); }}>Cancel</button>
                 </>
               )}
@@ -517,13 +428,7 @@ Rules:
           {editing ? (
             <div style={s.editArea}>
               <p style={s.editNote}>Click anywhere in the document to edit. Your changes are saved when you click "Save changes".</p>
-              <div
-                style={s.editableDoc}
-                contentEditable
-                suppressContentEditableWarning
-                onInput={e => setEditContent(e.currentTarget.innerHTML)}
-                dangerouslySetInnerHTML={{ __html: editContent }}
-              />
+              <div style={s.editableDoc} contentEditable suppressContentEditableWarning onInput={e => setEditContent(e.currentTarget.innerHTML)} dangerouslySetInnerHTML={{ __html: editContent }} />
             </div>
           ) : (
             <div style={s.previewContent} dangerouslySetInnerHTML={{ __html: preview }} />
@@ -532,7 +437,7 @@ Rules:
       )}
 
       <div style={s.noteCard}>
-        <p style={s.noteText}>To save as PDF: click Print, then choose Save as PDF. To open in Word: download the HTML file and open it with Microsoft Word.</p>
+        <p style={s.noteText}>Download Word to edit before sending. Download PDF to print or share as a read-only file.</p>
       </div>
     </div>
   );
@@ -557,11 +462,12 @@ Milestones: ${milestones.map(m => `${m.title} due ${formatDate(m.date)}`).join('
 
 Write these sections: Executive Summary, Project Overview, Scope and Deliverables, Team and Responsibilities, Timeline and Milestones, Communication Plan, Risk Management, Definition of Done.`;
 
+  const authHeader = await getAuthHeader();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 90000);
   const response = await fetch('/api/gemini', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeader },
     body: JSON.stringify({ prompt, mode: 'document' }),
     signal: controller.signal,
   });
@@ -596,11 +502,12 @@ Write the following sections in HTML using h2 for headings and p for paragraphs.
 
 Sections: Executive Summary, The Problem We Are Solving, The Solution and Its Value, Expected Benefits, How We Will Measure Success, Timeline to Benefits Realisation, Risks to Benefits Delivery, Accountability and Governance, Why This Investment Matters.`;
 
+  const authHeader = await getAuthHeader();
   const controller2 = new AbortController();
   const timeout2 = setTimeout(() => controller2.abort(), 90000);
   const response = await fetch('/api/gemini', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeader },
     body: JSON.stringify({ prompt, mode: 'document' }),
     signal: controller2.signal,
   });
