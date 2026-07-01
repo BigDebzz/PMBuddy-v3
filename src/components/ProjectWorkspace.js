@@ -10,9 +10,9 @@ const BL = '#0A0A0A';
 const WH = '#FFFFFF';
 const GREY = '#F8FAFC';
 
-const AGILE_TABS = ['Overview', 'What We Are Building', 'Requirements', 'Work Cycles', 'Progress', 'What We Learned', 'Risks', 'Documents', 'Team', 'Reminders', 'History'];
-const PREDICTIVE_TABS = ['Overview', 'Who Is Involved', 'Scope', 'Requirements', 'Planning', 'Risks and Compliance', 'Progress', 'Documents', 'Team', 'Reminders', 'History'];
-const HYBRID_TABS = ['Overview', 'What We Are Building', 'Requirements', 'Who Is Involved', 'Planning', 'Risks and Compliance', 'Progress', 'Documents', 'Team', 'Reminders', 'History'];
+const AGILE_TABS = ['Overview', 'What We Are Building', 'Requirements', 'Work Cycles', 'Progress', 'What We Learned', 'Risks', 'Documents', 'Team', 'Reminders', 'History', 'Reports'];
+const PREDICTIVE_TABS = ['Overview', 'Who Is Involved', 'Scope', 'Requirements', 'Planning', 'Risks and Compliance', 'Progress', 'Documents', 'Team', 'Reminders', 'History', 'Reports'];
+const HYBRID_TABS = ['Overview', 'What We Are Building', 'Requirements', 'Who Is Involved', 'Planning', 'Risks and Compliance', 'Progress', 'Documents', 'Team', 'Reminders', 'History', 'Reports'];
 
 const METHODOLOGY_INFO = {
   Agile: { color: '#0284C7', bg: '#EFF6FF', label: 'Agile', reason: 'Best for projects where things will change as you go. You build in short cycles, review often and adjust based on what you learn.' },
@@ -156,6 +156,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
           {tab === 'Requirements' && <RequirementsTab data={data} onSave={save} project={project} />}
           {tab === 'Documents' && <DocumentGenerator data={data} methodology={methodology} user={project.user_id} openDoc={project._openDoc} />}
           {tab === 'History' && <HistoryTab data={data} onSave={save} project={project} />}
+          {tab === 'Reports' && <ReportsTab data={data} project={project} />}
           {tab === 'Team' && <TeamTab project={data} currentUser={project._currentUser} onSave={save} />}
           {tab === 'Reminders' && <RemindersPanel project={data} onUpdate={(updated) => { setData(updated); onUpdate(updated); }} />}
         </div>
@@ -1113,6 +1114,278 @@ Be specific, warm but direct. No bullet points. No jargon.`;
               <p style={{ fontSize: 11, color: '#9CA3AF' }}>{formatTime(data.created_at)}</p>
             </div>
             <p style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>{data.name} was created</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+function ReportsTab({ data, project }) {
+  const [reportType, setReportType] = useState('progress');
+  const [generating, setGenerating] = useState(false);
+  const [reportContent, setReportContent] = useState('');
+  const [reportTitle, setReportTitle] = useState('');
+  const [additionalContext, setAdditionalContext] = useState('');
+  const [generatedAt, setGeneratedAt] = useState('');
+  const [generatedBy, setGeneratedBy] = useState('');
+
+  const REPORT_TYPES = [
+    { id: 'progress', label: 'Progress Report', desc: 'A formal update showing what has been achieved, what is still pending and what comes next. Use this to update your manager, board or steering committee.' },
+    { id: 'donor', label: 'Funder or Grant Report', desc: 'A structured report showing results against the objectives you were funded to deliver. Use this when reporting back to a grant body, donor, sponsor or investor who gave you money or support to run this project.' },
+    { id: 'status', label: 'Weekly Status Update', desc: 'A short, scannable summary of what was done this week, what is planned next and anything blocking the team. Use this for internal team updates or quick stakeholder check-ins.' },
+    { id: 'closeout', label: 'Project Closeout Report', desc: 'A final report written when the project is complete. It summarises what was delivered, what was learned and what you would recommend for future projects. Use this to formally close the project and hand over to stakeholders.' },
+  ];
+
+  const milestones = data.milestones || [];
+  const doneMilestones = milestones.filter(m => m.status === 'done');
+  const pendingMilestones = milestones.filter(m => m.status !== 'done');
+  const risks = data.risks || [];
+  const openRisks = risks.filter(r => r.status === 'open');
+
+  const generateReport = async () => {
+    setGenerating(true);
+    setReportContent('');
+
+    const projectContext = `
+Project Name: ${data.name}
+Industry: ${data.industry || 'Not specified'}
+Goal: ${data.scope?.goal || data.description || 'Not specified'}
+Description: ${data.description || 'Not specified'}
+Start Date: ${data.timeline?.start ? new Date(data.timeline.start).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Not set'}
+End Date: ${data.timeline?.end ? new Date(data.timeline.end).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Not set'}
+Methodology: ${data.methodology || 'Not specified'}
+Team: ${(data.team || []).map(m => `${m.name} (${m.role})`).join(', ') || 'Not specified'}
+Milestones Completed (${doneMilestones.length}): ${doneMilestones.map(m => m.title).join(', ') || 'None yet'}
+Milestones Remaining (${pendingMilestones.length}): ${pendingMilestones.map(m => `${m.title}${m.date ? ' (due ' + new Date(m.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) + ')' : ''}`).join(', ') || 'None'}
+Open Risks (${openRisks.length}): ${openRisks.map(r => `${r.title} (${r.level})`).join(', ') || 'None'}
+Current Phase: ${data.scope?.currentPhase || 'Not specified'}
+What Has Been Done: ${data.scope?.completedWork || 'Not specified'}
+What Remains: ${data.scope?.remainingWork || 'Not specified'}
+Blockers: ${data.scope?.blockers || 'None'}
+${additionalContext ? 'Additional Context: ' + additionalContext : ''}`.trim();
+
+    const prompts = {
+      progress: `You are a professional project manager writing a progress report for stakeholders. Write a clear, structured progress report in HTML format.
+
+${projectContext}
+
+Structure the report with these sections:
+1. Executive Summary (2-3 sentences)
+2. Progress Against Objectives
+3. Milestones Achieved
+4. Milestones Remaining
+5. Risks and Issues
+6. Next Steps
+
+Use <h1> for the title, <h2> for sections, <p> for paragraphs, <ul> and <li> for lists. Make it professional, specific and factual. No html/head/body tags. No markdown.`,
+
+      donor: `You are a professional project manager writing a donor progress report. Write a formal donor report in HTML format.
+
+${projectContext}
+
+Structure the report with these sections:
+1. Report Title and Period
+2. Project Overview
+3. Activities and Outputs (what was done)
+4. Outcomes and Results (what changed or improved)
+5. Challenges and How They Were Addressed
+6. Financial Summary (note if budget data is not available)
+7. Upcoming Activities
+8. Conclusion
+
+Use <h1> for the title, <h2> for sections, <p> for paragraphs, <ul> and <li> for lists. Write in formal English appropriate for donor submission. Be specific about results. No html/head/body tags. No markdown.`,
+
+      status: `You are a project manager writing a concise weekly status update. Write a short status update in HTML format.
+
+${projectContext}
+
+Structure the report as:
+1. Status (use one of: On Track / At Risk / Delayed) with a one-line summary
+2. What Was Done This Period
+3. What Is Planned Next
+4. Blockers or Issues Needing Attention
+
+Keep it brief and scannable. Use <h1> for title, <h2> for sections, <p> for text, <ul> for lists. No html/head/body tags. No markdown.`,
+
+      closeout: `You are a professional project manager writing a project closeout report. Write a comprehensive closeout report in HTML format.
+
+${projectContext}
+
+Structure the report with these sections:
+1. Project Summary
+2. Objectives vs Results (what was planned vs what was achieved)
+3. Key Deliverables
+4. Timeline Performance
+5. Lessons Learned
+6. Recommendations for Future Projects
+7. Sign-off Statement
+
+Use <h1> for the title, <h2> for sections, <p> for paragraphs, <ul> and <li> for lists. Write professionally. No html/head/body tags. No markdown.`,
+    };
+
+    const title = REPORT_TYPES.find(r => r.id === reportType)?.label || 'Report';
+    setReportTitle(`${data.name} — ${title}`);
+
+    try {
+      const authHeader = await getAuthHeader();
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader },
+        body: JSON.stringify({ prompt: prompts[reportType], mode: 'document' }),
+      });
+      const result = await res.json();
+      const html = (result.result || '').replace(/```html|```/g, '').trim();
+      if (html && html.length > 100) {
+        setReportContent(html);
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+        const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        const generatedByName = project._currentUser?.user_metadata?.first_name || project._currentUser?.email || 'You';
+        setGeneratedAt(dateStr + ' at ' + timeStr);
+        setGeneratedBy(generatedByName);
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (sessionData?.session?.user) {
+            await supabase.from('documents').insert({
+              user_id: sessionData.session.user.id,
+              project_id: project.id,
+              project_name: data.name,
+              type: 'pm',
+              title: data.name + ' — ' + (REPORT_TYPES.find(r => r.id === reportType)?.label || 'Report') + ' — ' + dateStr,
+              content: html,
+            });
+          }
+        } catch (err) { console.error('Save report error:', err); }
+      } else {
+        setReportContent('<p>Could not generate report. Please try again.</p>');
+      }
+    } catch {
+      setReportContent('<p>Could not generate report. Please try again.</p>');
+    }
+    setGenerating(false);
+  };
+
+  const downloadPDF = () => {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>${reportTitle}</title>
+<style>
+  body { font-family: Georgia, serif; max-width: 800px; margin: 40px auto; padding: 0 40px; color: #1a1a1a; line-height: 1.7; }
+  h1 { font-size: 24px; color: #0a0a0a; margin-bottom: 8px; }
+  h2 { font-size: 16px; color: #0284C7; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 28px; margin-bottom: 10px; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; }
+  p { font-size: 14px; margin-bottom: 12px; }
+  ul { margin: 0 0 16px 20px; }
+  li { font-size: 14px; margin-bottom: 6px; }
+  @media print { body { margin: 0; padding: 20px; } }
+</style>
+</head>
+<body>
+${reportContent}
+<p style="margin-top:40px;font-size:12px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:16px;">Generated by PM Buddy · ${generatedAt} · ${generatedBy}</p>
+</body>
+</html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); }, 500);
+  };
+
+  const downloadDoc = () => {
+    const blob = new Blob([`<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:Calibri,sans-serif;max-width:800px;margin:40px auto;padding:0 40px;">${reportContent}<p style="margin-top:40px;font-size:11px;color:#9ca3af;">Generated by PM Buddy · ${generatedAt} · ${generatedBy}</p></body></html>`], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${reportTitle.replace(/\s+/g, '_')}.doc`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div>
+      <SectionHead
+        title="Reports"
+        sub="Generate professional reports from your project data. Download as PDF or Word document."
+      />
+
+      <div style={{ marginBottom: 24 }}>
+        <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 12 }}>Select report type</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {REPORT_TYPES.map(rt => (
+            <button
+              key={rt.id}
+              style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 16px', background: reportType === rt.id ? '#EFF6FF' : WH, border: `1.5px solid ${reportType === rt.id ? BLUE : '#E5E7EB'}`, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
+              onClick={() => { setReportType(rt.id); setReportContent(''); }}
+            >
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: reportType === rt.id ? BLUE : '#D1D5DB', flexShrink: 0, marginTop: 5 }} />
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 700, color: reportType === rt.id ? BLUE : BL, marginBottom: 2 }}>{rt.label}</p>
+                <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>{rt.desc}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>Additional context (optional)</label>
+        <textarea
+          style={{ width: '100%', border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '11px 14px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', resize: 'vertical', lineHeight: 1.65, background: WH, minHeight: 80 }}
+          placeholder="e.g. Reporting period is April to June. Focus on beneficiary outcomes. Funder is Tony Elumelu Foundation."
+          value={additionalContext}
+          onChange={e => setAdditionalContext(e.target.value)}
+          rows={3}
+        />
+      </div>
+
+      <button
+        style={{ padding: '12px 28px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: generating ? 0.6 : 1, marginBottom: 24 }}
+        onClick={generateReport}
+        disabled={generating}
+      >
+        {generating ? 'Generating report...' : '✦ Generate Report'}
+      </button>
+
+      {generating && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px', background: '#EFF6FF', borderRadius: 10, marginBottom: 24 }}>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: BLUE }} />
+          <p style={{ fontSize: 14, color: BLUE }}>PM Buddy is writing your report from the project data...</p>
+        </div>
+      )}
+
+      {reportContent && !generating && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 700, color: '#15803D' }}>✓ Report ready</p>
+              {generatedAt && <p style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>Generated {generatedAt} by {generatedBy}</p>}
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                style={{ padding: '9px 18px', background: WH, color: BLUE, border: `1.5px solid ${BLUE}`, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                onClick={downloadDoc}
+              >⬇ Download Word</button>
+              <button
+                style={{ padding: '9px 18px', background: BL, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                onClick={downloadPDF}
+              >⬇ Download PDF</button>
+            </div>
+          </div>
+          <div
+            style={{ background: WH, border: '1px solid #E5E7EB', borderRadius: 12, padding: '32px 40px', fontSize: 14, lineHeight: 1.8, color: '#374151', fontFamily: 'Georgia, serif', maxHeight: '60vh', overflowY: 'auto' }}
+            dangerouslySetInnerHTML={{ __html: reportContent }}
+          />
+          <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+            <button
+              style={{ padding: '9px 18px', background: WH, color: BLUE, border: `1.5px solid ${BLUE}`, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+              onClick={downloadDoc}
+            >⬇ Download Word</button>
+            <button
+              style={{ padding: '9px 18px', background: BL, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+              onClick={downloadPDF}
+            >⬇ Download PDF</button>
           </div>
         </div>
       )}
