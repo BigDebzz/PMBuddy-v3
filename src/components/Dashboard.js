@@ -11,8 +11,6 @@ const SIDEBAR_W = 240;
 const NAV = [
   { id: 'home', icon: '⌂', label: 'Home' },
   { id: 'projects', icon: '◈', label: 'Projects' },
-  { id: 'campaigns', icon: '◉', label: 'Campaigns' },
-  { id: 'validations', icon: '✦', label: 'Validations' },
   { id: 'docs', icon: '✎', label: 'Documents' },
   { id: 'settings', icon: '⚙', label: 'Settings' },
 ];
@@ -22,8 +20,6 @@ const CHECKLIST = [
   { id: 'project', label: 'Start your first project', action: 'project' },
   { id: 'milestone', label: 'Add a milestone to your project', action: 'project' },
   { id: 'assistant', label: 'Talk to PM Buddy assistant', hint: 'Open any project and click the chat bubble' },
-  { id: 'doc', label: 'Generate a project document', action: 'doc' },
-  { id: 'validation', label: 'Run a validation on your idea', action: 'validation' },
   { id: 'invite', label: 'Invite a team member', hint: 'Open a project and go to the Team tab' },
 ];
 
@@ -122,14 +118,12 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
     project: projects.length > 0,
     milestone: projects.some(p => (p.milestones || []).length > 0),
     assistant: !!localStorage.getItem('pmbuddy_assistant_used'),
-    doc: documents.length > 0,
-    validation: validations.length > 0,
     invite: invitedProjects.length > 0 || (projects.some(p => (p.team || []).length > 1)),
   };
   const checklistTotal = CHECKLIST.length;
   const checklistDoneCount = CHECKLIST.filter(c => checklistDone[c.id]).length;
   const onboardingComplete = checklistDoneCount === checklistTotal;
-  const isNewUser = projects.length === 0 && validations.length === 0 && documents.length === 0;
+  const isNewUser = projects.length === 0 && documents.length === 0;
 
   const handleChecklistAction = (action) => {
     if (action === 'project') onNewProject();
@@ -168,8 +162,6 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
               <span style={{ ...s.navIcon, color: activeNav === item.id ? BLUE : '#9CA3AF' }}>{item.icon}</span>
               {item.label}
               {item.id === 'projects' && projects.length > 0 && <span style={s.navBadge}>{projects.length}</span>}
-              {item.id === 'campaigns' && campaigns.length > 0 && <span style={s.navBadge}>{campaigns.length}</span>}
-              {item.id === 'validations' && validations.length > 0 && <span style={s.navBadge}>{validations.length}</span>}
               {item.id === 'docs' && documents.length > 0 && <span style={s.navBadge}>{documents.length}</span>}
             </button>
           ))}
@@ -254,9 +246,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
               <div style={s.statsRow}>
                 {[
                   { label: 'Projects', value: projects.length, color: BLUE, action: () => { setActiveNav('projects'); localStorage.setItem('pmbuddy_active_nav', 'projects'); } },
-                  { label: 'Campaigns', value: campaigns.length, color: '#7C3AED', action: () => { setActiveNav('campaigns'); localStorage.setItem('pmbuddy_active_nav', 'campaigns'); } },
                   { label: 'Documents', value: documents.length, color: '#C2410C', action: () => { setActiveNav('docs'); localStorage.setItem('pmbuddy_active_nav', 'docs'); } },
-                  { label: 'Validations', value: validations.length, color: '#15803D', action: () => { setActiveNav('validations'); localStorage.setItem('pmbuddy_active_nav', 'validations'); } },
                 ].map((stat, i) => (
                   <button key={i} style={s.statCard} onClick={stat.action}>
                     <p style={{ ...s.statNum, color: stat.color }}>{stat.value}</p>
@@ -270,9 +260,6 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
               <div style={s.quickGrid}>
                 {[
                   { icon: '◈', label: 'New Project', sub: 'Start a structured project', action: onNewProject, bg: BL, color: WH },
-                  { icon: '◉', label: 'New Campaign', sub: 'Short initiative or event', action: handleNewCampaign, bg: '#EFF6FF', color: BLUE },
-                  { icon: '✦', label: 'Validate an Idea', sub: 'Test before you build', action: onNewValidation, bg: '#F0FDF4', color: '#15803D' },
-                  { icon: '✎', label: 'Quick Doc', sub: 'Generate a document fast', action: onNewQuickDoc, bg: '#FFF7ED', color: '#C2410C' },
                 ].map((item, i) => (
                   <button key={i} style={s.quickCard} onClick={item.action}>
                     <div style={{ ...s.quickIcon, background: item.bg, color: item.color }}>{item.icon}</div>
@@ -719,7 +706,7 @@ const s = {
   checkLabel: { fontSize: 14, fontWeight: 500 },
   checkHint: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
   checkAction: { padding: '5px 12px', background: '#EFF6FF', color: BLUE, border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 },
-  statsRow: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 28 },
+  statsRow: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 28 },
   statCard: { background: WH, border: `1px solid ${RULE}`, borderRadius: 12, padding: '16px', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', transition: 'border-color 0.15s' },
   statNum: { fontSize: 28, fontWeight: 800, letterSpacing: '-0.5px', marginBottom: 4 },
   statLabel: { fontSize: 12, color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' },
