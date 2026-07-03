@@ -1,6 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import DocumentGenerator from './DocumentGenerator';
 import RemindersPanel from './RemindersPanel';
 import TeamTab from './TeamTab';
 import PMBuddyAssistant from './PMBuddyAssistant';
@@ -10,9 +9,9 @@ const BL = '#0A0A0A';
 const WH = '#FFFFFF';
 const GREY = '#F8FAFC';
 
-const AGILE_TABS = ['Overview', 'What We Are Building', 'Requirements', 'Work Cycles', 'Progress', 'What We Learned', 'Risks', 'Documents', 'Team', 'Reminders', 'History', 'Reports'];
-const PREDICTIVE_TABS = ['Overview', 'Who Is Involved', 'Scope', 'Requirements', 'Planning', 'Risks and Compliance', 'Progress', 'Documents', 'Team', 'Reminders', 'History', 'Reports'];
-const HYBRID_TABS = ['Overview', 'What We Are Building', 'Requirements', 'Who Is Involved', 'Planning', 'Risks and Compliance', 'Progress', 'Documents', 'Team', 'Reminders', 'History', 'Reports'];
+const AGILE_TABS = ['Overview', 'What We Are Building', 'Requirements', 'Work Cycles', 'Progress', 'What We Learned', 'Risks', 'Team', 'Reminders', 'History', 'Reports'];
+const PREDICTIVE_TABS = ['Overview', 'Who Is Involved', 'Scope', 'Requirements', 'Planning', 'Risks and Compliance', 'Progress', 'Team', 'Reminders', 'History', 'Reports'];
+const HYBRID_TABS = ['Overview', 'What We Are Building', 'Requirements', 'Who Is Involved', 'Planning', 'Risks and Compliance', 'Progress', 'Team', 'Reminders', 'History', 'Reports'];
 
 const METHODOLOGY_INFO = {
   Agile: { color: '#0284C7', bg: '#EFF6FF', label: 'Agile', reason: 'Best for projects where things will change as you go. You build in short cycles, review often and adjust based on what you learn.' },
@@ -52,7 +51,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
   const [data, setData] = useState(project);
   const [methodology, setMethodology] = useState(project.methodology || 'Agile');
   const [showMethodPicker, setShowMethodPicker] = useState(false);
-  const [tab, setTab] = useState(project._openDoc ? 'Documents' : 'Overview');
+  const [tab, setTab] = useState(project._openDoc ? 'Reports' : 'Overview');
   const [saveStatus, setSaveStatus] = useState('saved');
   const [acceptedMembers, setAcceptedMembers] = useState([]);
   const saveTimerRef = useRef(null);
@@ -154,9 +153,8 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
           {tab === 'Risks' && <RisksComplianceTab data={data} onSave={save} />}
           {tab === 'Risks and Compliance' && <RisksComplianceTab data={data} onSave={save} />}
           {tab === 'Requirements' && <RequirementsTab data={data} onSave={save} project={project} />}
-          {tab === 'Documents' && <DocumentGenerator data={data} methodology={methodology} user={project.user_id} openDoc={project._openDoc} />}
           {tab === 'History' && <HistoryTab data={data} onSave={save} project={project} />}
-          {tab === 'Reports' && <ReportsTab data={data} project={project} />}
+          {tab === 'Reports' && <ReportsTab data={data} project={project} methodology={methodology} />}
           {tab === 'Team' && <TeamTab project={data} currentUser={project._currentUser} onSave={save} />}
           {tab === 'Reminders' && <RemindersPanel project={data} onUpdate={(updated) => { setData(updated); onUpdate(updated); }} />}
         </div>
@@ -1122,7 +1120,8 @@ Be specific, warm but direct. No bullet points. No jargon.`;
 }
 
 
-function ReportsTab({ data, project }) {
+function ReportsTab({ data, project, methodology }) {
+  const [section, setSection] = useState('health');
   const [reportType, setReportType] = useState('progress');
   const [generating, setGenerating] = useState(false);
   const [reportContent, setReportContent] = useState('');
@@ -1130,12 +1129,37 @@ function ReportsTab({ data, project }) {
   const [additionalContext, setAdditionalContext] = useState('');
   const [generatedAt, setGeneratedAt] = useState('');
   const [generatedBy, setGeneratedBy] = useState('');
+  const [savedDocs, setSavedDocs] = useState([]);
+  const [loadingDocs, setLoadingDocs] = useState(true);
+
+  // Health check state
+  const [aiReport, setAiReport] = useState(data.ai_health_check || null);
+  const [aiReportLoading, setAiReportLoading] = useState(false);
+  const [aiReportError, setAiReportError] = useState(null);
+
+  // PM Plan & Benefits state
+  const [docGenerating, setDocGenerating] = useState(null);
+  const [docPreview, setDocPreview] = useState(null);
+  const [docType, setDocType] = useState(null);
+  const [docError, setDocError] = useState(null);
+  const [showBenefitsForm, setShowBenefitsForm] = useState(false);
+  const [benefits, setBenefits] = useState({
+    problem: '', affectedPeople: '', expectedRevenue: '',
+    socialImpact: '', strategicAlignment: '', successMetrics: '',
+    timeToValue: '', accountable: '',
+  });
 
   const REPORT_TYPES = [
     { id: 'progress', label: 'Progress Report', desc: 'A formal update showing what has been achieved, what is still pending and what comes next. Use this to update your manager, board or steering committee.' },
     { id: 'donor', label: 'Funder or Grant Report', desc: 'A structured report showing results against the objectives you were funded to deliver. Use this when reporting back to a grant body, donor, sponsor or investor who gave you money or support to run this project.' },
-    { id: 'status', label: 'Weekly Status Update', desc: 'A short, scannable summary of what was done this week, what is planned next and anything blocking the team. Use this for internal team updates or quick stakeholder check-ins.' },
-    { id: 'closeout', label: 'Project Closeout Report', desc: 'A final report written when the project is complete. It summarises what was delivered, what was learned and what you would recommend for future projects. Use this to formally close the project and hand over to stakeholders.' },
+  ];
+
+  const SECTIONS = [
+    { id: 'health', label: 'Health Check' },
+    { id: 'reports', label: 'Reports' },
+    { id: 'pm_plan', label: 'PM Plan' },
+    { id: 'benefits', label: 'Benefits Doc' },
+    { id: 'saved', label: 'Saved' },
   ];
 
   const milestones = data.milestones || [];
@@ -1333,7 +1357,7 @@ ${reportContent}
         <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>Additional context (optional)</label>
         <textarea
           style={{ width: '100%', border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '11px 14px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', resize: 'vertical', lineHeight: 1.65, background: WH, minHeight: 80 }}
-          placeholder="e.g. Reporting period is April to June. Focus on beneficiary outcomes. Funder requires results against each objective."
+          placeholder="e.g. Reporting period is April to June. Focus on beneficiary outcomes. Funder is Tony Elumelu Foundation."
           value={additionalContext}
           onChange={e => setAdditionalContext(e.target.value)}
           rows={3}
@@ -1386,6 +1410,544 @@ ${reportContent}
               style={{ padding: '9px 18px', background: BL, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
               onClick={downloadPDF}
             >⬇ Download PDF</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+function DeleteConfirmModal({ item, type, onConfirm, onCancel }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div style={{ background: WH, borderRadius: 16, padding: '32px', maxWidth: 400, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+        <div style={{ width: 44, height: 44, borderRadius: 12, background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, marginBottom: 16 }}>🗑</div>
+        <h3 style={{ fontSize: 18, fontWeight: 700, color: BL, marginBottom: 8 }}>Delete this {type}?</h3>
+        <p style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.7, marginBottom: 6 }}>
+          <strong style={{ color: BL }}>{item}</strong> will be permanently removed.
+        </p>
+        <p style={{ fontSize: 13, color: '#DC2626', fontWeight: 600, marginBottom: 24 }}>This cannot be undone.</p>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button style={{ flex: 1, padding: '11px', background: '#DC2626', color: WH, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={onConfirm}>Yes, delete it</button>
+          <button style={{ flex: 1, padding: '11px', background: 'none', color: '#6B7280', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }} onClick={onCancel}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function SectionHead({ title, sub }) {
+  return (<div style={s.sectionHeadWrap}><h3 style={s.sectionHeadTitle}>{title}</h3><p style={s.sectionHeadSub}>{sub}</p></div>);
+}
+
+function formatDate(dateStr) {
+  return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+const s = {
+  page: { minHeight: '100vh', background: GREY, padding: '32px 24px 80px' },
+  wrap: { maxWidth: 900, margin: '0 auto' },
+  header: { marginBottom: 20 },
+  backBtn: { background: 'none', border: 'none', color: '#6B7280', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', padding: 0, marginBottom: 12, display: 'block' },
+  headerRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 },
+  headerLeft: {},
+  title: { fontSize: 'clamp(20px, 3vw, 28px)', fontWeight: 900, color: BL, letterSpacing: '-0.8px', marginBottom: 10 },
+  metaRow: { display: 'flex', gap: 8, flexWrap: 'wrap' },
+  industryBadge: { fontSize: 11, fontWeight: 700, background: '#EFF6FF', color: BLUE, padding: '3px 10px', borderRadius: 100 },
+  statusBadge: { fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 100 },
+  methodBox: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 },
+  methodBadge: { fontSize: 12, fontWeight: 700, padding: '5px 14px', borderRadius: 100 },
+  switchBtn: { fontSize: 12, fontWeight: 600, color: BLUE, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' },
+  methodPicker: { background: WH, border: '1px solid #E5E7EB', borderRadius: 16, padding: 24, marginBottom: 20 },
+  methodPickerTitle: { fontSize: 14, color: '#374151', lineHeight: 1.7, marginBottom: 16 },
+  methodPickerGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 },
+  methodPickerCard: { padding: 16, border: '2px solid', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' },
+  methodPickerName: { fontSize: 15, fontWeight: 800, marginBottom: 6 },
+  methodPickerReason: { fontSize: 13, color: '#6B7280', lineHeight: 1.6 },
+  tabBar: { display: 'flex', borderBottom: '1.5px solid #E5E7EB', marginBottom: 20, overflowX: 'auto' },
+  tabBtn: { padding: '10px 14px', background: 'none', border: 'none', borderBottom: '2px solid transparent', marginBottom: -1.5, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit' },
+  content: { background: WH, borderRadius: 20, padding: '28px', border: '1px solid #E5E7EB' },
+  sectionLabel: { fontSize: 11, fontWeight: 800, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 },
+  sectionHeadWrap: { marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid #F3F4F6' },
+  sectionHeadTitle: { fontSize: 18, fontWeight: 800, color: BL, marginBottom: 4, letterSpacing: '-0.3px' },
+  sectionHeadSub: { fontSize: 14, color: '#6B7280', lineHeight: 1.7 },
+  overviewGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 20 },
+  overviewCard: { background: GREY, borderRadius: 14, padding: '18px', border: '1px solid #E5E7EB' },
+  overviewLabel: { fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 },
+  overviewNum: { fontSize: 28, fontWeight: 900, color: BLUE, letterSpacing: '-1px', marginBottom: 6 },
+  overviewSub: { fontSize: 12, color: '#6B7280' },
+  miniBar: { height: 4, background: '#E5E7EB', borderRadius: 2, overflow: 'hidden', marginBottom: 6 },
+  miniBarFill: { height: '100%', background: BLUE, borderRadius: 2 },
+  approachCard: { borderRadius: 12, padding: '14px 16px', marginBottom: 20 },
+  approachLabel: { fontSize: 12, fontWeight: 800, marginBottom: 6 },
+  approachText: { fontSize: 14, color: '#374151', lineHeight: 1.7 },
+  overviewSection: { marginBottom: 20 },
+  goalCard: { background: GREY, borderRadius: 12, padding: '14px 16px', marginBottom: 16, border: '1px solid #E5E7EB' },
+  goalText: { fontSize: 15, color: BL, lineHeight: 1.7 },
+  smallEditBtn: { padding: '4px 12px', background: WH, color: '#374151', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  smallRefineBtn: { padding: '4px 12px', background: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  suggestionBox: { background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 10, padding: '12px 14px', marginTop: 10 },
+  suggestionLabel: { fontSize: 10, fontWeight: 700, color: '#15803D', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 },
+  suggestionText: { fontSize: 14, color: '#166534', lineHeight: 1.7 },
+  acceptBtn: { padding: '5px 14px', background: '#15803D', color: WH, border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  dismissBtn: { padding: '5px 12px', background: 'none', color: '#6B7280', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
+  milestoneRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: GREY, borderRadius: 10, marginBottom: 8, border: '1px solid #E5E7EB' },
+  milestoneCard: { display: 'flex', alignItems: 'center', gap: 12, padding: '12px', background: GREY, borderRadius: 10, marginBottom: 8, border: '1px solid #E5E7EB', flexWrap: 'wrap' },
+  milestoneCheck: { width: 20, height: 20, borderRadius: '50%', border: '2px solid', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  milestoneName: { fontSize: 14, fontWeight: 600, color: BL, marginBottom: 2 },
+  milestoneDate: { fontSize: 12, color: '#9CA3AF' },
+  complianceAlert: { background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 12, padding: '14px 16px', marginBottom: 20 },
+  complianceAlertTitle: { fontSize: 11, fontWeight: 800, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 },
+  complianceFlag: { fontSize: 13, color: '#92400E', lineHeight: 1.7 },
+  pill: { fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 100, whiteSpace: 'nowrap' },
+  input: { width: '100%', border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '11px 14px', fontSize: 14, fontFamily: 'inherit', marginBottom: 14, boxSizing: 'border-box', color: BL, outline: 'none', background: WH },
+  textarea: { width: '100%', border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '11px 14px', fontSize: 14, fontFamily: 'inherit', marginBottom: 14, boxSizing: 'border-box', color: BL, outline: 'none', resize: 'vertical', lineHeight: 1.65, background: WH },
+  select: { padding: '11px 12px', border: '1.5px solid #E5E7EB', borderRadius: 8, fontSize: 13, fontFamily: 'inherit', color: BL, outline: 'none', background: WH },
+  label: { display: 'block', fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 },
+  addRow: { display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16 },
+  addBtn: { padding: '11px 20px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 },
+  primaryBtn: { padding: '11px 22px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 16, display: 'inline-block' },
+  addCard: { background: GREY, borderRadius: 14, padding: 20, border: '1px solid #E5E7EB', marginBottom: 20 },
+  emptyText: { fontSize: 14, color: '#9CA3AF', textAlign: 'center', padding: '24px 0' },
+  removeSmallBtn: { background: 'none', border: 'none', color: '#D1D5DB', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit', flexShrink: 0 },
+  checkBtn: { width: 22, height: 22, borderRadius: '50%', border: '2px solid', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, background: WH },
+  epicCard: { background: GREY, borderRadius: 14, border: '1px solid #E5E7EB', marginBottom: 10, overflow: 'hidden' },
+  epicHeader: { display: 'flex', alignItems: 'center', padding: '14px 16px' },
+  epicToggle: { flex: 1, display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' },
+  epicArrow: { fontSize: 10, color: '#9CA3AF', flexShrink: 0 },
+  epicTitle: { fontSize: 15, fontWeight: 700, color: BL, flex: 1 },
+  epicCount: { fontSize: 11, color: '#9CA3AF', fontWeight: 600 },
+  epicBody: { padding: '16px', borderTop: '1px solid #E5E7EB' },
+  storyRow: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #F3F4F6' },
+  storyTitle: { flex: 1, fontSize: 13, fontWeight: 600 },
+  sprintCard: { background: GREY, borderRadius: 14, padding: '18px', border: '1px solid #E5E7EB', marginBottom: 10 },
+  sprintHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
+  sprintNum: { fontSize: 11, fontWeight: 800, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 },
+  sprintGoal: { fontSize: 15, fontWeight: 700, color: BL, marginBottom: 4 },
+  sprintMeta: { fontSize: 12, color: '#9CA3AF' },
+  sprintActions: { display: 'flex', gap: 8 },
+  sprintBtn: { padding: '7px 14px', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', background: WH, color: '#374151', whiteSpace: 'nowrap' },
+  retroCard: { background: GREY, borderRadius: 14, padding: '20px', border: '1px solid #E5E7EB', marginBottom: 12 },
+  retroHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  retroCycle: { fontSize: 14, fontWeight: 800, color: BL },
+  retroDate: { fontSize: 12, color: '#9CA3AF' },
+  retroSection: { marginBottom: 12 },
+  retroSectionLabel: { fontSize: 11, fontWeight: 800, color: BLUE, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 },
+  retroText: { fontSize: 14, color: '#374151', lineHeight: 1.7 },
+  stakeholderCard: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px', background: GREY, borderRadius: 12, border: '1px solid #E5E7EB', marginBottom: 10 },
+  stakeholderLeft: { display: 'flex', alignItems: 'flex-start', gap: 12 },
+  stakeholderRight: { display: 'flex', alignItems: 'center', gap: 8 },
+  stakeholderComms: { fontSize: 12, color: '#6B7280', marginTop: 4 },
+  memberAvatar: { width: 36, height: 36, borderRadius: '50%', background: BLUE, color: WH, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, flexShrink: 0 },
+  memberName: { fontSize: 14, fontWeight: 700, color: BL, marginBottom: 2 },
+  memberRole: { fontSize: 12, color: '#6B7280' },
+  scopeSection: { marginBottom: 24 },
+  scopeLabel: { fontSize: 13, fontWeight: 800, color: BL, marginBottom: 4 },
+  scopeHint: { fontSize: 13, color: '#6B7280', lineHeight: 1.65, marginBottom: 12 },
+  scopeItem: { display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 0', borderBottom: '1px solid #F3F4F6' },
+  scopeDot: { width: 8, height: 8, borderRadius: '50%', background: BLUE, flexShrink: 0, marginTop: 5 },
+  scopeItemText: { flex: 1, fontSize: 14, color: BL, lineHeight: 1.6 },
+  planningSection: { marginBottom: 24 },
+  riskCard: { display: 'flex', alignItems: 'center', gap: 12, padding: '12px', background: GREY, borderRadius: 10, marginBottom: 8, border: '1px solid #E5E7EB' },
+  riskTitle: { flex: 1, fontSize: 14, fontWeight: 600 },
+  timelineRange: { display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, background: GREY, borderRadius: 12, padding: '18px' },
+  timelineDateLabel: { fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 },
+  timelineDateVal: { fontSize: 15, fontWeight: 800, color: BL },
+  insightsSection: { marginTop: 28, paddingTop: 24, borderTop: '1px solid #F3F4F6' },
+  insightCard: { background: GREY, borderRadius: 12, padding: '16px 18px', border: '1px solid #E5E7EB' },
+  insightIcon: { fontSize: 16, width: 28, height: 28, background: WH, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #E5E7EB', flexShrink: 0 },
+  insightTitle: { fontSize: 13, fontWeight: 700, color: BL },
+  aiBadge: { fontSize: 10, fontWeight: 600, color: BLUE, background: '#EFF6FF', padding: '2px 7px', borderRadius: 100, display: 'inline-block', marginTop: 2 },
+  editedBadge: { fontSize: 10, fontWeight: 600, color: '#D97706', background: '#FFFBEB', padding: '2px 7px', borderRadius: 100, display: 'inline-block', marginTop: 2 },
+  insightSmBtn: { padding: '4px 10px', background: WH, color: '#374151', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+};function ReportsTab({ data, project }) {
+  const [activeSection, setActiveSection] = useState('reports');
+  const [reportType, setReportType] = useState('progress');
+  const [generating, setGenerating] = useState(false);
+  const [reportContent, setReportContent] = useState('');
+  const [reportTitle, setReportTitle] = useState('');
+  const [additionalContext, setAdditionalContext] = useState('');
+  const [generatedAt, setGeneratedAt] = useState('');
+  const [generatedBy, setGeneratedBy] = useState('');
+  const [savedDocs, setSavedDocs] = useState([]);
+  const [loadingDocs, setLoadingDocs] = useState(true);
+  const [viewingDoc, setViewingDoc] = useState(null);
+  const [aiReport, setAiReport] = useState(data.ai_health_check || null);
+  const [aiReportLoading, setAiReportLoading] = useState(false);
+  const [aiReportError, setAiReportError] = useState(null);
+  const [docGenerating, setDocGenerating] = useState(null);
+  const [docPreview, setDocPreview] = useState(null);
+  const [docPreviewType, setDocPreviewType] = useState(null);
+  const [benefits, setBenefits] = useState({ problem: '', affectedPeople: '', expectedRevenue: '', socialImpact: '', strategicAlignment: '', successMetrics: '', timeToValue: '', accountable: '' });
+  const [showBenefitsForm, setShowBenefitsForm] = useState(false);
+
+  const REPORT_TYPES = [
+    { id: 'progress', label: 'Progress Update', desc: 'What has been achieved, what is still pending and what comes next. For managers, boards or steering committees.' },
+    { id: 'donor', label: 'Funder or Grant Report', desc: 'Results against the objectives you were funded to deliver. For grant bodies, donors, sponsors or investors.' },
+  ];
+
+  const SECTIONS = [
+    { id: 'reports', label: 'Reports' },
+    { id: 'health', label: 'Health Check' },
+    { id: 'pm_plan', label: 'PM Plan' },
+    { id: 'benefits', label: 'Benefits Doc' },
+    { id: 'saved', label: 'Saved Documents' },
+  ];
+
+  const milestones = data.milestones || [];
+  const doneMilestones = milestones.filter(m => m.status === 'done');
+  const pendingMilestones = milestones.filter(m => m.status !== 'done');
+  const risks = data.risks || [];
+  const openRisks = risks.filter(r => r.status === 'open');
+
+  const fetchDocs = async () => {
+    setLoadingDocs(true);
+    const { data: docs } = await supabase.from('documents').select('*').eq('project_id', project.id).order('updated_at', { ascending: false });
+    setSavedDocs(docs || []);
+    setLoadingDocs(false);
+  };
+
+  useEffect(() => { fetchDocs(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const projectContext = `
+Project Name: ${data.name}
+Industry: ${data.industry || 'Not specified'}
+Goal: ${data.scope?.goal || data.description || 'Not specified'}
+Description: ${data.description || 'Not specified'}
+Start Date: ${data.timeline?.start ? new Date(data.timeline.start).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Not set'}
+End Date: ${data.timeline?.end ? new Date(data.timeline.end).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Not set'}
+Methodology: ${data.methodology || 'Not specified'}
+Team: ${(data.team || []).map(m => `${m.name} (${m.role})`).join(', ') || 'Not specified'}
+Milestones Completed (${doneMilestones.length}): ${doneMilestones.map(m => m.title).join(', ') || 'None yet'}
+Milestones Remaining (${pendingMilestones.length}): ${pendingMilestones.map(m => m.title).join(', ') || 'None'}
+Open Risks (${openRisks.length}): ${openRisks.map(r => `${r.title} (${r.level})`).join(', ') || 'None'}
+Current Phase: ${data.scope?.currentPhase || 'Not specified'}
+What Has Been Done: ${data.scope?.completedWork || 'Not specified'}
+What Remains: ${data.scope?.remainingWork || 'Not specified'}
+Blockers: ${data.scope?.blockers || 'None'}`.trim();
+
+  const saveToDocuments = async (html, title, type) => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData?.session?.user) {
+        await supabase.from('documents').insert({
+          user_id: sessionData.session.user.id,
+          project_id: project.id,
+          project_name: data.name,
+          type: type || 'report',
+          title,
+          content: html,
+        });
+        fetchDocs();
+      }
+    } catch (err) { console.error('Save doc error:', err); }
+  };
+
+  const generateReport = async () => {
+    setGenerating(true);
+    setReportContent('');
+    const prompts = {
+      progress: `You are a professional project manager writing a progress report for stakeholders. Write a clear, structured progress report in HTML format.
+
+${projectContext}${additionalContext ? '
+Additional Context: ' + additionalContext : ''}
+
+Sections: Executive Summary, Progress Against Objectives, Milestones Achieved, Milestones Remaining, Risks and Issues, Next Steps.
+
+Use <h1> for title, <h2> for sections, <p> for paragraphs. No html/head/body tags. No markdown.`,
+      donor: `You are a professional project manager writing a funder report. Write a formal report in HTML format.
+
+${projectContext}${additionalContext ? '
+Additional Context: ' + additionalContext : ''}
+
+Sections: Report Title and Period, Project Overview, Activities and Outputs, Outcomes and Results, Challenges and How They Were Addressed, Financial Summary (note if budget data unavailable), Upcoming Activities, Conclusion.
+
+Use <h1> for title, <h2> for sections, <p> for paragraphs. Formal English. No html/head/body tags. No markdown.`,
+    };
+    const label = REPORT_TYPES.find(r => r.id === reportType)?.label || 'Report';
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    const byName = project._currentUser?.user_metadata?.first_name || project._currentUser?.email || 'You';
+    setReportTitle(`${data.name} — ${label}`);
+    try {
+      const authHeader = await getAuthHeader();
+      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader }, body: JSON.stringify({ prompt: prompts[reportType], mode: 'document' }) });
+      const result = await res.json();
+      const html = (result.result || '').replace(/```html|```/g, '').trim();
+      if (html && html.length > 100) {
+        setReportContent(html);
+        setGeneratedAt(dateStr + ' at ' + timeStr);
+        setGeneratedBy(byName);
+        await saveToDocuments(html, `${data.name} — ${label} — ${dateStr}`, 'report');
+      } else { setReportContent('<p>Could not generate report. Please try again.</p>'); }
+    } catch { setReportContent('<p>Could not generate report. Please try again.</p>'); }
+    setGenerating(false);
+  };
+
+  const generateDoc = async (type) => {
+    setDocGenerating(type);
+    setDocPreview(null);
+    const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Not set';
+    const prompts = {
+      pm: `Write a Project Management Plan in HTML. Use h2 for headings, p for paragraphs. No html/head/body tags. Professional English.
+
+Project: ${data.name} | Industry: ${data.industry} | Approach: ${data.methodology}
+Description: ${data.description}
+Goal: ${data.scope?.goal}
+Timeline: ${formatDate(data.timeline?.start)} to ${formatDate(data.timeline?.end)}
+Team: ${(data.team || []).length > 0 ? (data.team || []).map(m => `${m.name} (${m.role})`).join(', ') : 'Solo project'}
+Risks: ${risks.map(r => `${r.title} (${r.level})`).join(', ') || 'None'}
+Milestones: ${milestones.map(m => `${m.title} due ${formatDate(m.date)}`).join(', ')}
+
+Sections: Executive Summary, Project Overview, Scope and Deliverables, Team and Responsibilities, Timeline and Milestones, Communication Plan, Risk Management, Definition of Done.`,
+      benefits: `Write a Benefits Management Document for investors and senior stakeholders in HTML. Use h2 for headings, p for paragraphs. No html/head/body tags. Professional English.
+
+Project: ${data.name} | Industry: ${data.industry}
+Goal: ${data.scope?.goal}
+Description: ${data.description}
+Timeline: ${formatDate(data.timeline?.start)} to ${formatDate(data.timeline?.end)}
+Problem: ${benefits.problem || 'See project description'}
+People Affected: ${benefits.affectedPeople || 'Not specified'}
+Expected Revenue: ${benefits.expectedRevenue || 'Not specified'}
+Social Impact: ${benefits.socialImpact || 'Not specified'}
+Success Metrics: ${benefits.successMetrics || 'Not specified'}
+
+Sections: Executive Summary, The Problem We Are Solving, The Solution and Its Value, Expected Benefits, How We Will Measure Success, Timeline to Benefits Realisation, Risks to Benefits Delivery, Why This Investment Matters.`,
+    };
+    try {
+      const authHeader = await getAuthHeader();
+      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader }, body: JSON.stringify({ prompt: prompts[type], mode: 'document' }) });
+      const result = await res.json();
+      const html = (result.result || '').replace(/```html|```/g, '').trim();
+      if (html && html.length > 100) {
+        setDocPreview(html);
+        setDocPreviewType(type);
+        const title = type === 'pm' ? 'Project Management Plan' : 'Benefits Management Document';
+        await saveToDocuments(html, `${data.name} — ${title} — ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`, type);
+      }
+    } catch (err) { console.error(err); }
+    setDocGenerating(null);
+  };
+
+  const runAiReport = async () => {
+    setAiReportLoading(true);
+    setAiReport(null);
+    setAiReportError(null);
+    let freshProject = data;
+    try { const { data: fp } = await supabase.from('pm_projects').select('*').eq('id', data.id).single(); if (fp) freshProject = fp; } catch (e) {}
+    let acceptedMembers = [];
+    try { const { data: members } = await supabase.from('project_members').select('*').eq('project_id', data.id).eq('status', 'accepted'); acceptedMembers = members || []; } catch (e) {}
+    const scope = freshProject.scope || {};
+    const fRisks = freshProject.risks || [];
+    const fMilestones = freshProject.milestones || [];
+    const wizardTeam = freshProject.team || [];
+    const planning = freshProject.planning || {};
+    const totalTeamSize = 1 + acceptedMembers.length;
+    const teamDescription = acceptedMembers.length > 0 ? `Owner + ${acceptedMembers.length} accepted member(s): ${acceptedMembers.map(m => `${m.email} (${m.role})`).join(', ')}` : wizardTeam.length > 0 ? wizardTeam.map(m => `${m.name} (${m.role})`).join(', ') : 'Solo — no team members added yet';
+    const hasGoal = !!(scope.goal && scope.goal.trim().length > 20);
+    const hasTimeline = !!(freshProject.timeline?.start && freshProject.timeline?.end);
+    const hasMilestones = fMilestones.length >= 2;
+    const hasRisks = fRisks.length >= 1;
+    const hasTeam = totalTeamSize > 1 || wizardTeam.length > 0;
+    const hasDescription = !!(freshProject.description && freshProject.description.trim().length > 30);
+    const hasCommunicationPlan = !!(planning.communications && planning.communications.trim().length > 10);
+    const filledFields = [hasGoal, hasTimeline, hasMilestones, hasRisks, hasTeam, hasDescription, hasCommunicationPlan].filter(Boolean).length;
+    const baseScore = Math.round((filledFields / 7) * 100);
+    const prompt = `You are a senior PMP-certified project manager doing an honest health check. Be specific and reference actual project details.
+
+Project: ${freshProject.name}
+Industry: ${freshProject.industry}
+Goal: ${scope.goal || 'NOT SET'}
+Team: ${teamDescription}
+Risks: ${fRisks.length > 0 ? fRisks.map(r => `${r.title} (${r.level})`).join(', ') : 'NONE'}
+Milestones: ${fMilestones.length > 0 ? fMilestones.map(m => `${m.title} (${m.status})`).join(', ') : 'NONE'}
+Timeline: ${freshProject.timeline?.start || 'NOT SET'} to ${freshProject.timeline?.end || 'NOT SET'}
+
+Base score: ${baseScore}/100 from ${filledFields}/7 fields filled.
+
+Respond ONLY with JSON (no markdown):
+{"score":${baseScore},"verdict":"${baseScore >= 70 ? 'Almost ready' : baseScore >= 45 ? 'Needs more work' : 'Not ready yet'}","strengths":[{"title":"strength","detail":"specific detail max 25 words"}],"gaps":[{"title":"gap","why":"why it matters max 20 words","howToFix":"concrete step max 20 words"}],"recommendation":"one specific sentence referencing ${freshProject.name}","readyToDocument":${baseScore >= 65}}`;
+    try {
+      const authHeader = await getAuthHeader();
+      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader }, body: JSON.stringify({ prompt }) });
+      if (!res.ok) { setAiReportError('AI is busy right now. Please try again.'); setAiReportLoading(false); return; }
+      const result = await res.json();
+      if (result.result) {
+        const clean = result.result.replace(/```json|```/g, '').trim();
+        const parsed = JSON.parse(clean.substring(clean.indexOf('{'), clean.lastIndexOf('}') + 1));
+        setAiReport(parsed);
+        await supabase.from('pm_projects').update({ ai_health_check: parsed }).eq('id', data.id);
+      }
+    } catch (err) { setAiReportError('Something went wrong. Please try again.'); }
+    setAiReportLoading(false);
+  };
+
+  const buildPrintHTML = (html, title) => `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title><style>body{font-family:Georgia,serif;max-width:800px;margin:40px auto;padding:0 40px;color:#1a1a1a;line-height:1.7;}h1{font-size:24px;color:#0a0a0a;}h2{font-size:16px;color:#0284C7;text-transform:uppercase;letter-spacing:0.08em;margin-top:28px;border-bottom:1px solid #e5e7eb;padding-bottom:6px;}p{font-size:14px;margin-bottom:12px;}ul{margin:0 0 16px 20px;}li{font-size:14px;margin-bottom:6px;}@media print{body{margin:0;padding:20px;}}</style></head><body>${html}<p style="margin-top:40px;font-size:12px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:16px;">Generated by PM Buddy · ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p></body></html>`;
+
+  const downloadPDF = (html, title) => { const w = window.open('', '_blank'); w.document.write(buildPrintHTML(html, title)); w.document.close(); w.focus(); setTimeout(() => w.print(), 500); };
+  const downloadWord = (html, title) => { const blob = new Blob([buildPrintHTML(html, title)], { type: 'application/msword' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${title.replace(/\s+/g, '_')}.doc`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); };
+  const deleteDoc = async (id) => { await supabase.from('documents').delete().eq('id', id); fetchDocs(); };
+
+  return (
+    <div>
+      <SectionHead title="Reports & Documents" sub="Generate reports and documents from your live project data. Everything is saved automatically." />
+
+      {/* Section nav */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 24, flexWrap: 'wrap' }}>
+        {SECTIONS.map(sec => (
+          <button key={sec.id} style={{ padding: '7px 16px', background: activeSection === sec.id ? BL : WH, color: activeSection === sec.id ? WH : '#374151', border: `1px solid ${activeSection === sec.id ? BL : '#E5E7EB'}`, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setActiveSection(sec.id)}>{sec.label}</button>
+        ))}
+      </div>
+
+      {/* REPORTS */}
+      {activeSection === 'reports' && (
+        <div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+            {REPORT_TYPES.map(rt => (
+              <button key={rt.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 16px', background: reportType === rt.id ? '#EFF6FF' : WH, border: `1.5px solid ${reportType === rt.id ? BLUE : '#E5E7EB'}`, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }} onClick={() => { setReportType(rt.id); setReportContent(''); }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: reportType === rt.id ? BLUE : '#D1D5DB', flexShrink: 0, marginTop: 5 }} />
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: reportType === rt.id ? BLUE : BL, marginBottom: 2 }}>{rt.label}</p>
+                  <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>{rt.desc}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>Additional context (optional)</label>
+            <textarea style={{ width: '100%', border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '11px 14px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', resize: 'vertical', lineHeight: 1.65, background: WH, minHeight: 70 }} placeholder="e.g. Reporting period is April to June. Focus on beneficiary outcomes. Funder requires results against each objective." value={additionalContext} onChange={e => setAdditionalContext(e.target.value)} rows={2} />
+          </div>
+          <button style={{ padding: '12px 28px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: generating ? 0.6 : 1, marginBottom: 20 }} onClick={generateReport} disabled={generating}>{generating ? 'Generating...' : '✦ Generate Report'}</button>
+          {generating && <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px', background: '#EFF6FF', borderRadius: 10, marginBottom: 20 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: BLUE }} /><p style={{ fontSize: 14, color: BLUE }}>PM Buddy is writing your report from live project data...</p></div>}
+          {reportContent && !generating && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+                <div><p style={{ fontSize: 13, fontWeight: 700, color: '#15803D' }}>✓ Report ready</p>{generatedAt && <p style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>Generated {generatedAt} by {generatedBy}</p>}</div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button style={{ padding: '8px 16px', background: WH, color: BLUE, border: `1.5px solid ${BLUE}`, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadWord(reportContent, reportTitle)}>⬇ Word</button>
+                  <button style={{ padding: '8px 16px', background: BL, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadPDF(reportContent, reportTitle)}>⬇ PDF</button>
+                </div>
+              </div>
+              <div style={{ background: WH, border: '1px solid #E5E7EB', borderRadius: 12, padding: '28px 32px', fontSize: 14, lineHeight: 1.8, color: '#374151', fontFamily: 'Georgia, serif', maxHeight: '55vh', overflowY: 'auto' }} dangerouslySetInnerHTML={{ __html: reportContent }} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* HEALTH CHECK */}
+      {activeSection === 'health' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+            <div><p style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.6 }}>PM Buddy reads your latest project data and gives you an honest score with specific gaps to fix.</p></div>
+            <button style={{ padding: '10px 20px', background: BL, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }} onClick={runAiReport} disabled={aiReportLoading}>{aiReportLoading ? 'Reviewing...' : aiReport ? 'Run Again' : 'Run Health Check'}</button>
+          </div>
+          {aiReportLoading && <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px', background: GREY, borderRadius: 10 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: BLUE }} /><p style={{ fontSize: 13, color: '#6B7280' }}>Fetching latest project data and reviewing...</p></div>}
+          {aiReportError && <div style={{ padding: '12px 14px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8 }}><p style={{ fontSize: 13, color: '#DC2626' }}>{aiReportError}</p></div>}
+          {aiReport && !aiReportLoading && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+                <span style={{ fontSize: 48, fontWeight: 900, color: aiReport.score >= 70 ? '#15803D' : aiReport.score >= 45 ? BLUE : '#DC2626', letterSpacing: '-2px' }}>{aiReport.score}</span>
+                <div><span style={{ fontSize: 14, color: '#9CA3AF' }}>/100</span><br /><span style={{ fontSize: 13, fontWeight: 700, padding: '3px 10px', borderRadius: 100, background: aiReport.readyToDocument ? '#F0FDF4' : aiReport.score >= 45 ? '#FFFBEB' : '#FEF2F2', color: aiReport.readyToDocument ? '#15803D' : aiReport.score >= 45 ? '#D97706' : '#DC2626' }}>{aiReport.verdict}</span></div>
+              </div>
+              {aiReport.strengths?.length > 0 && <div style={{ marginBottom: 16 }}><p style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>What is working</p>{aiReport.strengths.map((item, i) => <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid #F0FDF4' }}><div style={{ width: 6, height: 6, borderRadius: '50%', background: '#15803D', flexShrink: 0, marginTop: 6 }} /><div><p style={{ fontSize: 13, fontWeight: 600, color: BL, marginBottom: 2 }}>{item.title}</p>{item.detail && <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.6 }}>{item.detail}</p>}</div></div>)}</div>}
+              {aiReport.gaps?.length > 0 && <div style={{ marginBottom: 16 }}><p style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>What needs attention</p>{aiReport.gaps.map((item, i) => <div key={i} style={{ marginBottom: 10, padding: '12px 14px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8 }}><p style={{ fontSize: 13, fontWeight: 600, color: BL, marginBottom: 4 }}>{item.title}</p>{item.why && <p style={{ fontSize: 13, color: '#92400E', lineHeight: 1.6, marginBottom: 6 }}><strong>Why it matters:</strong> {item.why}</p>}{item.howToFix && <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.6 }}><strong>How to fix it:</strong> {item.howToFix}</p>}</div>)}</div>}
+              {aiReport.recommendation && <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8, padding: '12px 14px' }}><p style={{ fontSize: 11, fontWeight: 700, color: BLUE, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Top recommendation</p><p style={{ fontSize: 13, color: '#1E40AF', lineHeight: 1.65 }}>{aiReport.recommendation}</p></div>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* PM PLAN */}
+      {activeSection === 'pm_plan' && (
+        <div>
+          <p style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.7, marginBottom: 20 }}>The full internal document for your team. Covers scope, timeline, milestones, team roles, risks and communication plan. Generated from your live project data.</p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
+            {['Project Overview', 'Scope and Deliverables', 'Team and Roles', 'Timeline', 'Communication Plan', 'Risk Register'].map((tag, i) => <span key={i} style={{ fontSize: 11, fontWeight: 600, background: '#EFF6FF', color: BLUE, padding: '3px 10px', borderRadius: 100 }}>{tag}</span>)}
+          </div>
+          <button style={{ padding: '12px 24px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: docGenerating === 'pm' ? 0.6 : 1, marginBottom: 20 }} onClick={() => generateDoc('pm')} disabled={!!docGenerating}>{docGenerating === 'pm' ? 'Writing document...' : 'Generate PM Plan'}</button>
+          {docGenerating === 'pm' && <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 16 }}>PM Buddy is writing your project management plan. This can take up to 1 minute.</p>}
+          {docPreview && docPreviewType === 'pm' && (
+            <div>
+              <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+                <button style={{ padding: '8px 16px', background: WH, color: BLUE, border: `1.5px solid ${BLUE}`, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadWord(docPreview, `${data.name} — Project Management Plan`)}>⬇ Word</button>
+                <button style={{ padding: '8px 16px', background: BL, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadPDF(docPreview, `${data.name} — Project Management Plan`)}>⬇ PDF</button>
+              </div>
+              <div style={{ background: WH, border: '1px solid #E5E7EB', borderRadius: 12, padding: '28px 32px', fontSize: 14, lineHeight: 1.8, color: '#374151', fontFamily: 'Georgia, serif', maxHeight: '55vh', overflowY: 'auto' }} dangerouslySetInnerHTML={{ __html: docPreview }} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* BENEFITS DOC */}
+      {activeSection === 'benefits' && (
+        <div>
+          <p style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.7, marginBottom: 16 }}>For investors, sponsors and senior stakeholders. Focused on why this project matters, what it delivers and what return to expect.</p>
+          <button style={{ background: 'none', border: 'none', color: BLUE, fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', padding: 0, textDecoration: 'underline', marginBottom: 12, display: 'block' }} onClick={() => setShowBenefitsForm(p => !p)}>{showBenefitsForm ? '▲ Hide extra details' : '▼ Add details for investors'}</button>
+          {showBenefitsForm && (
+            <div style={{ background: GREY, borderRadius: 12, padding: 16, border: '1px solid #E5E7EB', marginBottom: 16 }}>
+              {[{ key: 'problem', label: 'What problem does this solve?' }, { key: 'affectedPeople', label: 'Who is affected and how many?' }, { key: 'expectedRevenue', label: 'Expected revenue or financial return?' }, { key: 'socialImpact', label: 'Social or community impact?' }, { key: 'successMetrics', label: 'How will you measure success?' }].map(({ key, label }) => (
+                <div key={key} style={{ marginBottom: 12 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 4 }}>{label}</label>
+                  <textarea style={{ width: '100%', border: '1.5px solid #E5E7EB', borderRadius: 8, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', resize: 'vertical', background: WH }} rows={2} value={benefits[key]} onChange={e => setBenefits(p => ({ ...p, [key]: e.target.value }))} />
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+            {['Problem Statement', 'Expected Benefits', 'Business Case', 'Success Metrics'].map((tag, i) => <span key={i} style={{ fontSize: 11, fontWeight: 600, background: '#F5F3FF', color: '#7C3AED', padding: '3px 10px', borderRadius: 100 }}>{tag}</span>)}
+          </div>
+          <button style={{ padding: '12px 24px', background: '#7C3AED', color: WH, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: docGenerating === 'benefits' ? 0.6 : 1, marginBottom: 20 }} onClick={() => generateDoc('benefits')} disabled={!!docGenerating}>{docGenerating === 'benefits' ? 'Writing document...' : 'Generate Benefits Document'}</button>
+          {docGenerating === 'benefits' && <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 16 }}>PM Buddy is writing your benefits document. This can take up to 1 minute.</p>}
+          {docPreview && docPreviewType === 'benefits' && (
+            <div>
+              <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+                <button style={{ padding: '8px 16px', background: WH, color: '#7C3AED', border: '1.5px solid #7C3AED', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadWord(docPreview, `${data.name} — Benefits Management Document`)}>⬇ Word</button>
+                <button style={{ padding: '8px 16px', background: BL, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadPDF(docPreview, `${data.name} — Benefits Management Document`)}>⬇ PDF</button>
+              </div>
+              <div style={{ background: WH, border: '1px solid #E5E7EB', borderRadius: 12, padding: '28px 32px', fontSize: 14, lineHeight: 1.8, color: '#374151', fontFamily: 'Georgia, serif', maxHeight: '55vh', overflowY: 'auto' }} dangerouslySetInnerHTML={{ __html: docPreview }} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* SAVED DOCUMENTS */}
+      {activeSection === 'saved' && (
+        <div>
+          {loadingDocs && <p style={{ fontSize: 14, color: '#9CA3AF', padding: '24px 0' }}>Loading...</p>}
+          {!loadingDocs && savedDocs.length === 0 && <div style={{ textAlign: 'center', padding: '48px 0' }}><p style={{ fontSize: 15, fontWeight: 600, color: BL, marginBottom: 6 }}>No saved documents yet</p><p style={{ fontSize: 13, color: '#9CA3AF' }}>Generate a report or document and it will appear here automatically.</p></div>}
+          {!loadingDocs && savedDocs.map(doc => (
+            <div key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid #F3F4F6', flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: doc.type === 'report' ? '#EFF6FF' : doc.type === 'benefits' ? '#F5F3FF' : '#EFF6FF', color: doc.type === 'benefits' ? '#7C3AED' : BLUE, display: 'inline-block', marginBottom: 4 }}>{doc.type === 'report' ? 'Report' : doc.type === 'pm' ? 'PM Plan' : doc.type === 'benefits' ? 'Benefits Doc' : 'Document'}</span>
+                <p style={{ fontSize: 14, fontWeight: 600, color: BL, marginBottom: 2 }}>{doc.title}</p>
+                <p style={{ fontSize: 12, color: '#9CA3AF' }}>Saved {new Date(doc.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button style={{ padding: '6px 14px', background: WH, color: BL, border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setViewingDoc(doc)}>Open</button>
+                <button style={{ padding: '6px 14px', background: WH, color: BLUE, border: `1px solid ${BLUE}`, borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadWord(doc.content, doc.title)}>Word</button>
+                <button style={{ padding: '6px 14px', background: BL, color: WH, border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadPDF(doc.content, doc.title)}>PDF</button>
+                <button style={{ padding: '6px 12px', background: 'none', color: '#DC2626', border: '1px solid #FECACA', borderRadius: 6, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => deleteDoc(doc.id)}>Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {viewingDoc && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px', overflowY: 'auto' }}>
+          <div style={{ background: WH, borderRadius: 16, width: '100%', maxWidth: 800, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 24px', borderBottom: '1px solid #E5E7EB' }}>
+              <p style={{ fontSize: 15, fontWeight: 700, color: BL }}>{viewingDoc.title}</p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button style={{ padding: '7px 14px', background: WH, color: BLUE, border: `1px solid ${BLUE}`, borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadWord(viewingDoc.content, viewingDoc.title)}>⬇ Word</button>
+                <button style={{ padding: '7px 14px', background: BL, color: WH, border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadPDF(viewingDoc.content, viewingDoc.title)}>⬇ PDF</button>
+                <button style={{ padding: '7px 14px', background: WH, color: '#6B7280', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setViewingDoc(null)}>Close</button>
+              </div>
+            </div>
+            <div style={{ padding: '28px 36px', fontSize: 14, lineHeight: 1.8, color: '#374151', fontFamily: 'Georgia, serif', maxHeight: '70vh', overflowY: 'auto' }} dangerouslySetInnerHTML={{ __html: viewingDoc.content }} />
           </div>
         </div>
       )}
