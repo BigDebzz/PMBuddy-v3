@@ -1649,22 +1649,8 @@ Blockers: ${data.scope?.blockers || 'None'}`.trim();
     setGenerating(true);
     setReportContent('');
     const prompts = {
-      progress: `You are a professional project manager writing a progress report for stakeholders. Write a clear, structured progress report in HTML format.
-
-${projectContext}${additionalContext ? '
-Additional Context: ' + additionalContext : ''}
-
-Sections: Executive Summary, Progress Against Objectives, Milestones Achieved, Milestones Remaining, Risks and Issues, Next Steps.
-
-Use <h1> for title, <h2> for sections, <p> for paragraphs. No html/head/body tags. No markdown.`,
-      donor: `You are a professional project manager writing a funder report. Write a formal report in HTML format.
-
-${projectContext}${additionalContext ? '
-Additional Context: ' + additionalContext : ''}
-
-Sections: Report Title and Period, Project Overview, Activities and Outputs, Outcomes and Results, Challenges and How They Were Addressed, Financial Summary (note if budget data unavailable), Upcoming Activities, Conclusion.
-
-Use <h1> for title, <h2> for sections, <p> for paragraphs. Formal English. No html/head/body tags. No markdown.`,
+      progress: 'You are a professional project manager writing a progress report for stakeholders. Write a clear, structured progress report in HTML format.\n\n' + projectContext + (additionalContext ? '\nAdditional Context: ' + additionalContext : '') + '\n\nSections: Executive Summary, Progress Against Objectives, Milestones Achieved, Milestones Remaining, Risks and Issues, Next Steps.\n\nUse <h1> for title, <h2> for sections, <p> for paragraphs. No html/head/body tags. No markdown.',
+      donor: 'You are a professional project manager writing a funder report. Write a formal report in HTML format.\n\n' + projectContext + (additionalContext ? '\nAdditional Context: ' + additionalContext : '') + '\n\nSections: Report Title and Period, Project Overview, Activities and Outputs, Outcomes and Results, Challenges and How They Were Addressed, Financial Summary (note if budget data unavailable), Upcoming Activities, Conclusion.\n\nUse <h1> for title, <h2> for sections, <p> for paragraphs. Formal English. No html/head/body tags. No markdown.',
     };
     const label = REPORT_TYPES.find(r => r.id === reportType)?.label || 'Report';
     const now = new Date();
@@ -1692,30 +1678,26 @@ Use <h1> for title, <h2> for sections, <p> for paragraphs. Formal English. No ht
     setDocPreview(null);
     const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Not set';
     const prompts = {
-      pm: `Write a Project Management Plan in HTML. Use h2 for headings, p for paragraphs. No html/head/body tags. Professional English.
-
-Project: ${data.name} | Industry: ${data.industry} | Approach: ${data.methodology}
-Description: ${data.description}
-Goal: ${data.scope?.goal}
-Timeline: ${formatDate(data.timeline?.start)} to ${formatDate(data.timeline?.end)}
-Team: ${(data.team || []).length > 0 ? (data.team || []).map(m => `${m.name} (${m.role})`).join(', ') : 'Solo project'}
-Risks: ${risks.map(r => `${r.title} (${r.level})`).join(', ') || 'None'}
-Milestones: ${milestones.map(m => `${m.title} due ${formatDate(m.date)}`).join(', ')}
-
-Sections: Executive Summary, Project Overview, Scope and Deliverables, Team and Responsibilities, Timeline and Milestones, Communication Plan, Risk Management, Definition of Done.`,
-      benefits: `Write a Benefits Management Document for investors and senior stakeholders in HTML. Use h2 for headings, p for paragraphs. No html/head/body tags. Professional English.
-
-Project: ${data.name} | Industry: ${data.industry}
-Goal: ${data.scope?.goal}
-Description: ${data.description}
-Timeline: ${formatDate(data.timeline?.start)} to ${formatDate(data.timeline?.end)}
-Problem: ${benefits.problem || 'See project description'}
-People Affected: ${benefits.affectedPeople || 'Not specified'}
-Expected Revenue: ${benefits.expectedRevenue || 'Not specified'}
-Social Impact: ${benefits.socialImpact || 'Not specified'}
-Success Metrics: ${benefits.successMetrics || 'Not specified'}
-
-Sections: Executive Summary, The Problem We Are Solving, The Solution and Its Value, Expected Benefits, How We Will Measure Success, Timeline to Benefits Realisation, Risks to Benefits Delivery, Why This Investment Matters.`,
+      pm: 'Write a Project Management Plan in HTML. Use h2 for headings, p for paragraphs. No html/head/body tags. Professional English.\n\n' +
+        'Project: ' + data.name + ' | Industry: ' + data.industry + ' | Approach: ' + data.methodology + '\n' +
+        'Description: ' + data.description + '\n' +
+        'Goal: ' + (data.scope?.goal || 'Not set') + '\n' +
+        'Timeline: ' + formatDate(data.timeline?.start) + ' to ' + formatDate(data.timeline?.end) + '\n' +
+        'Team: ' + ((data.team || []).length > 0 ? (data.team || []).map(m => m.name + ' (' + m.role + ')').join(', ') : 'Solo project') + '\n' +
+        'Risks: ' + (risks.map(r => r.title + ' (' + r.level + ')').join(', ') || 'None') + '\n' +
+        'Milestones: ' + milestones.map(m => m.title + ' due ' + formatDate(m.date)).join(', ') + '\n\n' +
+        'Sections: Executive Summary, Project Overview, Scope and Deliverables, Team and Responsibilities, Timeline and Milestones, Communication Plan, Risk Management, Definition of Done.',
+      benefits: 'Write a Benefits Management Document for investors and senior stakeholders in HTML. Use h2 for headings, p for paragraphs. No html/head/body tags. Professional English.\n\n' +
+        'Project: ' + data.name + ' | Industry: ' + data.industry + '\n' +
+        'Goal: ' + (data.scope?.goal || 'Not set') + '\n' +
+        'Description: ' + (data.description || 'Not specified') + '\n' +
+        'Timeline: ' + formatDate(data.timeline?.start) + ' to ' + formatDate(data.timeline?.end) + '\n' +
+        'Problem: ' + (benefits.problem || 'See project description') + '\n' +
+        'People Affected: ' + (benefits.affectedPeople || 'Not specified') + '\n' +
+        'Expected Revenue: ' + (benefits.expectedRevenue || 'Not specified') + '\n' +
+        'Social Impact: ' + (benefits.socialImpact || 'Not specified') + '\n' +
+        'Success Metrics: ' + (benefits.successMetrics || 'Not specified') + '\n\n' +
+        'Sections: Executive Summary, The Problem We Are Solving, The Solution and Its Value, Expected Benefits, How We Will Measure Success, Timeline to Benefits Realisation, Risks to Benefits Delivery, Why This Investment Matters.',
     };
     try {
       const authHeader = await getAuthHeader();
