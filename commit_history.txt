@@ -1,0 +1,438 @@
+94b8b6d Rename ProjectWorkspace (4).js to ProjectWorkspace.js
+0f672a9 Add files via upload
+ff7eb9a Delete src/components/ProjectWorkspace.js
+606749d Update ProjectWorkspace.js
+f71eef3 Update ProjectWorkspace.js
+acf8743 Update ProjectWorkspace.js
+8814f10 Update App.js
+36b84ad Update DocumentGenerator.js
+558d72a Update ProjectWorkspace.js
+77bf4fb Update ProjectWorkspace.js
+2643199 Update Dashboard.js
+e147fa2 Update ProjectWorkspace.js
+d7002b6 Update Dashboard.js
+1da7812 Update TeamTab.js
+ffcdc33 Update TeamTab.js
+79dfc50 Update App.js
+24cf5d5 Update TeamTab.js
+fbe8570 Update invite.js
+15c196f Update TeamTab.js
+fa26faa Update invite.js
+ff0d870 Update TeamTab.js
+79c1690 Update ProjectWorkspace.js
+e66b0a7 Update CampaignWizard.js
+2bb1a0f Update ProjectWizard.js
+24e75b9 Update ProjectWizard.js
+71918bc Update gemini.js
+3575f67 Update notify.js
+9ec9a95 Update ProjectWorkspace.js
+5f36285 Update PMBuddyAssistant.js
+858c1c3 Update notify.js
+bacc170 Update gemini.js
+20e772c Update ProjectWorkspace.js
+5761646 Update ProjectWorkspace.js
+09e2ddc Update ProjectWorkspace.js
+322dc2b Update Dashboard.js
+f29c32c Update ProjectWorkspace.js
+66aadef Update LandingScreen.js
+995f8bd Update Dashboard.js
+110a8ce Create about.html
+c87d9e6 Update Dashboard.js
+06a9f9b Update vercel.json
+5170056 Update check-inactive-users-weekly.js
+b005cec Create check-inactive-users-weekly.js
+3b2e7a2 Update ResultsDashboard.js
+aebd4bd Update CampaignWizard.js
+a486c46 Update CampaignWizard.js
+ef5ad7a Update ResultsDashboard.js
+2c8cc2a Update CampaignWizard.js
+869e668 Update ProjectWorkspace.js
+e0cc7d7 Update App.js
+c600d8b Update notify.js
+a317d5f Update notify.js
+cd1b373 Update check-inactive-users.js
+3e9ba1e Update AuthScreen.js
+af8cd96 Update vercel.json
+fde5cde Create check-inactive-users.js
+1b188a1 Update vercel.json
+14128db Update AuthScreen.js
+73d1e55 Update notify.js
+3d8ad74 Create terms.html
+c0374c3 Create privacy.html
+6f8bc4c Update AuthScreen.js
+8929412 Update App.js
+1fbe457 Update App.js
+30a96d6 Update App.js
+0e593a7 Update index.html
+1c8041b Update FeedbackButton.js
+b47fcf8 Update service-worker.js
+376c3a3 Update FeedbackButton.js
+21b4c8a Create FeedbackButton.js
+7c5f2ca Update DocumentGenerator.js
+218b02a Update Dashboard.js
+49b328f Add files via upload
+ad90ff2 Update PMBuddyAssistant.js
+d356107 Update index.html
+8c8dc41 Create manifest.json
+9f1b24e Add files via upload
+e761cd8 Update index.js
+e6ca015 Create serviceWorkerRegistration.js
+afce1c1 Update index.js
+c5ef318 Update AuthScreen.js
+39cca04 Update ProjectWorkspace.js
+0470387 Add files via upload
+4b389bc Delete src/components/PMBuddyAssistant
+25276da Update PMBuddyAssistant
+e4441f9 Update ProjectWorkspace.js
+9cc78a0 Create PMBuddyAssistant
+a24af8a Update ProjectWorkspace.js
+52688db Update Dashboard.js
+03c6b04 Update CampaignWizard.js
+5fd76fb Update Dashboard.js
+86534d6 Update Dashboard.js
+100186c Update Dashboard.js
+dd3b9f3 Update Dashboard.js
+ca0d2b8 Update App.js
+88b6bd7 Update App.js
+eb4a8c5 Update App.js
+4553d1d Update AuthScreen.js
+582d032 Update App.js
+106d3c0 Update App.js
+3245f2e Update AuthScreen.js
+0365f6b Update App.js
+013540c Update vercel.json
+4611f4c Update App.js
+90207c3 Update ProjectWorkspace.js
+497c121 Update check-milestones.js
+cafd4c5 Create notify.js
+1b7645a Update ProjectWorkspace.js
+2939595 Update TeamTab.js
+c5358e3 Update ProjectWorkspace.js
+06dab9b Rename ProjectWorkspace (2).js to ProjectWorkspace.js
+dc415d1 Delete src/components/ProjectWorkspace.js
+c5f1f6a Add files via upload
+0782163 Create ProjectWizard.js
+4a85fb6 Delete src/components/ProjectWizard.js
+4207c1b Delete src/components/ProjectWorkspace (2).js
+ec5dbce Update ProjectWizard.js
+5e2ff35 Add files via upload
+c87d588 Update Dashboard.js
+9ae5e5e Update Dashboard.js
+352b410 Update Dashboard.js
+027259c Update Dashboard.js
+a62dfa5 Update Dashboard.js
+99c09ee Update gemini.js
+eec392a Update gemini.js
+fc9ecfc Update gemini.js
+8fc1ef8 Update gemini.js
+d0fa2e0 Update gemini.js
+6bcdce8 Update gemini.js
+e07aeb7 Update ProjectWizard.js
+6a68226 Update ProjectWorkspace.js
+b06032c Update ProjectWorkspace.js
+b779da0 Update ProjectWizard.js
+4af088d Update ProjectWizard.js
+df83a16 Update TeamTab.js
+6252d30 Update ProjectWizard.js
+5f3b1d8 Update TeamTab.js
+5de4300 Update Dashboard.js
+726e7de Update Dashboard.js
+c643ce0 Update App.js
+8ceeb6e Update App.js
+1a67ac2 Update App.js
+750d6ed Update Dashboard.js
+6d96cba Update App.js
+3b20d22 Update App.js
+703d6b8 Update Dashboard.js
+6826c26 Update App.js
+25a95ad Update QuickDoc.js
+2a6f0d7 Rename Invite.js to invite.js
+581d02c Update vercel.json
+508256c Update vercel.json
+4b2a61a Update TeamTab.js
+25a5d71 Update Invite.js
+1ee09b9 Update Invite.js
+21d9a53 Update Invite.js
+d295418 Update ProjectWizard.js
+72f0249 Update ProjectWizard.js
+a3dff75 Update ProjectWorkspace.js
+06742ff Update ProjectWorkspace.js
+19877f6 Update ProjectWorkspace.js
+6466e58 Update ProjectWizard.js
+aa84d6a Update QuickDoc.js
+ac62ca4 Update QuickDoc.js
+0cb4de3 Update QuickDoc.js
+8e82ab2 Update Dashboard.js
+08f2414 Update QuickDoc.js
+6c21f4d Update gemini.js
+7de9166 Update QuickDoc.js
+1bee026 Update QuickDoc.js
+5034e05 Update QuickDoc.js
+a407038 Update QuickDoc.js
+953e91d Update QuickDoc.js
+432dea0 Update App.js
+6e4dc77 Create QuickDoc.js
+586ed1d Update App.js
+c288143 Update App.js
+35d8f1c Update App.js
+b75ab72 Update Dashboard.js
+81a75e8 Update App.js
+cf32228 Update App.js
+5b42091 Delete src/components/QuickDoc.js
+247b400 Update App.js
+3508ff2 Update App.js
+86a483a Update App.js
+879fce2 Update App.js
+3d2dcb8 Update App.js
+cacabc4 Update App.js
+d16faf2 Update App.js
+3b58b15 Update App.js
+1e5f805 Update App.js
+6e0528c Update App.js
+4014093 Update QuickDoc.js
+c82a80c Update App.js
+d7c873d Update App.js
+f0c3b66 Update DocumentGenerator.js
+b4d550f Update QuickDoc.js
+885c235 Update DocumentGenerator.js
+1fccbf3 Update QuickDoc.js
+13c9107 Update Dashboard.js
+e130abe Update QuickDoc.js
+8ca586f Delete src/lib/usevoice.js
+e215d3e Update QuickDoc.js
+9eb86b9 Rename Usevoice.js to usevoice.js
+78d1601 Create Usevoice.js
+ace996b Update QuickDoc.js
+953640c Update App.js
+a240c23 Update App.js
+62c8fc6 Update App.js
+1ea2fd7 Update QuickDoc.js
+61c8d70 Update QuickDoc.js
+ef7d2f4 Update App.js
+3f2888d Update App.js
+f099271 Update Dashboard.js
+22a1a41 Rename QuickDocs.js to QuickDoc.js
+4f97ec5 Create QuickDocs.js
+dc9ddc7 Update ProjectWorkspace.js
+0d487cc Update Dashboard.js
+8076da4 Update DocumentGenerator.js
+d05cee1 Update App.js
+88841a5 Update DocumentGenerator.js
+76246f6 Update App.js
+a48a46a Update ProjectWorkspace.js
+05132c6 Create TeamTab.js
+8a57fd7 Create Invite.js
+0a56b60 Update App.js
+f5b65bb Update DocumentGenerator.js
+a4275a2 Update DocumentGenerator.js
+582a3a9 Update DocumentGenerator.js
+1e5146f Update gemini.js
+67de874 Update gemini.js
+1927fde Update DocumentGenerator.js
+d0b7290 Update DocumentGenerator.js
+e1c2768 Update gemini.js
+0e8f9f5 Update App.js
+b0acf71 Update App.js
+8d3208c Update DocumentGenerator.js
+810355b Update gemini.js
+1da6da7 Update vercel.json
+c9e49e0 Update DocumentGenerator.js
+181f881 Update DocumentGenerator.js
+f5f534c Update DocumentGenerator.js
+0556a54 Update vercel.json
+eb4f0c6 Update DocumentGenerator.js
+cdbd8b8 Update ProjectWorkspace.js
+547a4ab Update Dashboard.js
+bcacbbd Update DocumentGenerator.js
+78a1e0c Update DocumentGenerator.js
+7580ff1 Update DocumentGenerator.js
+e443761 Update Dashboard.js
+39e7bbf Update AuthScreen.js
+efdc59d Update Dashboard.js
+7b624d2 Update CampaignWizard.js
+842ff42 Update AuthScreen.js
+cb5f43a Update AuthScreen.js
+8fc9e05 Update App.js
+e9801cc Update AuthScreen.js
+2cab6fd Update App.js
+081b4e7 Update index.html
+4a3be2b Update favicon.svg
+6111237 Update favicon.svg
+998a5c1 Create favicon.svg
+c18d4c6 Delete public/favicon.ico
+0e0421b Update index.html
+680a23c Update AuthScreen.js
+0e4bbdc Update vercel.json
+9696070 Update vercel.json
+d6a6808 Update ProjectWorkspace.js
+805bdca Add files via upload
+ee08c9d Add files via upload
+cf9c984 Add files via upload
+590590b Update Dashboard.js
+653f956 Update App.js
+55ca1e3 Update App.js
+af43981 Add files via upload
+66581a7 Update ProjectWizard.js
+c11d4e4 Update ProjectWizard.js
+ebb2867 Update ResultsDashboard.js
+90efdad Rename api_gemini.js to gemini.js
+02998b9 Update api_gemini.js
+09806c8 Update api_gemini.js
+76f9240 Update DocumentGenerator.js
+c81c56b Update gemini.js
+743777d Add files via upload
+e3791e8 Create test
+13aeb43 Update gemini.js
+6ebb39d Update gemini.js
+c8dc1d7 Update gemini.js
+8d795ac Update ProjectWizard.js
+c6e4d34 Update QuestionWizard.js
+bc5a6f5 Update gemini.js
+1eda1bd Update LandingScreen.js
+59938a2 Update LandingScreen.js
+39962af Update LandingScreen.js
+2ed4772 Update App.js
+7fb3e77 Update LandingScreen.js
+047acde Update questions.js
+2bb475f Update gemini.js
+0f55192 Update analysis.js
+5f351e6 Update gemini.js
+aa66a27 Rename analysis (2).js to analysis.js
+15834f0 Add files via upload
+fbad9cb Delete src/data/analysis.js
+e778332 Rename questions (2).js to questions.js
+b8f6de8 Add files via upload
+2b3df08 Delete src/data/questions.js
+a559d63 Update questions.js
+e9d12d1 Update DocumentGenerator.js
+bca435f Rename DocumentGenerator (2).js to DocumentGenerator.js
+7fe5cf3 Add files via upload
+0ee6e69 Delete src/components/DocumentGenerator.js
+bb1812d Rename DocumentGenerator (1).js to DocumentGenerator.js
+4a4398f Add files via upload
+98c570b Delete src/components/DocumentGenerator.js
+10eba54 Rename ProjectWorkspace (1).js to ProjectWorkspace.js
+c6080b1 Add files via upload
+f13d7bc Delete src/components/ProjectWorkspace.js
+9496caa Add files via upload
+c9529cd Update ProjectWorkspace.js
+05aafcb Update App.js
+6b4ec3f Update ProjectWorkspace.js
+156b2b7 Rename app.js to App.js
+2309eb9 Rename App.js to app.js
+1f00b9d Add files via upload
+12d5529 Delete src/App.js
+ff64f27 Rename Dashboard (1).js to Dashboard.js
+34c4fe7 Add files via upload
+ee8132c Delete src/components/Dashboard.js
+eb2c4f0 Add files via upload
+2912422 Update Dashboard.js
+79b86ea Update LandingScreen.js
+42e0b45 Update LandingScreen.js
+07ebca0 Update App.js
+639c281 Update LandingScreen.js
+d49d6f9 Rename LandingScreen (1).js to LandingScreen.js
+da8a36f Add files via upload
+d2e2b0e Delete src/components/LandingScreen.js
+eabbe87 Add files via upload
+656d4df Delete src/components/LandingScreen.js
+7d1490a Update QuestionWizard.js
+5731437 Update QuestionWizard.js
+72dbd48 Update gemini.js
+9209120 Update gemini.js
+a03d1d6 Update ResultsDashboard.js
+845ae61 Update gemini.js
+e1426ae Update LandingScreen.js
+1b55d9a Update LandingScreen.js
+0cc56c5 Update LandingScreen.js
+68f344f Update App.js
+5513f3c Update App.js
+baf3920 Update App.js
+f44af84 Rename ResultsDashboard (3).js to ResultsDashboard.js
+4e46f7e Add files via upload
+2dea399 Delete src/components/ResultsDashboard.js
+5550920 Add files via upload
+adc6314 Delete src/components/Dashboard.js
+65260dd Update index.css
+bff8ae2 Update QuestionWizard.js
+d3fa0a6 Update index.html
+b1db733 Update index.html
+58d72db Add files via upload
+e4a2d0f Update index.css
+024898e Update ResultsDashboard.js
+f17d91a Update ResultsDashboard.js
+51bf109 Update package.json
+c37ed67 Update gemini.js
+b5c81d7 Update gemini.js
+bca1aba Create gemini.js
+8e6bc3c Update package.json
+a3c0ffa Update AuthScreen.js
+700845a Update App.js
+5678908 Update AuthScreen.js
+54c76a0 Update LandingScreen.js
+3c8164b Update LandingScreen.js
+fd609fc Update LandingScreen.js
+80724f0 Update App.js
+d3eb391 Rename dashboard.js to Dashboard.js
+56f3192 Update App.js
+4771e66 Update ResultsDashboard.js
+938cfa4 Update App.js
+9334cfc Update dashboard.js
+769f219 Create dashboard.js
+e799baa Update AuthScreen.js
+2cd7cee Create AuthScreen.js
+7d9d541 Update ResultsDashboard.js
+fa017e9 Update ResultsDashboard.js
+b649da0 Update ResultsDashboard.js
+edbb02f Update ResultsDashboard.js
+3f1b384 Update ResultsDashboard.js
+0af5b64 Create supabase.js
+9398d9c Update package.json
+b42a026 Update ResultsDashboard.js
+2354b38 Rename analysis (1).js to analysis.js
+5d9b882 Add files via upload
+f195bdb Delete src/data/analysis.js
+970fa68 Update analysis.js
+0905daf Update analysis.js
+9252e31 Update questions.js
+db2180c Add files via upload
+d05757a Delete src/data/questions (1).js
+2f15aac Add files via upload
+dca2f6b Delete src/data/questions.js
+6578ce0 Add files via upload
+6e5c0a7 Delete src/components/ResultsDashboard.js
+15c82c7 Update analysis.js
+3288283 Update ResultsDashboard.js
+eee1cb3 Update questions.js
+a5c58cc Add files via upload
+4ddd899 Delete src/components/ResultsDashboard.js
+3309716 Add files via upload
+40cdfe9 Delete src/data/analysis.js
+6540894 Add files via upload
+9016348 Delete src/data/questions.js
+01330a5 Delete public/testp
+7d70995 Update index.html
+b4919f6 Add files via upload
+b422633 Delete src/components/test c
+f9abc97 Delete src/data/d
+177d6e7 Delete src/lib/l
+9dd237d Add files via upload
+a183707 Add files via upload
+c022a12 Delete src/test1
+e95482c Add files via upload
+5c5ca6a Create l
+c7ba49b Create d
+e48a6fa Create test c
+bc75490 Add files via upload
+4b7bdb6 Add files via upload
+7b8eed0 Delete src/index.css
+6efc726 Delete src/index.js
+4a66eec Delete src/App.js
+6e831b9 Delete vercel.json
+c18cb2d Delete package.json
+6df2aea Delete README.md
+7f11a25 Delete .gitignore
+0d4cdd8 Add files via upload
+2baa350 Add files via upload
+148bc07 Create testp
+1d6b14b Create test1
