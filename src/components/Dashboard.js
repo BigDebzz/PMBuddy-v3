@@ -22,7 +22,7 @@ const CHECKLIST = [
   { id: 'assistant', label: 'Talk to PM Buddy assistant', hint: 'Open any project and click the chat bubble' },
   { id: 'invite', label: 'Invite a team member', hint: 'Open a project and go to the Team tab' },
 ];
-
+import DocumentImport from './DocumentImport';
 export default function Dashboard({ user, onOpenValidation, onOpenProject, onNewValidation, onNewProject, onNewCampaign, onNewQuickDoc, onLogout }) {
   const [validations, setValidations] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -35,7 +35,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null); // { type, id, name }
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
+  const [showImport, setShowImport] = useState(false);
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
@@ -193,11 +193,25 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                 <button style={s.installDismiss} onClick={() => { setShowInstallBanner(false); localStorage.setItem('pmbuddy_install_dismissed', '1'); }}>✕</button>
               </div>
             )}
-            <button style={s.newBtn} onClick={onNewProject}>+ New Project</button>
+           <button style={{ ...s.newBtn, background: WH, color: BL, border: '1.5px solid #E5E7EB', marginRight: 8 }} onClick={() => setShowImport(true)}>⬆ Import Doc</button>
+<button style={s.newBtn} onClick={onNewProject}>+ New Project</button>
           </div>
         </div>
 
         <div style={s.content}>
+      {showImport && (
+  <DocumentImport
+    user={user}
+    onComplete={(project) => {
+      setShowImport(false);
+      fetchAll();
+      onOpenProject(project);
+    }}
+    onBack={() => setShowImport(false)}
+  />
+)}
+
+{!showImport && ()}
 
           {/* HOME */}
           {activeNav === 'home' && (
@@ -259,7 +273,8 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
               <p style={s.sectionLabel}>Quick actions</p>
               <div style={s.quickGrid}>
                 {[
-                  { icon: '◈', label: 'New Project', sub: 'Start a structured project', action: onNewProject, bg: BL, color: WH },
+                 { icon: '◈', label: 'New Project', sub: 'Start a structured project', action: onNewProject, bg: BL, color: WH },
+                { icon: '⬆', label: 'Import Document', sub: 'Paste an existing plan or brief', action: () => setShowImport(true), bg: '#EFF6FF', color: BLUE },
                 ].map((item, i) => (
                   <button key={i} style={s.quickCard} onClick={item.action}>
                     <div style={{ ...s.quickIcon, background: item.bg, color: item.color }}>{item.icon}</div>
