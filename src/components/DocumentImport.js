@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 
 const BLUE = '#0284C7';
@@ -30,34 +30,171 @@ function getComplianceFlags(industry) {
   return flags[industry] || [];
 }
 
+// Strip markdown formatting so Gemini gets clean text
+function cleanText(text) {
+  return text
+    .replace(/#{1,6}\s+/g, '')        // ## headings
+    .replace(/\*\*(.+?)\*\*/g, '$1')  // **bold**
+    .replace(/\*(.+?)\*/g, '$1')       // *italic*
+    .replace(/_{1,2}(.+?)_{1,2}/g, '$1') // __underline__
+    .replace(/`{1,3}[^`]*`{1,3}/g, '') // `code`
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // [link](url)
+    .replace(/^\s*[-*+]\s+/gm, '')    // bullet points
+    .replace(/^\s*\d+\.\s+/gm, '')    // numbered lists
+    .replace(/\|[^\n]+\|/g, '')        // table rows
+    .replace(/[-]{3,}/g, '')           // horizontal rules
+    .replace(/\n{3,}/g, '\n\n')        // excessive newlines
+    .trim();
+}
+
+// Try multiple JSON extraction strategies
+function extractJSON(raw) {
+  if (!raw) return null;
+
+  // Strategy 1: find { ... } block
+  const firstBrace = raw.indexOf('{');
+  const lastBrace = raw.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace !== -1) {
+    try {
+      return JSON.parse(raw.substring(firstBrace, lastBrace + 1));
+    } catch {}
+  }
+
+  // Strategy 2: strip markdown code fences and try again
+  const stripped = raw.replace(/```json|```/g, '').trim();
+  const f2 = stripped.indexOf('{');
+  const l2 = stripped.lastIndexOf('}');
+  if (f2 !== -1 && l2 !== -1) {
+    try {
+      return JSON.parse(stripped.substring(f2, l2 + 1));
+    } catch {}
+  }
+
+  // Strategy 3: line by line, find the JSON block
+  const lines = raw.split('\n');
+  let jsonLines = [];
+  let inJson = false;
+  for (const line of lines) {
+    if (line.trim().startsWith('{')) inJson = true;
+    if (inJson) jsonLines.push(line);
+    if (inJson && line.trim().endsWith('}')) break;
+  }
+  if (jsonLines.length > 0) {
+    try {
+      return JSON.parse(jsonLines.join('\n'));
+    } catch {}
+  }
+
+  return null;
+}
+
 const INDUSTRIES = [
   'Fintech', 'Health', 'Education', 'Agriculture', 'Logistics',
   'E-commerce', 'Real Estate', 'Media', 'Government', 'Other',
 ];
 
 const EMPTY_EXTRACTED = {
-  name: '',
-  description: '',
-  goal: '',
-  industry: '',
-  startDate: '',
-  endDate: '',
-  teamMembers: [],
-  milestones: [],
-  risks: [],
-  communicationFlow: '',
+  name: '', description: '', goal: '', industry: '',
+  startDate: '', endDate: '', teamMembers: [], milestones: [],
+  risks: [], communicationFlow: '',
 };
 
 export default function DocumentImport({ user, onComplete, onBack }) {
-  const [step, setStep] = useState('paste'); // paste | extracting | review | saving
+  const [step, setStep] = useState('paste');
+  const [inputMode, setInputMode] = useState('paste'); // 'paste' | 'upload'
   const [pastedText, setPastedText] = useState('');
+  const [uploadedFileName, setUploadedFileName] = useState('');
   const [extracted, setExtracted] = useState(EMPTY_EXTRACTED);
   const [extractError, setExtractError] = useState('');
   const [saveError, setSaveError] = useState('');
   const [charCount, setCharCount] = useState(0);
+  const fileInputRef = useRef(null);
 
-  // ── STEP 1: Extract ─────────────────────────────────────────
+  // ── File upload handler ──────────────────────────────────────
+  const handleFileUpload = useCallback(async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setExtractError('');
+    setUploadedFileName(file.name);
 
+    const ext = file.name.split('.').pop().toLowerCase();
+
+    if (ext === 'txt' || ext === 'md') {
+      // Plain text — read directly
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const text = ev.target.result;
+        setPastedText(text);
+        setCharCount(text.length);
+      };
+      reader.readAsText(file);
+      return;
+    }
+
+    if (ext === 'pdf') {
+      // Send PDF as base64 to Gemini
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        const base64 = ev.target.result.split(',')[1];
+        setStep('extracting');
+        await extractFromBase64(base64, 'application/pdf', file.name);
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    if (ext === 'doc' || ext === 'docx') {
+      // Send Word doc as base64 to Gemini
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        const base64 = ev.target.result.split(',')[1];
+        setStep('extracting');
+        await extractFromBase64(base64, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', file.name);
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    setExtractError('Unsupported file type. Please upload a PDF, Word (.docx), or text file — or paste the text directly.');
+  }, []);
+
+  // ── Extract from base64 file (PDF or Word) ──────────────────
+  const extractFromBase64 = useCallback(async (base64Data, mimeType, fileName) => {
+    setExtractError('');
+    try {
+      const authHeader = await getAuthHeader();
+      const prompt = `You are PM Buddy, a plain-English project management assistant. A user has uploaded a planning document called "${fileName}". Extract structured project information from it.
+
+Read the document carefully and extract ONLY what is actually stated. If a field is not mentioned, leave it as an empty string or empty array.
+
+Respond ONLY with this JSON object. No markdown. No explanation. No code blocks. Just raw JSON:
+
+{"name":"project name or title","description":"2-3 sentence plain English description","goal":"what success looks like for this project","industry":"one of: Fintech Health Education Agriculture Logistics E-commerce Real Estate Media Government Other","startDate":"YYYY-MM-DD or empty string","endDate":"YYYY-MM-DD or empty string","teamMembers":[{"name":"person name","role":"their role"}],"milestones":[{"title":"milestone name","date":"YYYY-MM-DD or empty","status":"pending"}],"risks":["risk as plain text string"],"communicationFlow":"how team shares updates"}`;
+
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader },
+        body: JSON.stringify({
+          prompt,
+          fileData: { base64: base64Data, mimeType },
+        }),
+      });
+
+      if (!res.ok) throw new Error(`API error ${res.status}`);
+      const result = await res.json();
+      const parsed = extractJSON(result.result || '');
+
+      if (!parsed) throw new Error('Could not parse response');
+      applyExtracted(parsed);
+      setStep('review');
+    } catch (err) {
+      console.error('File extract error:', err);
+      setExtractError('PM Buddy could not read this file. Try pasting the text directly instead.');
+      setStep('paste');
+    }
+  }, []);
+
+  // ── Extract from pasted text ─────────────────────────────────
   const handleExtract = useCallback(async () => {
     if (pastedText.trim().length < 50) {
       setExtractError('Please paste more content — at least a paragraph so PM Buddy has enough to work with.');
@@ -66,39 +203,26 @@ export default function DocumentImport({ user, onComplete, onBack }) {
     setExtractError('');
     setStep('extracting');
 
-    const prompt = `You are PM Buddy, a plain-English project management assistant. A user has pasted a planning document below. Your job is to extract structured project information from it.
+    // Clean markdown before sending
+    const cleanedText = cleanText(pastedText);
 
-Read the document carefully and extract ONLY what is actually stated. Do not invent or assume anything that is not in the document. If a field is not mentioned, leave it as an empty string or empty array.
+    const prompt = `You are PM Buddy. Extract project information from this planning document. Respond ONLY with raw JSON — no markdown, no code fences, no explanation, just the JSON object.
 
 DOCUMENT:
-"""
-${pastedText.substring(0, 8000)}
-"""
+${cleanedText.substring(0, 8000)}
 
-Extract the following and respond ONLY with a raw JSON object. No markdown. No code blocks. No explanation. Just the JSON:
-
-{
-  "name": "project name or title (string)",
-  "description": "2-3 sentence plain English description of what this project is and what it will do (string)",
-  "goal": "what success looks like — what outcome the project is trying to achieve (string)",
-  "industry": "one of: Fintech, Health, Education, Agriculture, Logistics, E-commerce, Real Estate, Media, Government, Other (string)",
-  "startDate": "ISO date string YYYY-MM-DD if mentioned, else empty string",
-  "endDate": "ISO date string YYYY-MM-DD if mentioned, else empty string",
-  "teamMembers": [{"name": "person name", "role": "their role"}],
-  "milestones": [{"title": "milestone name", "date": "YYYY-MM-DD or empty string", "status": "pending"}],
-  "risks": ["risk description as plain text string"],
-  "communicationFlow": "how the team communicates or shares updates — plain English (string)"
-}
+Required JSON format (use empty string or empty array if not found):
+{"name":"project name","description":"2-3 sentence plain English description of what this project is and what it will do","goal":"what the project is trying to achieve and what success looks like","industry":"closest match from: Fintech Health Education Agriculture Logistics E-commerce Real Estate Media Government Other","startDate":"YYYY-MM-DD or empty string","endDate":"YYYY-MM-DD or empty string","teamMembers":[{"name":"person name","role":"their role"}],"milestones":[{"title":"milestone name","date":"YYYY-MM-DD or empty string","status":"pending"}],"risks":["risk description"],"communicationFlow":"how team shares updates or empty string"}
 
 Rules:
-- name: if no clear title, use the first heading or subject of the document
-- description: plain English, no jargon, maximum 3 sentences
-- goal: what the project is trying to achieve. If not stated clearly, infer from the document's purpose
-- industry: pick the closest match from the list. Default to Other if unclear
-- teamMembers: only real named people with roles. Skip generic mentions like "the team"
-- milestones: key checkpoints or deliverables mentioned. Maximum 8
-- risks: things that could go wrong, challenges mentioned, or constraints. Maximum 5 as plain strings
-- communicationFlow: meeting cadence, channels, reporting lines — whatever is mentioned`;
+- name: use the document title or main subject
+- description: plain English, no jargon, 2-3 sentences max
+- goal: what outcome the project aims to achieve
+- industry: pick the single closest match
+- teamMembers: only named people with clear roles, skip generic mentions
+- milestones: key checkpoints or deliverables, max 8
+- risks: challenges or things that could go wrong, max 5, as plain strings
+- Respond with ONLY the JSON. Nothing before or after it.`;
 
     try {
       const authHeader = await getAuthHeader();
@@ -110,36 +234,43 @@ Rules:
 
       if (!res.ok) throw new Error(`API error ${res.status}`);
       const result = await res.json();
-      const raw = (result.result || '').replace(/```json|```/g, '').trim();
-      const firstBrace = raw.indexOf('{');
-      const lastBrace = raw.lastIndexOf('}');
-      if (firstBrace === -1 || lastBrace === -1) throw new Error('No JSON found in response');
-      const parsed = JSON.parse(raw.substring(firstBrace, lastBrace + 1));
+      const parsed = extractJSON(result.result || '');
 
-      setExtracted({
-        name: parsed.name || '',
-        description: parsed.description || '',
-        goal: parsed.goal || '',
-        industry: INDUSTRIES.includes(parsed.industry) ? parsed.industry : 'Other',
-        startDate: parsed.startDate || '',
-        endDate: parsed.endDate || '',
-        teamMembers: Array.isArray(parsed.teamMembers) ? parsed.teamMembers : [],
-        milestones: Array.isArray(parsed.milestones)
-          ? parsed.milestones.map(m => ({ title: m.title || '', date: m.date || '', status: 'pending' }))
-          : [],
-        risks: Array.isArray(parsed.risks) ? parsed.risks.filter(r => typeof r === 'string') : [],
-        communicationFlow: parsed.communicationFlow || '',
-      });
+      if (!parsed) {
+        // Last resort: build a partial result from what we can infer
+        console.error('JSON parse failed, raw response:', result.result);
+        setExtractError('PM Buddy had trouble structuring the response. Try removing any tables from the document and paste again, or use the Upload option instead.');
+        setStep('paste');
+        return;
+      }
+
+      applyExtracted(parsed);
       setStep('review');
     } catch (err) {
       console.error('Extract error:', err);
-      setExtractError('PM Buddy could not read this document. Try pasting a cleaner version — sometimes removing headers or tables first helps.');
+      setExtractError('Something went wrong. Check your connection and try again.');
       setStep('paste');
     }
   }, [pastedText]);
 
-  // ── STEP 2: Save ────────────────────────────────────────────
+  const applyExtracted = (parsed) => {
+    setExtracted({
+      name: parsed.name || '',
+      description: parsed.description || '',
+      goal: parsed.goal || '',
+      industry: INDUSTRIES.includes(parsed.industry) ? parsed.industry : 'Other',
+      startDate: parsed.startDate || '',
+      endDate: parsed.endDate || '',
+      teamMembers: Array.isArray(parsed.teamMembers) ? parsed.teamMembers : [],
+      milestones: Array.isArray(parsed.milestones)
+        ? parsed.milestones.map(m => ({ title: m.title || '', date: m.date || '', status: 'pending' }))
+        : [],
+      risks: Array.isArray(parsed.risks) ? parsed.risks.filter(r => typeof r === 'string') : [],
+      communicationFlow: parsed.communicationFlow || '',
+    });
+  };
 
+  // ── Save project ─────────────────────────────────────────────
   const handleSave = useCallback(async () => {
     if (!extracted.name.trim()) { setSaveError('Please add a project name before saving.'); return; }
     setSaveError('');
@@ -169,7 +300,7 @@ Rules:
       history: [{
         type: 'document_imported',
         label: 'Project imported from document',
-        detail: 'Created by pasting a planning document into PM Buddy',
+        detail: uploadedFileName ? `Imported from ${uploadedFileName}` : 'Created by pasting a planning document into PM Buddy',
         timestamp: new Date().toISOString(),
         by: userEmail || 'You',
       }],
@@ -183,7 +314,7 @@ Rules:
 
     // Auto-generate project brief
     try {
-      const briefPrompt = `You are a professional project manager. Write a concise project brief in HTML for this project.
+      const briefPrompt = `Write a project brief in HTML for this project. Use h1 for title, h2 for sections, p for paragraphs. No html/head/body tags.
 
 Project: ${extracted.name}
 Industry: ${extracted.industry}
@@ -194,7 +325,7 @@ Timeline: ${extracted.startDate ? `${extracted.startDate} to ${extracted.endDate
 Risks: ${extracted.risks.join(', ') || 'None listed'}
 Milestones: ${extracted.milestones.map(m => m.title).join(', ') || 'None listed'}
 
-Write in HTML (h1 for title, h2 for sections, p for paragraphs). No html/head/body tags. Sections: Project Overview, Objectives, Scope, Team and Roles, Timeline, Key Risks, Success Metrics. Minimum 300 words.`;
+Sections: Project Overview, Objectives, Scope, Team and Roles, Timeline, Key Risks, Success Metrics.`;
 
       const authHeader = await getAuthHeader();
       const res = await fetch('/api/gemini', {
@@ -216,146 +347,78 @@ Write in HTML (h1 for title, h2 for sections, p for paragraphs). No html/head/bo
           });
         }
       }
-    } catch (err) { console.error('Brief generation error:', err); }
+    } catch (err) { console.error('Brief error:', err); }
 
     onComplete(project);
-  }, [extracted, user, onComplete]);
+  }, [extracted, user, onComplete, uploadedFileName]);
 
-  // ── Helpers ──────────────────────────────────────────────────
-
+  // ── Field helpers ────────────────────────────────────────────
   const updateField = (field, value) => setExtracted(p => ({ ...p, [field]: value }));
-
-  const updateMilestone = (i, field, val) => {
-    const updated = [...extracted.milestones];
-    updated[i] = { ...updated[i], [field]: val };
-    setExtracted(p => ({ ...p, milestones: updated }));
-  };
-
+  const updateMilestone = (i, field, val) => { const u = [...extracted.milestones]; u[i] = { ...u[i], [field]: val }; setExtracted(p => ({ ...p, milestones: u })); };
   const removeMilestone = (i) => setExtracted(p => ({ ...p, milestones: p.milestones.filter((_, idx) => idx !== i) }));
-
   const addMilestone = () => setExtracted(p => ({ ...p, milestones: [...p.milestones, { title: '', date: '', status: 'pending' }] }));
-
-  const updateRisk = (i, val) => {
-    const updated = [...extracted.risks];
-    updated[i] = val;
-    setExtracted(p => ({ ...p, risks: updated }));
-  };
-
+  const updateRisk = (i, val) => { const u = [...extracted.risks]; u[i] = val; setExtracted(p => ({ ...p, risks: u })); };
   const removeRisk = (i) => setExtracted(p => ({ ...p, risks: p.risks.filter((_, idx) => idx !== i) }));
-
   const addRisk = () => setExtracted(p => ({ ...p, risks: [...p.risks, ''] }));
-
-  const updateMember = (i, field, val) => {
-    const updated = [...extracted.teamMembers];
-    updated[i] = { ...updated[i], [field]: val };
-    setExtracted(p => ({ ...p, teamMembers: updated }));
-  };
-
+  const updateMember = (i, field, val) => { const u = [...extracted.teamMembers]; u[i] = { ...u[i], [field]: val }; setExtracted(p => ({ ...p, teamMembers: u })); };
   const removeMember = (i) => setExtracted(p => ({ ...p, teamMembers: p.teamMembers.filter((_, idx) => idx !== i) }));
-
   const addMember = () => setExtracted(p => ({ ...p, teamMembers: [...p.teamMembers, { name: '', role: '' }] }));
 
-  // ── RENDER ───────────────────────────────────────────────────
-
-  if (step === 'extracting') {
+  // ── Loading screens ──────────────────────────────────────────
+  if (step === 'extracting' || step === 'saving') {
     return (
       <div style={s.page}>
         <div style={s.wrap}>
           <div style={s.loadingCard}>
             <div style={s.spinner} />
-            <p style={s.loadingTitle}>PM Buddy is reading your document</p>
-            <p style={s.loadingSubtext}>Extracting project name, goal, milestones, risks and team details...</p>
+            <p style={s.loadingTitle}>{step === 'extracting' ? 'PM Buddy is reading your document' : 'Creating your project'}</p>
+            <p style={s.loadingSubtext}>{step === 'extracting' ? 'Extracting project name, goal, milestones, risks and team details...' : 'Saving project and generating your project brief...'}</p>
           </div>
         </div>
       </div>
     );
   }
 
-  if (step === 'saving') {
-    return (
-      <div style={s.page}>
-        <div style={s.wrap}>
-          <div style={s.loadingCard}>
-            <div style={s.spinner} />
-            <p style={s.loadingTitle}>Creating your project</p>
-            <p style={s.loadingSubtext}>Saving project and generating your project brief...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  // ── Review screen ────────────────────────────────────────────
   if (step === 'review') {
     return (
       <div style={s.page}>
         <div style={s.wrap}>
           <button style={s.backBtn} onClick={() => setStep('paste')}>← Back</button>
-
           <div style={s.card}>
             <div style={s.cardHeader}>
               <div style={s.successDot} />
               <div>
                 <p style={s.stepTag}>Step 2 of 2 — Review</p>
                 <h2 style={s.stepTitle}>Check what PM Buddy found</h2>
-                <p style={s.stepSub}>Review and correct anything below before saving. PM Buddy reads documents well but is not perfect.</p>
+                <p style={s.stepSub}>Review and correct anything below. PM Buddy reads documents well but is not perfect — especially with tables and complex formatting.</p>
               </div>
             </div>
 
-            {/* Project name */}
             <div style={s.fieldGroup}>
               <label style={s.label}>Project Name <span style={s.required}>*</span></label>
-              <input
-                style={s.input}
-                value={extracted.name}
-                onChange={e => updateField('name', e.target.value)}
-                placeholder="e.g. Community Training Program"
-              />
+              <input style={s.input} value={extracted.name} onChange={e => updateField('name', e.target.value)} placeholder="e.g. Community Training Program" />
             </div>
 
-            {/* Description */}
             <div style={s.fieldGroup}>
               <label style={s.label}>What is this project about?</label>
-              <textarea
-                style={s.textarea}
-                rows={3}
-                value={extracted.description}
-                onChange={e => updateField('description', e.target.value)}
-                placeholder="Describe the project in plain English."
-              />
+              <textarea style={s.textarea} rows={3} value={extracted.description} onChange={e => updateField('description', e.target.value)} placeholder="Describe the project in plain English." />
             </div>
 
-            {/* Goal */}
             <div style={s.fieldGroup}>
               <label style={s.label}>What does success look like?</label>
-              <textarea
-                style={s.textarea}
-                rows={3}
-                value={extracted.goal}
-                onChange={e => updateField('goal', e.target.value)}
-                placeholder="What outcome is this project trying to achieve?"
-              />
+              <textarea style={s.textarea} rows={3} value={extracted.goal} onChange={e => updateField('goal', e.target.value)} placeholder="What outcome is this project trying to achieve?" />
             </div>
 
-            {/* Industry */}
             <div style={s.fieldGroup}>
               <label style={s.label}>Industry</label>
               <div style={s.industryGrid}>
                 {INDUSTRIES.map(ind => (
-                  <button
-                    key={ind}
-                    style={{
-                      ...s.industryBtn,
-                      background: extracted.industry === ind ? BLUE : WH,
-                      color: extracted.industry === ind ? WH : BL,
-                      borderColor: extracted.industry === ind ? BLUE : RULE,
-                    }}
-                    onClick={() => updateField('industry', ind)}
-                  >{ind}</button>
+                  <button key={ind} style={{ ...s.industryBtn, background: extracted.industry === ind ? BLUE : WH, color: extracted.industry === ind ? WH : BL, borderColor: extracted.industry === ind ? BLUE : RULE }} onClick={() => updateField('industry', ind)}>{ind}</button>
                 ))}
               </div>
             </div>
 
-            {/* Timeline */}
             <div style={s.fieldGroup}>
               <label style={s.label}>Timeline</label>
               <div style={s.row}>
@@ -370,15 +433,12 @@ Write in HTML (h1 for title, h2 for sections, p for paragraphs). No html/head/bo
               </div>
             </div>
 
-            {/* Team */}
             <div style={s.fieldGroup}>
               <div style={s.fieldLabelRow}>
                 <label style={s.label}>Team Members</label>
                 <button style={s.addSmallBtn} onClick={addMember}>+ Add</button>
               </div>
-              {extracted.teamMembers.length === 0 && (
-                <p style={s.emptyHint}>No team members found in the document. Add them manually if needed.</p>
-              )}
+              {extracted.teamMembers.length === 0 && <p style={s.emptyHint}>No team members found. Add them manually if needed.</p>}
               {extracted.teamMembers.map((m, i) => (
                 <div key={i} style={s.memberRow}>
                   <input style={{ ...s.inputInline, flex: 2 }} placeholder="Name" value={m.name} onChange={e => updateMember(i, 'name', e.target.value)} />
@@ -388,78 +448,45 @@ Write in HTML (h1 for title, h2 for sections, p for paragraphs). No html/head/bo
               ))}
             </div>
 
-            {/* Milestones */}
             <div style={s.fieldGroup}>
               <div style={s.fieldLabelRow}>
                 <label style={s.label}>Milestones</label>
                 <button style={s.addSmallBtn} onClick={addMilestone}>+ Add</button>
               </div>
-              {extracted.milestones.length === 0 && (
-                <p style={s.emptyHint}>No milestones found. Add key checkpoints manually.</p>
-              )}
+              {extracted.milestones.length === 0 && <p style={s.emptyHint}>No milestones found. Add key checkpoints manually.</p>}
               {extracted.milestones.map((m, i) => (
                 <div key={i} style={s.milestoneRow}>
-                  <input
-                    style={{ ...s.inputInline, flex: 3 }}
-                    placeholder="Milestone name"
-                    value={m.title}
-                    onChange={e => updateMilestone(i, 'title', e.target.value)}
-                  />
-                  <input
-                    style={{ ...s.inputInline, flex: 2 }}
-                    type="date"
-                    value={m.date || ''}
-                    onChange={e => updateMilestone(i, 'date', e.target.value)}
-                  />
+                  <input style={{ ...s.inputInline, flex: 3 }} placeholder="Milestone name" value={m.title} onChange={e => updateMilestone(i, 'title', e.target.value)} />
+                  <input style={{ ...s.inputInline, flex: 2 }} type="date" value={m.date || ''} onChange={e => updateMilestone(i, 'date', e.target.value)} />
                   <button style={s.removeBtn} onClick={() => removeMilestone(i)}>✕</button>
                 </div>
               ))}
             </div>
 
-            {/* Risks */}
             <div style={s.fieldGroup}>
               <div style={s.fieldLabelRow}>
                 <label style={s.label}>Risks and Challenges</label>
                 <button style={s.addSmallBtn} onClick={addRisk}>+ Add</button>
               </div>
-              {extracted.risks.length === 0 && (
-                <p style={s.emptyHint}>No risks found. Add anything that could go wrong.</p>
-              )}
+              {extracted.risks.length === 0 && <p style={s.emptyHint}>No risks found. Add anything that could go wrong.</p>}
               {extracted.risks.map((r, i) => (
                 <div key={i} style={s.riskRow}>
-                  <input
-                    style={{ ...s.inputInline, flex: 1 }}
-                    placeholder="Describe a risk..."
-                    value={r}
-                    onChange={e => updateRisk(i, e.target.value)}
-                  />
+                  <input style={{ ...s.inputInline, flex: 1 }} placeholder="Describe a risk..." value={r} onChange={e => updateRisk(i, e.target.value)} />
                   <button style={s.removeBtn} onClick={() => removeRisk(i)}>✕</button>
                 </div>
               ))}
             </div>
 
-            {/* Communication */}
             <div style={s.fieldGroup}>
               <label style={s.label}>How does the team share updates?</label>
-              <input
-                style={s.input}
-                placeholder="e.g. Weekly meetings, WhatsApp group, monthly email reports"
-                value={extracted.communicationFlow}
-                onChange={e => updateField('communicationFlow', e.target.value)}
-              />
+              <input style={s.input} placeholder="e.g. Weekly meetings, WhatsApp group, monthly email reports" value={extracted.communicationFlow} onChange={e => updateField('communicationFlow', e.target.value)} />
             </div>
 
-            {saveError && (
-              <div style={s.errorBox}>
-                <p style={s.errorText}>{saveError}</p>
-              </div>
-            )}
+            {saveError && <div style={s.errorBox}><p style={s.errorText}>{saveError}</p></div>}
 
             <div style={s.footer}>
               <button style={s.backFooterBtn} onClick={() => setStep('paste')}>← Back</button>
-              <button style={s.saveBtn} onClick={handleSave}>
-                Save Project →
-              </button>
+              <button style={s.saveBtn} onClick={handleSave}>Save Project →</button>
             </div>
           </div>
         </div>
@@ -467,7 +494,7 @@ Write in HTML (h1 for title, h2 for sections, p for paragraphs). No html/head/bo
     );
   }
 
-  // Default: paste step
+  // ── Paste / Upload screen ────────────────────────────────────
   return (
     <div style={s.page}>
       <div style={s.wrap}>
@@ -475,51 +502,85 @@ Write in HTML (h1 for title, h2 for sections, p for paragraphs). No html/head/bo
 
         <div style={s.card}>
           <p style={s.stepTag}>Import from Document · Step 1 of 2</p>
-          <h2 style={s.stepTitle}>Paste your planning document</h2>
-          <p style={s.stepSub}>
-            Copy the text from your existing document — a project plan, brief, proposal, scope document, or even a detailed WhatsApp message — and paste it below. PM Buddy will read it and pull out the key details automatically.
-          </p>
+          <h2 style={s.stepTitle}>Bring in your planning document</h2>
+          <p style={s.stepSub}>Already have a project plan, brief, proposal or scope document? PM Buddy will read it and pull out the key details automatically.</p>
 
-          <div style={s.examplesRow}>
-            {['Project plan', 'Proposal', 'Scope document', 'Project brief', 'Grant application'].map((ex, i) => (
-              <span key={i} style={s.exampleChip}>{ex}</span>
-            ))}
+          {/* Mode toggle */}
+          <div style={s.modeToggle}>
+            <button
+              style={{ ...s.modeBtn, background: inputMode === 'paste' ? BL : WH, color: inputMode === 'paste' ? WH : '#374151', border: `1.5px solid ${inputMode === 'paste' ? BL : RULE}` }}
+              onClick={() => { setInputMode('paste'); setExtractError(''); }}
+            >✏ Paste text</button>
+            <button
+              style={{ ...s.modeBtn, background: inputMode === 'upload' ? BL : WH, color: inputMode === 'upload' ? WH : '#374151', border: `1.5px solid ${inputMode === 'upload' ? BL : RULE}` }}
+              onClick={() => { setInputMode('upload'); setExtractError(''); }}
+            >⬆ Upload file</button>
           </div>
 
-          <div style={s.pasteArea}>
-            <textarea
-              style={s.pasteTextarea}
-              placeholder="Paste your document here...&#10;&#10;PM Buddy works best with documents that describe:&#10;• What the project is and what it will achieve&#10;• Who is involved and their roles&#10;• Key dates and milestones&#10;• Risks or challenges&#10;&#10;The more detail you paste, the better the extraction."
-              value={pastedText}
-              onChange={e => { setPastedText(e.target.value); setCharCount(e.target.value.length); setExtractError(''); }}
-              rows={14}
-            />
-            <div style={s.pasteFooter}>
-              <span style={{ ...s.charCount, color: charCount > 8000 ? '#D97706' : '#9CA3AF' }}>
-                {charCount > 0 ? `${charCount.toLocaleString()} characters${charCount > 8000 ? ' — only the first 8,000 will be read' : ''}` : ''}
-              </span>
-            </div>
-          </div>
-
-          {extractError && (
-            <div style={s.errorBox}>
-              <p style={s.errorText}>{extractError}</p>
-            </div>
+          {/* PASTE MODE */}
+          {inputMode === 'paste' && (
+            <>
+              <div style={s.examplesRow}>
+                {['Project plan', 'Proposal', 'Scope document', 'Project brief', 'Grant application'].map((ex, i) => (
+                  <span key={i} style={s.exampleChip}>{ex}</span>
+                ))}
+              </div>
+              <div style={s.pasteArea}>
+                <textarea
+                  style={s.pasteTextarea}
+                  placeholder={"Paste your document here...\n\nPM Buddy works best with documents that describe:\n• What the project is and what it will achieve\n• Who is involved and their roles\n• Key dates and milestones\n• Risks or challenges\n\nTip: if the document has tables, try removing them before pasting — plain text works best."}
+                  value={pastedText}
+                  onChange={e => { setPastedText(e.target.value); setCharCount(e.target.value.length); setExtractError(''); }}
+                  rows={14}
+                />
+                <div style={s.pasteFooter}>
+                  <span style={{ ...s.charCount, color: charCount > 8000 ? '#D97706' : '#9CA3AF' }}>
+                    {charCount > 0 ? `${charCount.toLocaleString()} characters${charCount > 8000 ? ' — only the first 8,000 will be read' : ''}` : ''}
+                  </span>
+                </div>
+              </div>
+              {extractError && <div style={s.errorBox}><p style={s.errorText}>{extractError}</p></div>}
+              <button
+                style={{ ...s.extractBtn, opacity: pastedText.trim().length < 50 ? 0.5 : 1 }}
+                onClick={handleExtract}
+                disabled={pastedText.trim().length < 50}
+              >Read Document →</button>
+            </>
           )}
 
-          <div style={s.hint}>
-            <p style={s.hintText}>
-              <strong>Tip:</strong> If your document is a PDF, open it, select all text (Ctrl+A), copy, and paste here. Tables and images won't copy perfectly but the text will.
-            </p>
-          </div>
+          {/* UPLOAD MODE */}
+          {inputMode === 'upload' && (
+            <>
+              <div style={s.uploadZone} onClick={() => fileInputRef.current?.click()}>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx,.txt,.md"
+                  style={{ display: 'none' }}
+                  onChange={handleFileUpload}
+                />
+                <div style={s.uploadIcon}>⬆</div>
+                <p style={s.uploadTitle}>{uploadedFileName || 'Click to upload your document'}</p>
+                <p style={s.uploadSub}>Supports PDF, Word (.docx), and plain text files</p>
+                <div style={s.uploadFormats}>
+                  {['.pdf', '.docx', '.doc', '.txt'].map(f => <span key={f} style={s.formatChip}>{f}</span>)}
+                </div>
+              </div>
 
-          <button
-            style={{ ...s.extractBtn, opacity: pastedText.trim().length < 50 ? 0.5 : 1 }}
-            onClick={handleExtract}
-            disabled={pastedText.trim().length < 50}
-          >
-            Read Document →
-          </button>
+              {uploadedFileName && pastedText && (
+                <div style={s.fileReadyBox}>
+                  <p style={s.fileReadyText}>✓ {uploadedFileName} loaded — {charCount.toLocaleString()} characters</p>
+                  <button style={s.extractBtn} onClick={handleExtract}>Read Document →</button>
+                </div>
+              )}
+
+              {extractError && <div style={{ ...s.errorBox, marginTop: 16 }}><p style={s.errorText}>{extractError}</p></div>}
+
+              <div style={{ ...s.hint, marginTop: 16 }}>
+                <p style={s.hintText}><strong>PDF tip:</strong> If upload fails, open your PDF, select all text (Ctrl+A), copy it, and use the Paste option instead. Tables won't copy perfectly but the text will.</p>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -535,16 +596,26 @@ const s = {
   successDot: { width: 10, height: 10, borderRadius: '50%', background: '#15803D', flexShrink: 0, marginTop: 6 },
   stepTag: { fontSize: 11, fontWeight: 800, color: BLUE, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 6 },
   stepTitle: { fontSize: 'clamp(20px, 3vw, 24px)', fontWeight: 900, color: BL, letterSpacing: '-0.5px', marginBottom: 8 },
-  stepSub: { fontSize: 14, color: '#6B7280', lineHeight: 1.7, marginBottom: 0 },
-  examplesRow: { display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
+  stepSub: { fontSize: 14, color: '#6B7280', lineHeight: 1.7 },
+  modeToggle: { display: 'flex', gap: 8, marginBottom: 20, marginTop: 4 },
+  modeBtn: { padding: '9px 20px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  examplesRow: { display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   exampleChip: { fontSize: 12, fontWeight: 600, background: '#EFF6FF', color: BLUE, padding: '4px 12px', borderRadius: 100 },
   pasteArea: { border: `1.5px solid ${RULE}`, borderRadius: 12, overflow: 'hidden', marginBottom: 16 },
   pasteTextarea: { width: '100%', border: 'none', padding: '16px', fontSize: 14, fontFamily: 'inherit', color: BL, outline: 'none', resize: 'none', lineHeight: 1.7, background: WH, boxSizing: 'border-box' },
   pasteFooter: { display: 'flex', justifyContent: 'flex-end', padding: '8px 14px', background: GREY, borderTop: `1px solid ${RULE}` },
   charCount: { fontSize: 12, fontWeight: 500 },
+  uploadZone: { border: `2px dashed ${RULE}`, borderRadius: 14, padding: '40px 24px', textAlign: 'center', cursor: 'pointer', marginBottom: 16, transition: 'border-color 0.15s', background: GREY },
+  uploadIcon: { fontSize: 32, marginBottom: 12, color: '#9CA3AF' },
+  uploadTitle: { fontSize: 15, fontWeight: 700, color: BL, marginBottom: 6 },
+  uploadSub: { fontSize: 13, color: '#6B7280', marginBottom: 14 },
+  uploadFormats: { display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' },
+  formatChip: { fontSize: 11, fontWeight: 700, background: WH, color: '#6B7280', border: `1px solid ${RULE}`, padding: '3px 10px', borderRadius: 6 },
+  fileReadyBox: { background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 10, padding: '16px', marginBottom: 16 },
+  fileReadyText: { fontSize: 13, color: '#15803D', fontWeight: 600, marginBottom: 12 },
   hint: { background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '12px 14px', marginBottom: 20 },
   hintText: { fontSize: 13, color: '#92400E', lineHeight: 1.65 },
-  extractBtn: { width: '100%', padding: '14px', background: BLUE, color: WH, border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '-0.1px' },
+  extractBtn: { width: '100%', padding: '14px', background: BLUE, color: WH, border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
   errorBox: { background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '12px 14px', marginBottom: 16 },
   errorText: { fontSize: 13, color: '#DC2626', lineHeight: 1.6 },
   loadingCard: { background: WH, borderRadius: 20, padding: '60px 36px', textAlign: 'center', border: `1px solid ${RULE}`, boxShadow: '0 4px 20px rgba(0,0,0,0.06)' },
@@ -560,7 +631,7 @@ const s = {
   textarea: { width: '100%', border: `1.5px solid ${RULE}`, borderRadius: 10, padding: '11px 14px', fontSize: 14, fontFamily: 'inherit', color: BL, outline: 'none', resize: 'vertical', lineHeight: 1.65, background: WH, boxSizing: 'border-box' },
   inputInline: { border: `1.5px solid ${RULE}`, borderRadius: 8, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', color: BL, outline: 'none', background: WH, boxSizing: 'border-box' },
   industryGrid: { display: 'flex', flexWrap: 'wrap', gap: 8 },
-  industryBtn: { padding: '8px 16px', border: `1.5px solid`, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  industryBtn: { padding: '8px 16px', border: '1.5px solid', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
   row: { display: 'flex', gap: 12 },
   memberRow: { display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 },
   milestoneRow: { display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' },
