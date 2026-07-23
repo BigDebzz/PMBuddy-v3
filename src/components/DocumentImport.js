@@ -187,6 +187,13 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
     setError('');
 
     try {
+      // Get auth token for API calls
+      const { data: sessionData } = await supabase.auth.getSession();
+      const authToken = sessionData?.session?.access_token;
+      const headers = { 'Content-Type': 'application/json' };
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
       const projectPayload = {
         user_id: user.id,
         name: extractedData.project_name || 'Untitled Project',
@@ -263,9 +270,13 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
       // Generate project brief via AI
       try {
         const briefPrompt = `Write a concise project brief (2-3 paragraphs) for this project:\nName: ${projectPayload.name}\nGoal: ${projectPayload.goal}\nIndustry: ${projectPayload.industry}\nMethodology: ${projectPayload.methodology}`;
+        const { data: briefSession } = await supabase.auth.getSession();
+        const briefToken = briefSession?.session?.access_token;
+        const briefHeaders = { 'Content-Type': 'application/json' };
+        if (briefToken) briefHeaders['Authorization'] = `Bearer ${briefToken}`;
         const briefRes = await fetch('/api/gemini', {
           method: 'POST',
-          headers,
+          headers: briefHeaders,
           body: JSON.stringify({ prompt: briefPrompt }),
         });
         if (briefRes.ok) {
