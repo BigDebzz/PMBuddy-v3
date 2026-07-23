@@ -109,6 +109,14 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
     setError('');
 
     try {
+      // Get auth token for API calls
+      const { data: sessionData } = await supabase.auth.getSession();
+      const authToken = sessionData?.session?.access_token;
+      const headers = { 'Content-Type': 'application/json' };
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
       let prompt = EXTRACTION_PROMPT;
       let body = { prompt };
 
@@ -127,7 +135,7 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
         const base64 = await readFileAsBase64(file);
         const uploadRes = await fetch('/api/upload', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({
             fileBase64: base64,
             mimeType: file.type || 'application/octet-stream',
@@ -147,7 +155,7 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
       // Step 2: Call Gemini with text or file URI
       const geminiRes = await fetch('/api/gemini', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(body),
       });
 
@@ -257,7 +265,7 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
         const briefPrompt = `Write a concise project brief (2-3 paragraphs) for this project:\nName: ${projectPayload.name}\nGoal: ${projectPayload.goal}\nIndustry: ${projectPayload.industry}\nMethodology: ${projectPayload.methodology}`;
         const briefRes = await fetch('/api/gemini', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({ prompt: briefPrompt }),
         });
         if (briefRes.ok) {
