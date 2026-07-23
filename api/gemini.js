@@ -1,5 +1,3 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-
 export const config = {
   api: {
     bodyParser: {
@@ -62,11 +60,12 @@ async function callGeminiWithFile(prompt, fileUri, mimeType) {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
+    res.setHeader('Allow', ['POST']);
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { prompt, fileUri, mimeType, type } = req.body;
+    const { prompt, fileUri, mimeType } = req.body;
 
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt is required' });
@@ -79,10 +78,8 @@ export default async function handler(req, res) {
     let result;
 
     if (fileUri && mimeType) {
-      // File-based generation (Document Import, file uploads)
       result = await callGeminiWithFile(prompt, fileUri, mimeType);
     } else {
-      // Plain text generation (everything else)
       result = await callGeminiText(prompt);
     }
 
