@@ -156,7 +156,7 @@ export default function DocumentImport({ user, onComplete, onBack }) {
     }
 
     setExtractError('Unsupported file type. Please upload a PDF, Word (.docx), or text file — or paste the text directly.');
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Extract from base64 file (PDF or Word) ──────────────────
   const extractFromBase64 = useCallback(async (base64Data, mimeType, fileName) => {
