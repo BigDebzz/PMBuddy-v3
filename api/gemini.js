@@ -1,179 +1,95 @@
+import { NextApiRequest, NextApiResponse } from 'next';
+
 export const config = {
-  api: { bodyParser: { sizeLimit: '20mb' } },
+  api: {
+    bodyParser: {
+      sizeLimit: '20mb',
+    },
+  },
 };
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_MODEL = 'gemini-1.5-flash-latest';
 
-async function verifyAuth(request) {
-  const authHeader = request.headers['authorization'] || request.headers['Authorization'];
-  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
-  const token = authHeader.replace('Bearer ', '').trim();
-  try {
-    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-      headers: {
-        'apikey': SUPABASE_SERVICE_ROLE_KEY,
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-    if (!res.ok) return null;
-    const user = await res.json();
-    return user?.id ? user : null;
-  } catch { return null; }
-}
-
-// Text-only call (existing behaviour)
-async function callModel(model, prompt, mode) {
-  const API_KEY = process.env.GEMINI_API_KEY;
-  const maxTokens = mode === 'document' ? 8000 : 2000;
-  const geminiResponse = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`,
+async function callGeminiText(prompt) {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.4, maxOutputTokens: maxTokens },
+        generationConfig: { temperature: 0.3, maxOutputTokens: 8192 },
       }),
     }
   );
-  if (geminiResponse.ok) {
-    const data = await geminiResponse.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    if (text) return { text, error: null };
-    return { text: null, error: 'Empty response' };
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Gemini API error: ${res.status} — ${err}`);
   }
-  const body = await geminiResponse.text();
-  console.error(`Model ${model} error ${geminiResponse.status}:`, body);
-  return { text: null, error: geminiResponse.status, status: geminiResponse.status };
+
+  const data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
-// Multimodal call — sends file as base64 inline data alongside prompt
-async function callModelWithFile(model, prompt, base64Data, mimeType) {
-  const API_KEY = process.env.GEMINI_API_KEY;
-
-  // Gemini supports PDF natively; for Word docs we ask it to treat as a document
-  const parts = [
-    {
-      inline_data: {
-        mime_type: mimeType,
-        data: base64Data,
-      },
-    },
-    { text: prompt },
-  ];
-
-  const geminiResponse = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`,
+async function callGeminiWithFile(prompt, fileUri, mimeType) {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts }],
-        generationConfig: { temperature: 0.4, maxOutputTokens: 2000 },
+        contents: [{
+          parts: [
+            { file_data: { mime_type: mimeType, file_uri: fileUri } },
+            { text: prompt },
+          ],
+        }],
+        generationConfig: { temperature: 0.3, maxOutputTokens: 8192 },
       }),
     }
   );
 
-  if (geminiResponse.ok) {
-    const data = await geminiResponse.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    if (text) return { text, error: null };
-    return { text: null, error: 'Empty response' };
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Gemini API error with file: ${res.status} — ${err}`);
   }
-  const body = await geminiResponse.text();
-  console.error(`Model ${model} file error ${geminiResponse.status}:`, body);
-  return { text: null, error: geminiResponse.status, status: geminiResponse.status };
+
+  const data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
-async function callGemini(prompt, mode) {
-  const MODELS = [
-    'gemini-3-flash-preview',
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
-  ];
-  for (const model of MODELS) {
-    console.log(`Trying model: ${model}`);
-    const result = await callModel(model, prompt, mode);
-    if (result.text) return result;
-    console.log(`Model ${model} failed with status ${result.status}`);
-    if (result.status !== 503 && result.status !== 429) break;
-    await new Promise(r => setTimeout(r, 1000));
-  }
-  return { text: null, error: 'AI is currently busy. Please try again in a moment.' };
-}
-
-async function callGeminiWithFile(prompt, base64Data, mimeType) {
-  // Only models that support multimodal input
-  const MODELS = [
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
-  ];
-  for (const model of MODELS) {
-    console.log(`Trying model with file: ${model}`);
-    const result = await callModelWithFile(model, prompt, base64Data, mimeType);
-    if (result.text) return result;
-    console.log(`Model ${model} file call failed with status ${result.status}`);
-    if (result.status !== 503 && result.status !== 429) break;
-    await new Promise(r => setTimeout(r, 1000));
-  }
-  return { text: null, error: 'Could not read the file. Please try pasting the text instead.' };
-}
-
-export default async function handler(request, response) {
-  if (request.method !== 'POST') {
-    return response.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const API_KEY = process.env.GEMINI_API_KEY;
-  if (!API_KEY) {
-    return response.status(500).json({ error: 'API key not configured' });
-  }
-
-  const user = await verifyAuth(request);
-  if (!user) {
-    return response.status(401).json({ error: 'Unauthorised. Please log in.' });
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    let body = request.body;
-    if (typeof body === 'string') {
-      try { body = JSON.parse(body); } catch (e) { body = {}; }
-    }
-
-    const { prompt, mode, fileData } = body || {};
+    const { prompt, fileUri, mimeType, type } = req.body;
 
     if (!prompt) {
-      return response.status(400).json({ error: 'No prompt provided' });
+      return res.status(400).json({ error: 'Prompt is required' });
     }
 
-    // ── File-based call (PDF or Word upload) ──────────────────
-    if (fileData && fileData.base64 && fileData.mimeType) {
-      console.log(`File upload request, mimeType: ${fileData.mimeType}`);
-      const { text, error } = await callGeminiWithFile(prompt, fileData.base64, fileData.mimeType);
-      if (error) return response.status(503).json({ error });
-      // File extraction always returns JSON — clean and return as-is
-      const clean = text.replace(/```json|```/g, '').trim();
-      return response.status(200).json({ result: clean });
+    if (!GEMINI_API_KEY) {
+      return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
     }
 
-    // ── Text-only call (existing behaviour) ───────────────────
-    const { text, error } = await callGemini(prompt, mode);
-    if (error) {
-      return response.status(503).json({ error });
+    let result;
+
+    if (fileUri && mimeType) {
+      // File-based generation (Document Import, file uploads)
+      result = await callGeminiWithFile(prompt, fileUri, mimeType);
+    } else {
+      // Plain text generation (everything else)
+      result = await callGeminiText(prompt);
     }
 
-    if (mode === 'document') {
-      return response.status(200).json({ result: text });
-    }
-
-    const clean = text.replace(/```json|```/g, '').trim();
-    const lastBrace = clean.lastIndexOf('}');
-    const fixed = lastBrace !== -1 ? clean.substring(0, lastBrace + 1) : clean;
-    return response.status(200).json({ result: fixed });
+    return res.status(200).json({ result });
 
   } catch (err) {
     console.error('Gemini handler error:', err);
-    return response.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message || 'Internal server error' });
   }
 }
