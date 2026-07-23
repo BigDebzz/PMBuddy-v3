@@ -1,11 +1,10 @@
 export const config = {
-  api: { bodyParser: true },
+  api: { bodyParser: { sizeLimit: '20mb' } },
 };
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Verify the request has a valid Supabase session token
 async function verifyAuth(request) {
   const authHeader = request.headers['authorization'] || request.headers['Authorization'];
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
@@ -23,6 +22,7 @@ async function verifyAuth(request) {
   } catch { return null; }
 }
 
+// Text-only call (existing behaviour)
 async function callModel(model, prompt, mode) {
   const API_KEY = process.env.GEMINI_API_KEY;
   const maxTokens = mode === 'document' ? 8000 : 2000;
@@ -33,8 +33,8 @@ async function callModel(model, prompt, mode) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.4, maxOutputTokens: maxTokens }
-      })
+        generationConfig: { temperature: 0.4, maxOutputTokens: maxTokens },
+      }),
     }
   );
   if (geminiResponse.ok) {
@@ -45,6 +45,44 @@ async function callModel(model, prompt, mode) {
   }
   const body = await geminiResponse.text();
   console.error(`Model ${model} error ${geminiResponse.status}:`, body);
+  return { text: null, error: geminiResponse.status, status: geminiResponse.status };
+}
+
+// Multimodal call — sends file as base64 inline data alongside prompt
+async function callModelWithFile(model, prompt, base64Data, mimeType) {
+  const API_KEY = process.env.GEMINI_API_KEY;
+
+  // Gemini supports PDF natively; for Word docs we ask it to treat as a document
+  const parts = [
+    {
+      inline_data: {
+        mime_type: mimeType,
+        data: base64Data,
+      },
+    },
+    { text: prompt },
+  ];
+
+  const geminiResponse = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts }],
+        generationConfig: { temperature: 0.4, maxOutputTokens: 2000 },
+      }),
+    }
+  );
+
+  if (geminiResponse.ok) {
+    const data = await geminiResponse.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (text) return { text, error: null };
+    return { text: null, error: 'Empty response' };
+  }
+  const body = await geminiResponse.text();
+  console.error(`Model ${model} file error ${geminiResponse.status}:`, body);
   return { text: null, error: geminiResponse.status, status: geminiResponse.status };
 }
 
@@ -65,6 +103,23 @@ async function callGemini(prompt, mode) {
   return { text: null, error: 'AI is currently busy. Please try again in a moment.' };
 }
 
+async function callGeminiWithFile(prompt, base64Data, mimeType) {
+  // Only models that support multimodal input
+  const MODELS = [
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+  ];
+  for (const model of MODELS) {
+    console.log(`Trying model with file: ${model}`);
+    const result = await callModelWithFile(model, prompt, base64Data, mimeType);
+    if (result.text) return result;
+    console.log(`Model ${model} file call failed with status ${result.status}`);
+    if (result.status !== 503 && result.status !== 429) break;
+    await new Promise(r => setTimeout(r, 1000));
+  }
+  return { text: null, error: 'Could not read the file. Please try pasting the text instead.' };
+}
+
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
     return response.status(405).json({ error: 'Method not allowed' });
@@ -75,7 +130,6 @@ export default async function handler(request, response) {
     return response.status(500).json({ error: 'API key not configured' });
   }
 
-  // Auth check — only logged in users can call this
   const user = await verifyAuth(request);
   if (!user) {
     return response.status(401).json({ error: 'Unauthorised. Please log in.' });
@@ -86,11 +140,24 @@ export default async function handler(request, response) {
     if (typeof body === 'string') {
       try { body = JSON.parse(body); } catch (e) { body = {}; }
     }
-    const { prompt, mode } = body || {};
+
+    const { prompt, mode, fileData } = body || {};
+
     if (!prompt) {
       return response.status(400).json({ error: 'No prompt provided' });
     }
 
+    // ── File-based call (PDF or Word upload) ──────────────────
+    if (fileData && fileData.base64 && fileData.mimeType) {
+      console.log(`File upload request, mimeType: ${fileData.mimeType}`);
+      const { text, error } = await callGeminiWithFile(prompt, fileData.base64, fileData.mimeType);
+      if (error) return response.status(503).json({ error });
+      // File extraction always returns JSON — clean and return as-is
+      const clean = text.replace(/```json|```/g, '').trim();
+      return response.status(200).json({ result: clean });
+    }
+
+    // ── Text-only call (existing behaviour) ───────────────────
     const { text, error } = await callGemini(prompt, mode);
     if (error) {
       return response.status(503).json({ error });
@@ -104,6 +171,7 @@ export default async function handler(request, response) {
     const lastBrace = clean.lastIndexOf('}');
     const fixed = lastBrace !== -1 ? clean.substring(0, lastBrace + 1) : clean;
     return response.status(200).json({ result: fixed });
+
   } catch (err) {
     console.error('Gemini handler error:', err);
     return response.status(500).json({ error: err.message });
