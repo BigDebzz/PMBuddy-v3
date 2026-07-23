@@ -73,7 +73,7 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
       .replace(/\*\*?/g, '')
       .replace(/#{1,6}\s?/g, '')
       .replace(/`{1,3}/g, '')
-      .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
       .replace(/\n{3,}/g, '\n\n')
       .trim();
   };
