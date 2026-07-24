@@ -80,9 +80,9 @@ async function callModelWithFile(model, prompt, fileUri, mimeType) {
 
 async function callGemini(prompt, mode) {
   const MODELS = [
-    'gemini-3-flash-preview',
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
+    'gemini-3.5-flash',
+    'gemini-3.1-pro',
+    'gemini-3-flash',
   ];
   for (const model of MODELS) {
     console.log(`Trying model: ${model}`);
@@ -97,9 +97,9 @@ async function callGemini(prompt, mode) {
 
 async function callGeminiWithFile(prompt, fileUri, mimeType) {
   const MODELS = [
-    'gemini-3-flash-preview',
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
+    'gemini-3.5-flash',
+    'gemini-3.1-pro',
+    'gemini-3-flash',
   ];
   for (const model of MODELS) {
     console.log(`Trying model with file: ${model}`);
