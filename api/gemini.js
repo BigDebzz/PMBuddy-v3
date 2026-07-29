@@ -48,6 +48,7 @@ async function callModel(model, prompt, mode) {
   return { text: null, error: geminiResponse.status, status: geminiResponse.status };
 }
 
+// NEW: File-based generation using Google File API URI
 async function callModelWithFile(model, prompt, fileUri, mimeType) {
   const API_KEY = process.env.GEMINI_API_KEY;
   const maxTokens = 8000;
@@ -80,9 +81,9 @@ async function callModelWithFile(model, prompt, fileUri, mimeType) {
 
 async function callGemini(prompt, mode) {
   const MODELS = [
-    'gemini-3.5-flash',
-    'gemini-3.1-pro',
-    'gemini-3-flash',
+    'gemini-3-flash-preview',
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
   ];
   for (const model of MODELS) {
     console.log(`Trying model: ${model}`);
@@ -95,11 +96,12 @@ async function callGemini(prompt, mode) {
   return { text: null, error: 'AI is currently busy. Please try again in a moment.' };
 }
 
+// NEW: File upload fallback chain
 async function callGeminiWithFile(prompt, fileUri, mimeType) {
   const MODELS = [
-    'gemini-3.5-flash',
-    'gemini-3.1-pro',
-    'gemini-3-flash',
+    'gemini-3-flash-preview',
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
   ];
   for (const model of MODELS) {
     console.log(`Trying model with file: ${model}`);
@@ -140,11 +142,10 @@ export default async function handler(request, response) {
 
     let result;
 
+    // NEW: Handle file uploads from DocumentImport
     if (fileUri && mimeType) {
-      // File-based generation (Document Import uploads)
       result = await callGeminiWithFile(prompt, fileUri, mimeType);
     } else {
-      // Plain text generation (everything else)
       result = await callGemini(prompt, mode);
     }
 
