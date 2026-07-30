@@ -140,6 +140,7 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
         }
         const cleaned = cleanPastedText(pastedText);
         body.prompt = `${EXTRACTION_PROMPT}\n\nDocument content:\n\n${cleaned}`;
+        body.mode = 'document';
       } else if (mode === 'upload') {
         if (!file) {
           throw new Error('Please select a file first');
@@ -168,6 +169,7 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
         const uploadData = await uploadRes.json();
         console.log('[PM Buddy] Upload success, fileUri:', uploadData.fileUri, 'mimeType:', uploadData.mimeType);
         const { fileUri, mimeType } = uploadData;
+        body.mode = 'document';
         body = { prompt: EXTRACTION_PROMPT, fileUri, mimeType };
       }
 
@@ -224,11 +226,8 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
         goal: extractedData.goal || '',
         industry: extractedData.industry || '',
         team_type: extractedData.team_type || '',
-        team_size: extractedData.team_size || null,
         methodology: extractedData.methodology || 'Hybrid',
         status: 'active',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
         scope: {
           deliverables: extractedData.key_deliverables || [],
           assumptions: extractedData.assumptions || [],
@@ -291,7 +290,7 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
 
       if (dbError) throw dbError;
 
-      // Generate project brief via AI
+      // Generate project brief via AI (non-blocking)
       try {
         const briefPrompt = `Write a concise project brief (2-3 paragraphs) for this project:\nName: ${projectPayload.name}\nGoal: ${projectPayload.goal}\nIndustry: ${projectPayload.industry}\nMethodology: ${projectPayload.methodology}`;
         const { data: briefSession } = await supabase.auth.getSession();
@@ -301,24 +300,26 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
         const briefRes = await fetch('/api/gemini', {
           method: 'POST',
           headers: briefHeaders,
-          body: JSON.stringify({ prompt: briefPrompt }),
+          body: JSON.stringify({ prompt: briefPrompt, mode: 'document' }),
         });
         if (briefRes.ok) {
           const { result: briefText } = await briefRes.json();
+          // Store brief in insights field since project_brief column may not exist
           await supabase
             .from('pm_projects')
-            .update({ project_brief: briefText })
+            .update({ insights: briefText })
             .eq('id', data.id);
         }
       } catch (briefErr) {
-        console.error('Brief generation failed (non-blocking):', briefErr);
+        console.error('[PM Buddy] Brief generation failed (non-blocking):', briefErr);
       }
 
       onProjectCreated?.(data);
 
     } catch (err) {
-      console.error('Save project error:', err);
-      setError(err.message || 'Failed to save project. Please try again.');
+      console.error('[PM Buddy] Save project error:', err);
+      console.error('[PM Buddy] Error details:', JSON.stringify(err, null, 2));
+      setError(err.message || err.error_description || 'Failed to save project. Please try again.');
     } finally {
       setLoading(false);
     }
