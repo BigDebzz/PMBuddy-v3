@@ -79,6 +79,8 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
   };
 
   const parseGeminiResponse = (text) => {
+    if (!text) throw new Error('Empty AI response');
+
     // Strategy 1: direct JSON parse
     try {
       return JSON.parse(text.trim());
@@ -99,6 +101,17 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
       try {
         return JSON.parse(text.slice(firstBrace, lastBrace + 1));
       } catch (_) {}
+    }
+
+    // Strategy 4: try to find JSON after any explanatory text
+    const jsonStart = text.search(/\{\s*"/);
+    if (jsonStart !== -1) {
+      const jsonEnd = text.lastIndexOf('}');
+      if (jsonEnd > jsonStart) {
+        try {
+          return JSON.parse(text.slice(jsonStart, jsonEnd + 1));
+        } catch (_) {}
+      }
     }
 
     throw new Error('Could not parse AI response as JSON');
@@ -175,6 +188,7 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
 
       const { result } = await geminiRes.json();
       console.log('[PM Buddy] Gemini result length:', result?.length || 0);
+      console.log('[PM Buddy] Gemini raw result (first 500 chars):', result?.substring(0, 500));
       const parsed = parseGeminiResponse(result);
 
       if (parsed.error) {
