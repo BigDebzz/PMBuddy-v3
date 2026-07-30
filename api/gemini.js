@@ -153,14 +153,10 @@ export default async function handler(request, response) {
       return response.status(503).json({ error: result.error });
     }
 
-    if (mode === 'document' || (fileUri && mimeType)) {
-      return response.status(200).json({ result: result.text });
-    }
+    // FIXED: Return raw text for all modes. Let frontend handle parsing.
+    // The old lastIndexOf('}') truncation was breaking nested JSON.
+    return response.status(200).json({ result: result.text });
 
-    const clean = result.text.replace(/```json|```/g, '').trim();
-    const lastBrace = clean.lastIndexOf('}');
-    const fixed = lastBrace !== -1 ? clean.substring(0, lastBrace + 1) : clean;
-    return response.status(200).json({ result: fixed });
   } catch (err) {
     console.error('Gemini handler error:', err);
     return response.status(500).json({ error: err.message });
