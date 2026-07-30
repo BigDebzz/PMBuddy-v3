@@ -116,6 +116,7 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
       if (authToken) {
         headers['Authorization'] = `Bearer ${authToken}`;
       }
+      console.log('[PM Buddy] Auth token present:', !!authToken);
 
       let prompt = EXTRACTION_PROMPT;
       let body = { prompt };
@@ -133,6 +134,7 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
 
         // Step 1: Upload file to Google File API via our serverless endpoint
         const base64 = await readFileAsBase64(file);
+        console.log('[PM Buddy] Uploading file to /api/upload...');
         const uploadRes = await fetch('/api/upload', {
           method: 'POST',
           headers,
@@ -143,28 +145,36 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
           }),
         });
 
+        console.log('[PM Buddy] Upload response status:', uploadRes.status);
         if (!uploadRes.ok) {
           const errData = await uploadRes.json().catch(() => ({}));
+          console.error('[PM Buddy] Upload failed:', errData);
           throw new Error(errData.error || `Upload failed: ${uploadRes.status}`);
         }
 
-        const { fileUri, mimeType } = await uploadRes.json();
+        const uploadData = await uploadRes.json();
+        console.log('[PM Buddy] Upload success, fileUri:', uploadData.fileUri, 'mimeType:', uploadData.mimeType);
+        const { fileUri, mimeType } = uploadData;
         body = { prompt: EXTRACTION_PROMPT, fileUri, mimeType };
       }
 
       // Step 2: Call Gemini with text or file URI
+      console.log('[PM Buddy] Calling /api/gemini with body:', JSON.stringify(body).substring(0, 200));
       const geminiRes = await fetch('/api/gemini', {
         method: 'POST',
         headers,
         body: JSON.stringify(body),
       });
 
+      console.log('[PM Buddy] Gemini response status:', geminiRes.status);
       if (!geminiRes.ok) {
         const errData = await geminiRes.json().catch(() => ({}));
+        console.error('[PM Buddy] Gemini failed:', errData);
         throw new Error(errData.error || `AI extraction failed: ${geminiRes.status}`);
       }
 
       const { result } = await geminiRes.json();
+      console.log('[PM Buddy] Gemini result length:', result?.length || 0);
       const parsed = parseGeminiResponse(result);
 
       if (parsed.error) {
@@ -175,7 +185,7 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
       setStep('review');
 
     } catch (err) {
-      console.error('Extraction error:', err);
+      console.error('[PM Buddy] Extraction error:', err);
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
