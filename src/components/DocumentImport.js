@@ -209,7 +209,6 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
   };
 
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [savedProject, setSavedProject] = useState(null);
 
   const handleSaveProject = async () => {
     setLoading(true);
@@ -320,7 +319,6 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
         console.error('[PM Buddy] Brief generation failed (non-blocking):', briefErr);
       }
 
-      setSavedProject(data);
       setSaveSuccess(true);
       setLoading(false);
 
