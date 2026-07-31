@@ -119,7 +119,7 @@ function MilestoneEditor({ milestones, onChange, industry, description, isOngoin
 
   const removeMilestone = (i) => onChange(milestones.filter((_, idx) => idx !== i));
 
-  const suggestKey Steps = async () => {
+  const suggestSteps = async () => {
     setSuggesting(true);
     const prompt = `List 5 project milestones for a ${industry || 'general'} project. ${description ? `Project: ${description}` : ''} ${isOngoing ? 'Project is in progress, mix done and upcoming.' : 'New project, all pending.'}
 
@@ -160,7 +160,7 @@ Respond with ONLY a raw JSON array. No explanation. No markdown. No code blocks.
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <label style={s.label}>Key Steps</label>
-        <button style={s.aiSuggestBtn} onClick={suggestKey Steps} disabled={suggesting}>{suggesting ? 'Suggesting...' : 'Suggest Steps for Me'}</button>
+        <button style={s.aiSuggestBtn} onClick={suggestSteps} disabled={suggesting}>{suggesting ? 'Suggesting...' : 'Suggest Steps for Me'}</button>
       </div>
       <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 14 }}>
         {isOngoing ? 'Mark milestones as done, in progress or pending to show where you are now.' : 'Add your key project milestones. PM Buddy can suggest them based on your project.'}
@@ -533,7 +533,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
               <input style={s.input} type="date" value={data.startDate} onChange={e => update('startDate', e.target.value)} />
               <label style={s.label}>Target End Date</label>
               <input style={s.input} type="date" value={data.endDate} onChange={e => update('endDate', e.target.value)} />
-              {data.startDate && data.endDate && <When Does It HappenCheck start={data.startDate} end={data.endDate} />}
+              {data.startDate && data.endDate && <TimelineCheck start={data.startDate} end={data.endDate} />}
               <div style={{ marginTop: 24 }}>
                 <label style={s.label}>What Could Go Wrong</label>
                 <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 12 }}>What could go wrong? Name your top concerns.</p>
@@ -593,14 +593,14 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
               <h2 style={s.stepTitle}>Check Everything Your Project</h2>
               <p style={s.stepSub}>Everything can be updated later inside your project workspace.</p>
               <div style={s.reviewGrid}>
-                <Check EverythingItem label="What is this project called?" value={data.name} />
-                <Check EverythingItem label="What field is this in?" value={data.industry} />
-                <Check EverythingItem label="Type" value={projectType === 'ongoing' ? 'Ongoing Project' : 'New Project'} />
-                <Check EverythingItem label="Goal" value={data.goal} />
-                <Check EverythingItem label="Who Is On This" value={data.teamType === 'solo' ? 'Solo' : `${data.teamMembers.filter(m => m.name).length} members`} />
-                <Check EverythingItem label="Key Steps" value={`${data.milestones.filter(m => m.title.trim()).length} set`} />
-                {projectType === 'ongoing' && <Check EverythingItem label="Current Phase" value={data.currentPhase || 'Not set'} />}
-                {projectType === 'ongoing' && <Check EverythingItem label="Blockers" value={data.blockers ? 'Noted' : 'None noted'} />}
+                <ReviewItem label="What is this project called?" value={data.name} />
+                <ReviewItem label="What field is this in?" value={data.industry} />
+                <ReviewItem label="Type" value={projectType === 'ongoing' ? 'Ongoing Project' : 'New Project'} />
+                <ReviewItem label="Goal" value={data.goal} />
+                <ReviewItem label="Who Is On This" value={data.teamType === 'solo' ? 'Solo' : `${data.teamMembers.filter(m => m.name).length} members`} />
+                <ReviewItem label="Key Steps" value={`${data.milestones.filter(m => m.title.trim()).length} set`} />
+                {projectType === 'ongoing' && <ReviewItem label="Current Phase" value={data.currentPhase || 'Not set'} />}
+                {projectType === 'ongoing' && <ReviewItem label="Blockers" value={data.blockers ? 'Noted' : 'None noted'} />}
               </div>
               {data.industry && (
                 <div style={s.complianceCard}>
@@ -630,7 +630,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
   );
 }
 
-function Check EverythingItem({ label, value }) {
+function ReviewItem({ label, value }) {
   return (
     <div style={s.reviewItem}>
       <p style={s.reviewLabel}>{label}</p>
@@ -639,7 +639,7 @@ function Check EverythingItem({ label, value }) {
   );
 }
 
-function When Does It HappenCheck({ start, end }) {
+function TimelineCheck({ start, end }) {
   const days = Math.ceil((new Date(end) - new Date(start)) / 86400000);
   if (days < 0) return <div style={s.timelineWarn}>Your end date is earlier than your start date.</div>;
   if (days < 14) return <div style={s.timelineWarn}>That is only {days} days. Keep your plans realistic.</div>;
