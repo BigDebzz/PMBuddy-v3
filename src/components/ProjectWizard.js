@@ -119,7 +119,7 @@ function MilestoneEditor({ milestones, onChange, industry, description, isOngoin
 
   const removeMilestone = (i) => onChange(milestones.filter((_, idx) => idx !== i));
 
-  const suggestMilestones = async () => {
+  const suggestKey Steps = async () => {
     setSuggesting(true);
     const prompt = `List 5 project milestones for a ${industry || 'general'} project. ${description ? `Project: ${description}` : ''} ${isOngoing ? 'Project is in progress, mix done and upcoming.' : 'New project, all pending.'}
 
@@ -149,7 +149,7 @@ Respond with ONLY a raw JSON array. No explanation. No markdown. No code blocks.
         { title: 'Project Kickoff', date: '', status: isOngoing ? 'done' : 'pending' },
         { title: 'Planning Complete', date: '', status: isOngoing ? 'done' : 'pending' },
         { title: 'First Deliverable', date: '', status: isOngoing ? 'in_progress' : 'pending' },
-        { title: 'Review and Feedback', date: '', status: 'pending' },
+        { title: 'Check Everything and Feedback', date: '', status: 'pending' },
         { title: 'Project Complete', date: '', status: 'pending' },
       ]);
     }
@@ -159,15 +159,15 @@ Respond with ONLY a raw JSON array. No explanation. No markdown. No code blocks.
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <label style={s.label}>Milestones</label>
-        <button style={s.aiSuggestBtn} onClick={suggestMilestones} disabled={suggesting}>{suggesting ? 'Suggesting...' : 'AI Suggest'}</button>
+        <label style={s.label}>Key Steps</label>
+        <button style={s.aiSuggestBtn} onClick={suggestKey Steps} disabled={suggesting}>{suggesting ? 'Suggesting...' : 'Suggest Steps for Me'}</button>
       </div>
       <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 14 }}>
         {isOngoing ? 'Mark milestones as done, in progress or pending to show where you are now.' : 'Add your key project milestones. PM Buddy can suggest them based on your project.'}
       </p>
       {milestones.map((m, i) => (
         <div key={i} style={s.milestoneRow}>
-          <input style={{ ...s.milestoneInput, flex: 2 }} placeholder={`Milestone ${i + 1} e.g. MVP Launch`} value={m.title} onChange={e => updateMilestone(i, 'title', e.target.value)} />
+          <input style={{ ...s.milestoneInput, flex: 2 }} placeholder={`Milestone ${i + 1} e.g. First version ready`} value={m.title} onChange={e => updateMilestone(i, 'title', e.target.value)} />
           <input style={{ ...s.milestoneInput, flex: 1 }} type="date" value={m.date || ''} onChange={e => updateMilestone(i, 'date', e.target.value)} />
           <select style={s.milestoneStatus} value={m.status} onChange={e => updateMilestone(i, 'status', e.target.value)}>
             <option value="done">Done</option>
@@ -247,7 +247,7 @@ export default function ProjectWizard({ user, onComplete, onBack }) {
     setProjectType(type);
     const milestones = type === 'ongoing'
       ? [{ title: '', date: '', status: 'done' }, { title: '', date: '', status: 'in_progress' }, { title: '', date: '', status: 'pending' }]
-      : [{ title: 'Project Kickoff', date: '', status: 'pending' }, { title: 'First Deliverable', date: '', status: 'pending' }, { title: 'Midpoint Review', date: '', status: 'pending' }];
+      : [{ title: 'Project Kickoff', date: '', status: 'pending' }, { title: 'First Deliverable', date: '', status: 'pending' }, { title: 'Midpoint Check Everything', date: '', status: 'pending' }];
     setData(p => { const updated = { ...p, milestones }; saveDraft(updated, 1, type); return updated; });
     setStep(1);
   };
@@ -335,18 +335,18 @@ Return ONLY the rewritten goal. Nothing else.`,
       const briefPrompt = `You are a professional project manager. Write a concise project brief for this project.
 
 Project: ${data.name}
-Industry: ${data.industry}
+What field is this in?: ${data.industry}
 Type: ${projectType === 'ongoing' ? 'Already in progress' : 'New project'}
 Description: ${data.description}
 Goal: ${data.goal}
 Methodology: ${methodology}
-Team: ${data.teamType === 'solo' ? 'Solo project' : data.teamMembers.filter(m => m.name).map(m => `${m.name} (${m.role})`).join(', ')}
-Timeline: ${data.startDate ? `${data.startDate} to ${data.endDate}` : 'Not set'}
+Who Is On This: ${data.teamType === 'solo' ? 'Solo project' : data.teamMembers.filter(m => m.name).map(m => `${m.name} (${m.role})`).join(', ')}
+When Does It Happen: ${data.startDate ? `${data.startDate} to ${data.endDate}` : 'Not set'}
 ${projectType === 'ongoing' ? `Current Phase: ${data.currentPhase}\nCompleted: ${data.completedWork}\nRemaining: ${data.remainingWork}\nBlockers: ${data.blockers}` : ''}
 Risks: ${data.topRisks.filter(r => r.trim()).join(', ') || 'None listed'}
-Milestones: ${data.milestones.filter(m => m.title).map(m => m.title).join(', ')}
+Key Steps: ${data.milestones.filter(m => m.title).map(m => m.title).join(', ')}
 
-Write a professional project brief in HTML (h1 for title, h2 for sections, p for paragraphs). No html/head/body tags. Include: Project Overview, Objectives, Scope, Team and Roles, Timeline, Key Risks, Success Metrics. Make it specific to their actual inputs. Minimum 400 words.`;
+Write a professional project brief in HTML (h1 for title, h2 for sections, p for paragraphs). No html/head/body tags. Include: What This Project Is, What Success Looks Like, What Is Included, Who Is On This and Roles, When Does It Happen, What Could Go Wrong, How We Will Know It Worked. Make it specific to their actual inputs. Minimum 400 words.`;
 
       const res = await fetch('/api/gemini', {
         method: 'POST',
@@ -378,11 +378,11 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
               <button style={s.typeCard} onClick={() => selectType('new')}>
                 <div style={s.typeIcon}>◈</div>
-                <div><p style={s.typeName}>Starting Fresh</p><p style={s.typeDesc}>I am starting this project from scratch. Help me plan it properly from the beginning.</p></div>
+                <div><p style={s.typeName}>Starting from scratch</p><p style={s.typeDesc}>I am starting this from the beginning. Help me plan it step by step.</p></div>
               </button>
               <button style={s.typeCard} onClick={() => selectType('ongoing')}>
                 <div style={{ ...s.typeIcon, background: '#EFF6FF', color: BLUE }}>↻</div>
-                <div><p style={s.typeName}>Already in Progress</p><p style={s.typeDesc}>This project is already running. I want to bring it into PM Buddy to manage it better from here.</p></div>
+                <div><p style={s.typeName}>Already started</p><p style={s.typeDesc}>This is already running. I want to organise it better inside PM Buddy.</p></div>
               </button>
             </div>
           </div>
@@ -391,8 +391,8 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
     );
   }
 
-  const STEPS_NEW = ['Basics', 'Team', 'Timeline', 'Milestones', 'Review'];
-  const STEPS_ONGOING = ['Basics', 'Current Status', 'Team', 'Milestones', 'Review'];
+  const STEPS_NEW = ['About Your Project', 'Who Is On This', 'When Does It Happen', 'Key Steps', 'Check Everything'];
+  const STEPS_ONGOING = ['About Your Project', 'Where You Are Now', 'Who Is On This', 'Key Steps', 'Check Everything'];
   const stepLabels = projectType === 'new' ? STEPS_NEW : STEPS_ONGOING;
 
   return (
@@ -412,20 +412,20 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
               <p style={s.stepTag}>{projectType === 'ongoing' ? 'Ongoing Project' : 'New Project'} · Step 1 of 5</p>
               <h2 style={s.stepTitle}>Tell Us About Your Project</h2>
               <p style={s.stepSub}>{projectType === 'ongoing' ? 'Start with what this project is about.' : 'The clearer you are here the better PM Buddy can support you.'}</p>
-              <label style={s.label}>Project Name</label>
+              <label style={s.label}>What is this project called?</label>
               <div style={{ marginBottom: 20 }}><VoiceInput value={data.name} onChange={v => update('name', v)} placeholder="e.g. Product Launch, Community Training, App Development" /></div>
-              <label style={s.label}>What is this project about?</label>
+              <label style={s.label}>Tell us what this project is</label>
               <div style={{ marginBottom: suggestions.description ? 8 : 20 }}>
-                <VoiceTextarea value={data.description} onChange={v => update('description', v)} placeholder="Describe what this project is and what it is trying to achieve." rows={3} />
+                <VoiceTextarea value={data.description} onChange={v => update('description', v)} placeholder="Describe what this project is and who it is for." rows={3} />
               </div>
               {data.description.trim().length > 20 && !suggestions.description && (
                 <button style={s.refineBtn} onClick={() => refineField('description', data.description)} disabled={refining.description}>
-                  {refining.description ? 'Refining...' : 'AI Refine'}
+                  {refining.description ? 'Refining...' : 'Make This Clearer'}
                 </button>
               )}
               {suggestions.description && (
                 <div style={s.suggestionBox}>
-                  <p style={s.suggestionLabel}>AI Suggestion</p>
+                  <p style={s.suggestionLabel}>Suggest Steps for Meion</p>
                   <p style={s.suggestionText}>{suggestions.description}</p>
                   <div style={s.suggestionActions}>
                     <button style={s.acceptBtn} onClick={() => acceptSuggestion('description')}>Use this</button>
@@ -434,18 +434,18 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
                 </div>
               )}
               <div style={{ marginBottom: 20 }} />
-              <label style={s.label}>What does success look like?</label>
+              <label style={s.label}>What will be different when this is done?</label>
               <div style={{ marginBottom: suggestions.goal ? 8 : 20 }}>
-                <VoiceTextarea value={data.goal} onChange={v => update('goal', v)} placeholder="What outcome are you trying to achieve? Be specific." rows={3} />
+                <VoiceTextarea value={data.goal} onChange={v => update('goal', v)} placeholder="What will be different when this project is finished?" rows={3} />
               </div>
               {data.goal.trim().length > 20 && !suggestions.goal && (
                 <button style={s.refineBtn} onClick={() => refineField('goal', data.goal)} disabled={refining.goal}>
-                  {refining.goal ? 'Refining...' : 'AI Refine'}
+                  {refining.goal ? 'Refining...' : 'Make This Clearer'}
                 </button>
               )}
               {suggestions.goal && (
                 <div style={s.suggestionBox}>
-                  <p style={s.suggestionLabel}>AI Suggestion</p>
+                  <p style={s.suggestionLabel}>Suggest Steps for Meion</p>
                   <p style={s.suggestionText}>{suggestions.goal}</p>
                   <div style={s.suggestionActions}>
                     <button style={s.acceptBtn} onClick={() => acceptSuggestion('goal')}>Use this</button>
@@ -454,7 +454,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
                 </div>
               )}
               <div style={{ marginBottom: 20 }} />
-              <label style={s.label}>Industry</label>
+              <label style={s.label}>What field is this in?</label>
               <div style={s.industryGrid}>
                 {INDUSTRIES.map(ind => (
                   <button key={ind} style={{ ...s.industryBtn, background: data.industry === ind ? BLUE : WH, color: data.industry === ind ? WH : BL, borderColor: data.industry === ind ? BLUE : '#E5E7EB' }} onClick={() => update('industry', ind)}>{ind}</button>
@@ -466,10 +466,10 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
           {step === 2 && projectType === 'new' && (
             <div>
               <p style={s.stepTag}>New Project · Step 2 of 5</p>
-              <h2 style={s.stepTitle}>Who is working on this?</h2>
+              <h2 style={s.stepTitle}>Who is doing this?</h2>
               <p style={s.stepSub}>Even if it is just you, defining roles prevents confusion later.</p>
               <div style={s.teamTypeGrid}>
-                {[{ val: 'solo', label: 'Just Me', desc: 'I am building this alone' }, { val: 'small', label: 'Small Team', desc: '2 to 5 people' }, { val: 'large', label: 'Larger Team', desc: '6 or more people' }].map(t => (
+                {[{ val: 'solo', label: 'Just me', desc: 'I am doing this alone' }, { val: 'small', label: 'Small Who Is On This', desc: '2 to 5 people' }, { val: 'large', label: 'Larger Who Is On This', desc: '6 or more people' }].map(t => (
                   <button key={t.val} style={{ ...s.teamTypeBtn, borderColor: data.teamType === t.val ? BLUE : '#E5E7EB', background: data.teamType === t.val ? '#EFF6FF' : WH }} onClick={() => update('teamType', t.val)}>
                     <p style={{ ...s.teamTypeName, color: data.teamType === t.val ? BLUE : BL }}>{t.label}</p>
                     <p style={s.teamTypeDesc}>{t.desc}</p>
@@ -478,7 +478,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
               </div>
               {data.teamType !== 'solo' && (
                 <div style={{ marginTop: 24 }}>
-                  <label style={s.label}>Team Members</label>
+                  <label style={s.label}>Who Is On This Members</label>
                   {data.teamMembers.map((m, i) => (
                     <div key={i} style={s.memberRow}>
                       <input style={s.inputInline} placeholder="Name" value={m.name} onChange={e => updateMember(i, 'name', e.target.value)} />
@@ -497,23 +497,23 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
               <p style={s.stepTag}>Ongoing Project · Step 2 of 5</p>
               <h2 style={s.stepTitle}>Where are you right now?</h2>
               <p style={s.stepSub}>Help PM Buddy understand what has already happened and what is still to come.</p>
-              <label style={s.label}>What phase or stage is the project in?</label>
-              <div style={{ marginBottom: 20 }}><VoiceInput value={data.currentPhase} onChange={v => update('currentPhase', v)} placeholder="e.g. Planning, Development, Testing, Launch Preparation" /></div>
-              <label style={s.label}>What has already been done?</label>
-              <div style={{ marginBottom: 20 }}><VoiceTextarea value={data.completedWork} onChange={v => update('completedWork', v)} placeholder="List what has been completed so far. Be specific." rows={3} /></div>
+              <label style={s.label}>What stage is this at right now?</label>
+              <div style={{ marginBottom: 20 }}><VoiceInput value={data.currentPhase} onChange={v => update('currentPhase', v)} placeholder="e.g. Planning, Building, Testing, Launch" /></div>
+              <label style={s.label}>What have you already finished?</label>
+              <div style={{ marginBottom: 20 }}><VoiceTextarea value={data.completedWork} onChange={v => update('completedWork', v)} placeholder="List what you have already finished." rows={3} /></div>
               <label style={s.label}>What is still left to do?</label>
-              <div style={{ marginBottom: 20 }}><VoiceTextarea value={data.remainingWork} onChange={v => update('remainingWork', v)} placeholder="What work remains before this project is done?" rows={3} /></div>
-              <label style={s.label}>What are the current blockers or challenges?</label>
-              <div style={{ marginBottom: 20 }}><VoiceTextarea value={data.blockers} onChange={v => update('blockers', v)} placeholder="What is slowing things down or could cause problems?" rows={3} /></div>
-              <label style={s.label}>How does the team currently communicate?</label>
-              <div style={{ marginBottom: 20 }}><VoiceInput value={data.communicationFlow} onChange={v => update('communicationFlow', v)} placeholder="e.g. WhatsApp group, weekly meetings, email updates" /></div>
-              <label style={s.label}>What approach are you using to manage this project?</label>
+              <div style={{ marginBottom: 20 }}><VoiceTextarea value={data.remainingWork} onChange={v => update('remainingWork', v)} placeholder="What still needs to be done?" rows={3} /></div>
+              <label style={s.label}>What is slowing things down?</label>
+              <div style={{ marginBottom: 20 }}><VoiceTextarea value={data.blockers} onChange={v => update('blockers', v)} placeholder="What is making this harder than it should be?" rows={3} /></div>
+              <label style={s.label}>How does the team stay in touch?</label>
+              <div style={{ marginBottom: 20 }}><VoiceInput value={data.communicationFlow} onChange={v => update('communicationFlow', v)} placeholder="e.g. WhatsApp group, weekly catch-ups, email updates" /></div>
+              <label style={s.label}>How are you working on this?</label>
               <div style={s.methodGrid}>
                 {[
-                  { val: 'Agile', desc: 'Flexible, iterative, adapt as you go' },
-                  { val: 'Predictive', desc: 'Structured plan, fixed phases and approvals' },
-                  { val: 'Hybrid', desc: 'Mix of both — plan the big picture, stay flexible on details' },
-                  { val: 'Not sure', desc: 'I am not sure — help me figure it out' },
+                  { val: 'Agile', desc: 'Try things, learn, adjust as you go' },
+                  { val: 'Predictive', desc: 'Plan everything upfront, follow steps in order' },
+                  { val: 'Hybrid', desc: 'Plan the big picture, stay flexible on the details' },
+                  { val: 'Not sure', desc: 'Not sure — PM Buddy will suggest the best way' },
                 ].map(m => (
                   <button key={m.val} style={{ ...s.methodBtn, borderColor: data.methodology === m.val ? BLUE : '#E5E7EB', background: data.methodology === m.val ? '#EFF6FF' : WH }} onClick={() => update('methodology', m.val)}>
                     <p style={{ ...s.methodName, color: data.methodology === m.val ? BLUE : BL }}>{m.val}</p>
@@ -527,15 +527,15 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
           {step === 3 && projectType === 'new' && (
             <div>
               <p style={s.stepTag}>New Project · Step 3 of 5</p>
-              <h2 style={s.stepTitle}>When does this need to happen?</h2>
+              <h2 style={s.stepTitle}>When does this start and end?</h2>
               <p style={s.stepSub}>Set realistic dates. PM Buddy will flag if your timeline looks too tight.</p>
               <label style={s.label}>Start Date</label>
               <input style={s.input} type="date" value={data.startDate} onChange={e => update('startDate', e.target.value)} />
               <label style={s.label}>Target End Date</label>
               <input style={s.input} type="date" value={data.endDate} onChange={e => update('endDate', e.target.value)} />
-              {data.startDate && data.endDate && <TimelineCheck start={data.startDate} end={data.endDate} />}
+              {data.startDate && data.endDate && <When Does It HappenCheck start={data.startDate} end={data.endDate} />}
               <div style={{ marginTop: 24 }}>
-                <label style={s.label}>Top Risks</label>
+                <label style={s.label}>What Could Go Wrong</label>
                 <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 12 }}>What could go wrong? Name your top concerns.</p>
                 {[0, 1, 2].map(i => (
                   <div key={i} style={{ marginBottom: 12 }}>
@@ -556,7 +556,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
               <label style={s.label}>Target End Date</label>
               <input style={s.input} type="date" value={data.endDate} onChange={e => update('endDate', e.target.value)} />
               <div style={{ marginTop: 20 }}>
-                <label style={s.label}>Team Members</label>
+                <label style={s.label}>Who Is On This Members</label>
                 {data.teamMembers.map((m, i) => (
                   <div key={i} style={s.memberRow}>
                     <input style={s.inputInline} placeholder="Name" value={m.name} onChange={e => updateMember(i, 'name', e.target.value)} />
@@ -567,7 +567,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
                 <button style={s.addBtn} onClick={addMember}>+ Add Member</button>
               </div>
               <div style={{ marginTop: 24 }}>
-                <label style={s.label}>Risks and Concerns</label>
+                <label style={s.label}>What Could Go Wrong</label>
                 <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 12 }}>What are the biggest risks right now?</p>
                 {[0, 1, 2].map(i => (
                   <div key={i} style={{ marginBottom: 12 }}>
@@ -581,8 +581,8 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
           {step === 4 && (
             <div>
               <p style={s.stepTag}>{projectType === 'ongoing' ? 'Ongoing' : 'New'} Project · Step 4 of 5</p>
-              <h2 style={s.stepTitle}>Project Milestones</h2>
-              <p style={s.stepSub}>{projectType === 'ongoing' ? 'Show where you are now. Mark completed milestones as done, current ones as in progress.' : 'Set the key checkpoints for your project. Use AI Suggest to get milestone ideas.'}</p>
+              <h2 style={s.stepTitle}>Project Key Steps</h2>
+              <p style={s.stepSub}>{projectType === 'ongoing' ? 'Show where you are now. Mark completed milestones as done, current ones as in progress.' : 'Set the key checkpoints for your project. Use Suggest Steps for Me to get milestone ideas.'}</p>
               <MilestoneEditor milestones={data.milestones} onChange={v => update('milestones', v)} industry={data.industry} description={data.description} isOngoing={projectType === 'ongoing'} />
             </div>
           )}
@@ -590,21 +590,21 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
           {step === 5 && (
             <div>
               <p style={s.stepTag}>Step 5 of 5</p>
-              <h2 style={s.stepTitle}>Review Your Project</h2>
+              <h2 style={s.stepTitle}>Check Everything Your Project</h2>
               <p style={s.stepSub}>Everything can be updated later inside your project workspace.</p>
               <div style={s.reviewGrid}>
-                <ReviewItem label="Project Name" value={data.name} />
-                <ReviewItem label="Industry" value={data.industry} />
-                <ReviewItem label="Type" value={projectType === 'ongoing' ? 'Ongoing Project' : 'New Project'} />
-                <ReviewItem label="Goal" value={data.goal} />
-                <ReviewItem label="Team" value={data.teamType === 'solo' ? 'Solo' : `${data.teamMembers.filter(m => m.name).length} members`} />
-                <ReviewItem label="Milestones" value={`${data.milestones.filter(m => m.title.trim()).length} set`} />
-                {projectType === 'ongoing' && <ReviewItem label="Current Phase" value={data.currentPhase || 'Not set'} />}
-                {projectType === 'ongoing' && <ReviewItem label="Blockers" value={data.blockers ? 'Noted' : 'None noted'} />}
+                <Check EverythingItem label="What is this project called?" value={data.name} />
+                <Check EverythingItem label="What field is this in?" value={data.industry} />
+                <Check EverythingItem label="Type" value={projectType === 'ongoing' ? 'Ongoing Project' : 'New Project'} />
+                <Check EverythingItem label="Goal" value={data.goal} />
+                <Check EverythingItem label="Who Is On This" value={data.teamType === 'solo' ? 'Solo' : `${data.teamMembers.filter(m => m.name).length} members`} />
+                <Check EverythingItem label="Key Steps" value={`${data.milestones.filter(m => m.title.trim()).length} set`} />
+                {projectType === 'ongoing' && <Check EverythingItem label="Current Phase" value={data.currentPhase || 'Not set'} />}
+                {projectType === 'ongoing' && <Check EverythingItem label="Blockers" value={data.blockers ? 'Noted' : 'None noted'} />}
               </div>
               {data.industry && (
                 <div style={s.complianceCard}>
-                  <p style={s.complianceLabel}>Compliance Heads Up</p>
+                  <p style={s.complianceLabel}>Important Rules to Know</p>
                   <p style={s.complianceText}>{getComplianceText(data.industry)}</p>
                 </div>
               )}
@@ -619,7 +619,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
                 <button style={{ ...s.nextBtn, opacity: canProceed() ? 1 : 0.5, flex: 1 }} onClick={next} disabled={!canProceed()}>Continue</button>
               ) : (
                 <button style={{ ...s.nextBtn, flex: 1 }} onClick={save} disabled={saving || generating}>
-                  {generating ? 'Generating your project brief...' : saving ? 'Saving...' : 'Save My Project'}
+                  {generating ? 'Creating your project summary...' : saving ? 'Saving...' : 'Save This Project'}
                 </button>
               )}
             </div>
@@ -630,7 +630,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
   );
 }
 
-function ReviewItem({ label, value }) {
+function Check EverythingItem({ label, value }) {
   return (
     <div style={s.reviewItem}>
       <p style={s.reviewLabel}>{label}</p>
@@ -639,11 +639,11 @@ function ReviewItem({ label, value }) {
   );
 }
 
-function TimelineCheck({ start, end }) {
+function When Does It HappenCheck({ start, end }) {
   const days = Math.ceil((new Date(end) - new Date(start)) / 86400000);
-  if (days < 0) return <div style={s.timelineWarn}>Your end date is before your start date.</div>;
-  if (days < 14) return <div style={s.timelineWarn}>Very tight timeline of {days} days. Make sure your scope is small.</div>;
-  return <div style={s.timelineOk}>You have {days} days. {days < 30 ? 'Stay focused on your core deliverables.' : 'A workable timeline.'}</div>;
+  if (days < 0) return <div style={s.timelineWarn}>Your end date is earlier than your start date.</div>;
+  if (days < 14) return <div style={s.timelineWarn}>That is only {days} days. Keep your plans realistic.</div>;
+  return <div style={s.timelineOk}>You have {days} days. {days < 30 ? 'Focus on the most important parts.' : 'That is a reasonable amount of time.'}</div>;
 }
 
 function deriveMethodology(data) {
@@ -664,8 +664,8 @@ function getComplianceText(industry) {
 }
 
 function getRiskPlaceholder(i, industry) {
-  const defaults = { Fintech: ['Regulatory approval delays', 'Payment integration issues', 'Security vulnerabilities'], Health: ['Data privacy compliance gaps', 'User adoption resistance', 'Regulatory approvals'], default: ['Timeline slipping', 'Team member unavailability', 'Budget overrun'] };
-  return (defaults[industry] || defaults.default)[i] || 'Describe a risk...';
+  const defaults = { Fintech: ['Waiting for approval from regulators', 'Payment system not working properly', 'Security weaknesses that could be exploited'], Health: ['Not following data privacy rules properly', 'People not wanting to use what we build', 'Waiting for official approvals'], default: ['When Does It Happen slipping', 'Who Is On This member unavailability', 'Spending more money than planned'] };
+  return (defaults[industry] || defaults.default)[i] || 'What could go wrong here?';
 }
 
 function MicIcon() {
