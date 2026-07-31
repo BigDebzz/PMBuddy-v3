@@ -267,10 +267,6 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
           quality_criteria: [],
         },
         team: [],
-        backlog: [],
-        sprints: [],
-        retrospectives: [],
-        compliance: { internal: [], external: [] },
         requirements: [],
         history: [{
           id: `h-${Date.now()}`,
