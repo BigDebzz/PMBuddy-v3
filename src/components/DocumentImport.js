@@ -15,20 +15,20 @@ const EXTRACTION_PROMPT = `You are PM Buddy, a project management assistant. Rea
     "duration_description": "string — e.g., '3 months', '6 weeks', 'Ongoing'"
   },
   "milestones": [
-    { "title": "string", "description": "string", "due_date": "YYYY-MM-DD or null" }
+    { "title": "string — a key step or checkpoint in the project", "description": "string", "due_date": "YYYY-MM-DD or null" }
   ],
   "risks": [
-    { "description": "string", "impact": "High|Medium|Low", "mitigation": "string or null" }
+    { "description": "string — something that could go wrong", "impact": "High|Medium|Low", "mitigation": "string or null — how to handle it if it happens" }
   ],
   "stakeholders": [
     { "name": "string", "role": "string", "interest": "High|Medium|Low" }
   ],
-  "budget_description": "string — any budget info mentioned, or null",
-  "communication_approach": "string — how the team plans to communicate (meetings, tools, frequency)",
+  "budget_description": "string — any budget or funding info mentioned, or null",
+  "communication_approach": "string — how the team plans to stay in touch (meetings, tools, frequency)",
   "methodology": "Agile|Predictive|Hybrid — infer from the document, default to Hybrid if unclear",
-  "key_deliverables": ["string array of main outputs or deliverables"],
-  "assumptions": ["string array"],
-  "constraints": ["string array"]
+  "key_deliverables": ["string array — what the project will produce or deliver"],
+  "assumptions": ["string array — things you are assuming will be true"],
+  "constraints": ["string array — limits or restrictions on the project"]
 }
 
 Rules:
@@ -222,60 +222,50 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
       }
       const projectPayload = {
         user_id: user.id,
+        owner_email: user?.email || '',
         name: extractedData.project_name || 'Untitled Project',
-        goal: extractedData.goal || '',
+        description: extractedData.goal || '',
         industry: extractedData.industry || '',
         team_type: extractedData.team_type || '',
         methodology: extractedData.methodology || 'Hybrid',
         status: 'active',
         scope: {
+          goal: extractedData.goal || '',
           deliverables: extractedData.key_deliverables || [],
-          assumptions: extractedData.assumptions || [],
-          constraints: extractedData.constraints || [],
-          exclusions: [],
+          currentPhase: '',
+          completedWork: '',
+          remainingWork: '',
         },
         timeline: {
-          start_date: extractedData.timeline?.start_date || null,
-          end_date: extractedData.timeline?.end_date || null,
-          duration_description: extractedData.timeline?.duration_description || '',
+          start: extractedData.timeline?.start_date || '',
+          end: extractedData.timeline?.end_date || '',
         },
-        milestones: (extractedData.milestones || []).map((m, i) => ({
-          id: `m-${Date.now()}-${i}`,
-          title: m.title || 'Untitled Milestone',
-          description: m.description || '',
-          due_date: m.due_date || null,
-          status: 'pending',
-          tasks: [],
-        })),
-        risks: (extractedData.risks || []).map((r, i) => ({
-          id: `r-${Date.now()}-${i}`,
-          description: r.description || '',
-          impact: r.impact || 'Medium',
-          mitigation: r.mitigation || '',
+        resources: {
+          tools: [],
+          budget: extractedData.budget_description || '',
+        },
+        risks: (extractedData.risks || []).map(r => ({
+          title: r.description || '',
+          level: (r.impact || 'Medium').toLowerCase(),
           status: 'open',
         })),
-        stakeholders: (extractedData.stakeholders || []).map((s, i) => ({
-          id: `s-${Date.now()}-${i}`,
+        team: (extractedData.stakeholders || []).map(s => ({
           name: s.name || '',
           role: s.role || '',
-          interest: s.interest || 'Medium',
         })),
-        planning: {
-          budget_description: extractedData.budget_description || '',
-          communication_approach: extractedData.communication_approach || '',
-          resources: [],
-          quality_criteria: [],
+        milestones: (extractedData.milestones || []).map(m => ({
+          title: m.title || '',
+          date: m.due_date || '',
+          status: 'pending',
+        })),
+        compliance: {
+          industry: extractedData.industry || '',
+          flags: [],
         },
-        team: [],
-        requirements: [],
-        history: [{
-          id: `h-${Date.now()}`,
-          action: 'Project created via document import',
-          timestamp: new Date().toISOString(),
-          actor: 'PM Buddy',
-        }],
-        insights: '',
-        ai_health_check: null,
+        planning: {
+          communications: extractedData.communication_approach || '',
+          blockers: '',
+        },
       };
 
       const { data, error: dbError } = await supabase
@@ -288,7 +278,17 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
 
       // Generate project brief via AI (non-blocking)
       try {
-        const briefPrompt = `Write a concise project brief (2-3 paragraphs) for this project:\nName: ${projectPayload.name}\nGoal: ${projectPayload.goal}\nIndustry: ${projectPayload.industry}\nMethodology: ${projectPayload.methodology}`;
+        const briefPrompt = `You are a professional project manager. Write a concise project brief for this project.
+
+Project: ${projectPayload.name}
+Industry: ${projectPayload.industry}
+Description: ${projectPayload.description}
+Goal: ${projectPayload.scope.goal}
+Methodology: ${projectPayload.methodology}
+Risks: ${(extractedData.risks || []).map(r => r.description).join(', ') || 'None listed'}
+Milestones: ${(extractedData.milestones || []).map(m => m.title).join(', ') || 'None set'}
+
+Write a professional project brief in HTML (h1 for title, h2 for sections, p for paragraphs). No html/head/body tags. Include: Project Overview, Objectives, Scope, Team and Roles, Timeline, Key Risks, Success Metrics. Make it specific to their actual inputs. Minimum 400 words.`;
         const { data: briefSession } = await supabase.auth.getSession();
         const briefToken = briefSession?.session?.access_token;
         const briefHeaders = { 'Content-Type': 'application/json' };
@@ -300,11 +300,17 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
         });
         if (briefRes.ok) {
           const { result: briefText } = await briefRes.json();
-          // Store brief in insights field since project_brief column may not exist
-          await supabase
-            .from('pm_projects')
-            .update({ insights: briefText })
-            .eq('id', data.id);
+          const content = (briefText || '').replace(/```html|```/g, '').trim();
+          if (content && content.length > 100) {
+            await supabase.from('documents').insert({
+              user_id: user.id,
+              project_id: data.id,
+              project_name: projectPayload.name,
+              type: 'pm',
+              title: `${projectPayload.name} Project Brief`,
+              content,
+            });
+          }
         }
       } catch (briefErr) {
         console.error('[PM Buddy] Brief generation failed (non-blocking):', briefErr);
@@ -352,18 +358,18 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
         )}
 
         <div style={{ display: 'grid', gap: 16 }}>
-          <Field label="Project Name" value={extractedData.project_name || ''} onChange={v => updateField('project_name', v)} />
-          <Field label="Goal" value={extractedData.goal || ''} onChange={v => updateField('goal', v)} textarea />
+          <Field label="What is this project called?" value={extractedData.project_name || ''} onChange={v => updateField('project_name', v)} />
+          <Field label="What are you trying to achieve?" value={extractedData.goal || ''} onChange={v => updateField('goal', v)} textarea />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <Field label="Industry" value={extractedData.industry || ''} onChange={v => updateField('industry', v)} />
-            <Field label="Methodology" value={extractedData.methodology || 'Hybrid'} onChange={v => updateField('methodology', v)} />
+            <Field label="What field is this in?" value={extractedData.industry || ''} onChange={v => updateField('industry', v)} />
+            <Field label="How will you work?" value={extractedData.methodology || 'Hybrid'} onChange={v => updateField('methodology', v)} />
           </div>
-          <Field label="Team Type" value={extractedData.team_type || ''} onChange={v => updateField('team_type', v)} />
-          <Field label="Budget / Funding" value={extractedData.budget_description || ''} onChange={v => updateField('budget_description', v)} />
-          <Field label="Communication Approach" value={extractedData.communication_approach || ''} onChange={v => updateField('communication_approach', v)} textarea />
+          <Field label="Who is doing this?" value={extractedData.team_type || ''} onChange={v => updateField('team_type', v)} />
+          <Field label="What is the budget or funding?" value={extractedData.budget_description || ''} onChange={v => updateField('budget_description', v)} />
+          <Field label="How will the team stay in touch?" value={extractedData.communication_approach || ''} onChange={v => updateField('communication_approach', v)} textarea />
 
           <ArrayEditor
-            label="Milestones"
+            label="Key Steps"
             items={extractedData.milestones || []}
             onChange={v => updateField('milestones', v)}
             fields={[
@@ -374,7 +380,7 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
           />
 
           <ArrayEditor
-            label="Risks"
+            label="What Could Go Wrong"
             items={extractedData.risks || []}
             onChange={v => updateField('risks', v)}
             fields={[
@@ -385,7 +391,7 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
           />
 
           <ArrayEditor
-            label="Stakeholders"
+            label="People Involved"
             items={extractedData.stakeholders || []}
             onChange={v => updateField('stakeholders', v)}
             fields={[
@@ -396,7 +402,7 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
           />
 
           <ArrayEditor
-            label="Key Deliverables"
+            label="What You Will Produce"
             items={extractedData.key_deliverables || []}
             onChange={v => updateField('key_deliverables', v)}
             simple
@@ -635,7 +641,7 @@ function ArrayEditor({ label, items, onChange, fields, simple = false }) {
               value={item}
               onChange={e => updateItem(i, null, e.target.value)}
               style={{ flex: 1, padding: '8px 10px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 14 }}
-              placeholder={`Add ${label.toLowerCase().slice(0, -1)}...`}
+              placeholder="Add another..."
             />
           ) : (
             fields.map(f => (
