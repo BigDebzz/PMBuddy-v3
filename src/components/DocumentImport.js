@@ -208,9 +208,13 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
     }
   };
 
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [savedProject, setSavedProject] = useState(null);
+
   const handleSaveProject = async () => {
     setLoading(true);
     setError('');
+    setSaveSuccess(false);
 
     try {
       // Get auth token for API calls
@@ -316,13 +320,19 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
         console.error('[PM Buddy] Brief generation failed (non-blocking):', briefErr);
       }
 
-      onProjectCreated?.(data);
+      setSavedProject(data);
+      setSaveSuccess(true);
+      setLoading(false);
+
+      // Call the callback to navigate to project
+      if (onProjectCreated) {
+        onProjectCreated(data);
+      }
 
     } catch (err) {
       console.error('[PM Buddy] Save project error:', err);
       console.error('[PM Buddy] Error details:', JSON.stringify(err, null, 2));
       setError(err.message || err.error_description || 'Failed to save project. Please try again.');
-    } finally {
       setLoading(false);
     }
   };
@@ -354,6 +364,11 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
         {error && (
           <div style={{ background: '#fee2e2', color: '#991b1b', padding: 12, borderRadius: 8, marginBottom: 16 }}>
             {error}
+          </div>
+        )}
+        {saveSuccess && (
+          <div style={{ background: '#dcfce7', color: '#166534', padding: 12, borderRadius: 8, marginBottom: 16 }}>
+            Project saved. Taking you there now...
           </div>
         )}
 
