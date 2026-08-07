@@ -25,90 +25,122 @@ async function verifyAuth(request) {
 async function callModel(model, prompt, mode) {
   const API_KEY = process.env.GEMINI_API_KEY;
   const maxTokens = mode === 'document' ? 8000 : 2000;
-  const geminiResponse = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.4, maxOutputTokens: maxTokens }
-      })
+
+  try {
+    const geminiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: maxTokens },
+        }),
+      }
+    );
+
+    if (geminiResponse.ok) {
+      const data = await geminiResponse.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      if (text) return { text, error: null };
+      return { text: null, error: 'Empty response', status: 0 };
     }
-  );
-  if (geminiResponse.ok) {
-    const data = await geminiResponse.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    if (text) return { text, error: null };
-    return { text: null, error: 'Empty response' };
+
+    const body = await geminiResponse.text();
+    console.error(`Model ${model} error ${geminiResponse.status}:`, body.substring(0, 200));
+    return { text: null, error: geminiResponse.status, status: geminiResponse.status };
+  } catch (err) {
+    console.error(`Model ${model} fetch error:`, err.message);
+    return { text: null, error: err.message, status: 0 };
   }
-  const body = await geminiResponse.text();
-  console.error(`Model ${model} error ${geminiResponse.status}:`, body);
-  return { text: null, error: geminiResponse.status, status: geminiResponse.status };
 }
 
 async function callModelWithFile(model, prompt, fileUri, mimeType) {
   const API_KEY = process.env.GEMINI_API_KEY;
-  const maxTokens = 8000;
-  const geminiResponse = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { file_data: { mime_type: mimeType, file_uri: fileUri } },
-            { text: prompt },
-          ],
-        }],
-        generationConfig: { temperature: 0.4, maxOutputTokens: maxTokens }
-      })
+
+  try {
+    const geminiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { file_data: { mime_type: mimeType, file_uri: fileUri } },
+              { text: prompt },
+            ],
+          }],
+          generationConfig: { maxOutputTokens: 8000 },
+        }),
+      }
+    );
+
+    if (geminiResponse.ok) {
+      const data = await geminiResponse.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      if (text) return { text, error: null };
+      return { text: null, error: 'Empty response', status: 0 };
     }
-  );
-  if (geminiResponse.ok) {
-    const data = await geminiResponse.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    if (text) return { text, error: null };
-    return { text: null, error: 'Empty response' };
+
+    const body = await geminiResponse.text();
+    console.error(`Model ${model} file error ${geminiResponse.status}:`, body.substring(0, 200));
+    return { text: null, error: geminiResponse.status, status: geminiResponse.status };
+  } catch (err) {
+    console.error(`Model ${model} file fetch error:`, err.message);
+    return { text: null, error: err.message, status: 0 };
   }
-  const body = await geminiResponse.text();
-  console.error(`Model ${model} file error ${geminiResponse.status}:`, body);
-  return { text: null, error: geminiResponse.status, status: geminiResponse.status };
 }
 
+// Try all models — don't break early on non-rate-limit errors
 async function callGemini(prompt, mode) {
   const MODELS = [
     'gemini-2.5-flash',
     'gemini-3.5-flash',
+    'gemini-3.6-flash',
     'gemini-3.1-flash-lite',
   ];
+
+  let lastError = 'AI is currently unavailable. Please try again in a moment.';
+
   for (const model of MODELS) {
     console.log(`Trying model: ${model}`);
     const result = await callModel(model, prompt, mode);
-    if (result.text) return result;
-    console.log(`Model ${model} failed with status ${result.status}`);
-    if (result.status !== 503 && result.status !== 429) break;
-    await new Promise(r => setTimeout(r, 1000));
+    if (result.text) {
+      console.log(`Success with model: ${model}`);
+      return result;
+    }
+    lastError = result.error;
+    console.log(`Model ${model} failed:`, result.error);
+    // Small delay between attempts
+    await new Promise(r => setTimeout(r, 500));
   }
-  return { text: null, error: 'AI is currently busy. Please try again in a moment.' };
+
+  return { text: null, error: lastError };
 }
 
 async function callGeminiWithFile(prompt, fileUri, mimeType) {
   const MODELS = [
     'gemini-2.5-flash',
     'gemini-3.5-flash',
-    'gemini-3.1-flash-lite',
+    'gemini-3.6-flash',
   ];
+
+  let lastError = 'AI is currently unavailable. Please try again in a moment.';
+
   for (const model of MODELS) {
     console.log(`Trying model with file: ${model}`);
     const result = await callModelWithFile(model, prompt, fileUri, mimeType);
-    if (result.text) return result;
-    console.log(`Model ${model} failed with status ${result.status}`);
-    if (result.status !== 503 && result.status !== 429) break;
-    await new Promise(r => setTimeout(r, 1000));
+    if (result.text) {
+      console.log(`File success with model: ${model}`);
+      return result;
+    }
+    lastError = result.error;
+    console.log(`Model ${model} file failed:`, result.error);
+    await new Promise(r => setTimeout(r, 500));
   }
-  return { text: null, error: 'AI is currently busy. Please try again in a moment.' };
+
+  return { text: null, error: lastError };
 }
 
 export default async function handler(request, response) {
@@ -131,7 +163,9 @@ export default async function handler(request, response) {
     if (typeof body === 'string') {
       try { body = JSON.parse(body); } catch (e) { body = {}; }
     }
+
     const { prompt, mode, fileUri, mimeType } = body || {};
+
     if (!prompt) {
       return response.status(400).json({ error: 'No prompt provided' });
     }
@@ -144,8 +178,9 @@ export default async function handler(request, response) {
       result = await callGemini(prompt, mode);
     }
 
-    if (result.error) {
-      return response.status(503).json({ error: result.error });
+    if (!result.text) {
+      console.error('All models failed. Last error:', result.error);
+      return response.status(503).json({ error: 'AI is currently unavailable. Please try again in a moment.' });
     }
 
     return response.status(200).json({ result: result.text });
