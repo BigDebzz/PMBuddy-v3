@@ -5,7 +5,6 @@ export const config = {
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Verify the request has a valid Supabase session token
 async function verifyAuth(request) {
   const authHeader = request.headers['authorization'] || request.headers['Authorization'];
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
@@ -48,7 +47,6 @@ async function callModel(model, prompt, mode) {
   return { text: null, error: geminiResponse.status, status: geminiResponse.status };
 }
 
-// NEW: File-based generation using Google File API URI
 async function callModelWithFile(model, prompt, fileUri, mimeType) {
   const API_KEY = process.env.GEMINI_API_KEY;
   const maxTokens = 8000;
@@ -81,9 +79,9 @@ async function callModelWithFile(model, prompt, fileUri, mimeType) {
 
 async function callGemini(prompt, mode) {
   const MODELS = [
-    'gemini-3-flash-preview',
     'gemini-2.5-flash',
-    'gemini-2.0-flash',
+    'gemini-3.5-flash',
+    'gemini-3.1-flash-lite',
   ];
   for (const model of MODELS) {
     console.log(`Trying model: ${model}`);
@@ -96,12 +94,11 @@ async function callGemini(prompt, mode) {
   return { text: null, error: 'AI is currently busy. Please try again in a moment.' };
 }
 
-// NEW: File upload fallback chain
 async function callGeminiWithFile(prompt, fileUri, mimeType) {
   const MODELS = [
-    'gemini-3-flash-preview',
     'gemini-2.5-flash',
-    'gemini-2.0-flash',
+    'gemini-3.5-flash',
+    'gemini-3.1-flash-lite',
   ];
   for (const model of MODELS) {
     console.log(`Trying model with file: ${model}`);
@@ -124,7 +121,6 @@ export default async function handler(request, response) {
     return response.status(500).json({ error: 'API key not configured' });
   }
 
-  // Auth check — only logged in users can call this
   const user = await verifyAuth(request);
   if (!user) {
     return response.status(401).json({ error: 'Unauthorised. Please log in.' });
@@ -142,7 +138,6 @@ export default async function handler(request, response) {
 
     let result;
 
-    // NEW: Handle file uploads from DocumentImport
     if (fileUri && mimeType) {
       result = await callGeminiWithFile(prompt, fileUri, mimeType);
     } else {
@@ -153,8 +148,6 @@ export default async function handler(request, response) {
       return response.status(503).json({ error: result.error });
     }
 
-    // FIXED: Return raw text for all modes. Let frontend handle parsing.
-    // The old lastIndexOf('}') truncation was breaking nested JSON.
     return response.status(200).json({ result: result.text });
 
   } catch (err) {
