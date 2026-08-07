@@ -37,7 +37,8 @@ Rules:
 - If the document contains no project-related content (e.g., it's a spreadsheet of random numbers, a poem, a blank file), return {"error": "This document does not appear to contain project information. Please upload a planning document, proposal, or project brief."}
 - Return ONLY the JSON. No markdown code blocks, no explanations before or after.`;
 
-export default function DocumentImport({ user, onProjectCreated, onCancel }) {
+// FIX: prop is onComplete (matching Dashboard) + onCancel maps to onBack
+export default function DocumentImport({ user, onComplete, onBack, onCancel }) {
   const [mode, setMode] = useState(null); // 'paste' | 'upload'
   const [pastedText, setPastedText] = useState('');
   const [file, setFile] = useState(null);
@@ -82,25 +83,19 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
     if (!text) throw new Error('Empty AI response');
 
     // Strategy 1: direct JSON parse
-    try {
-      return JSON.parse(text.trim());
-    } catch (_) {}
+    try { return JSON.parse(text.trim()); } catch (_) {}
 
     // Strategy 2: extract from markdown code block
     const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (codeBlockMatch) {
-      try {
-        return JSON.parse(codeBlockMatch[1].trim());
-      } catch (_) {}
+      try { return JSON.parse(codeBlockMatch[1].trim()); } catch (_) {}
     }
 
     // Strategy 3: find first { and last }
     const firstBrace = text.indexOf('{');
     const lastBrace = text.lastIndexOf('}');
     if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-      try {
-        return JSON.parse(text.slice(firstBrace, lastBrace + 1));
-      } catch (_) {}
+      try { return JSON.parse(text.slice(firstBrace, lastBrace + 1)); } catch (_) {}
     }
 
     // Strategy 4: try to find JSON after any explanatory text
@@ -108,9 +103,7 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
     if (jsonStart !== -1) {
       const jsonEnd = text.lastIndexOf('}');
       if (jsonEnd > jsonStart) {
-        try {
-          return JSON.parse(text.slice(jsonStart, jsonEnd + 1));
-        } catch (_) {}
+        try { return JSON.parse(text.slice(jsonStart, jsonEnd + 1)); } catch (_) {}
       }
     }
 
@@ -122,33 +115,22 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
     setError('');
 
     try {
-      // Get auth token for API calls
       const { data: sessionData } = await supabase.auth.getSession();
       const authToken = sessionData?.session?.access_token;
       const headers = { 'Content-Type': 'application/json' };
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
-      }
-      console.log('[PM Buddy] Auth token present:', !!authToken);
+      if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
-      let prompt = EXTRACTION_PROMPT;
-      let body = { prompt };
+      let body = { prompt: EXTRACTION_PROMPT };
 
       if (mode === 'paste') {
-        if (!pastedText.trim()) {
-          throw new Error('Please paste some text first');
-        }
+        if (!pastedText.trim()) throw new Error('Please paste some text first');
         const cleaned = cleanPastedText(pastedText);
         body.prompt = `${EXTRACTION_PROMPT}\n\nDocument content:\n\n${cleaned}`;
         body.mode = 'document';
       } else if (mode === 'upload') {
-        if (!file) {
-          throw new Error('Please select a file first');
-        }
+        if (!file) throw new Error('Please select a file first');
 
-        // Step 1: Upload file to Google File API via our serverless endpoint
         const base64 = await readFileAsBase64(file);
-        console.log('[PM Buddy] Uploading file to /api/upload...');
         const uploadRes = await fetch('/api/upload', {
           method: 'POST',
           headers,
@@ -159,43 +141,31 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
           }),
         });
 
-        console.log('[PM Buddy] Upload response status:', uploadRes.status);
         if (!uploadRes.ok) {
           const errData = await uploadRes.json().catch(() => ({}));
-          console.error('[PM Buddy] Upload failed:', errData);
           throw new Error(errData.error || `Upload failed: ${uploadRes.status}`);
         }
 
         const uploadData = await uploadRes.json();
-        console.log('[PM Buddy] Upload success, fileUri:', uploadData.fileUri, 'mimeType:', uploadData.mimeType);
         const { fileUri, mimeType } = uploadData;
-        body.mode = 'document';
         body = { prompt: EXTRACTION_PROMPT, fileUri, mimeType };
       }
 
-      // Step 2: Call Gemini with text or file URI
-      console.log('[PM Buddy] Calling /api/gemini with body:', JSON.stringify(body).substring(0, 200));
       const geminiRes = await fetch('/api/gemini', {
         method: 'POST',
         headers,
         body: JSON.stringify(body),
       });
 
-      console.log('[PM Buddy] Gemini response status:', geminiRes.status);
       if (!geminiRes.ok) {
         const errData = await geminiRes.json().catch(() => ({}));
-        console.error('[PM Buddy] Gemini failed:', errData);
         throw new Error(errData.error || `AI extraction failed: ${geminiRes.status}`);
       }
 
       const { result } = await geminiRes.json();
-      console.log('[PM Buddy] Gemini result length:', result?.length || 0);
-      console.log('[PM Buddy] Gemini raw result (first 500 chars):', result?.substring(0, 500));
       const parsed = parseGeminiResponse(result);
 
-      if (parsed.error) {
-        throw new Error(parsed.error);
-      }
+      if (parsed.error) throw new Error(parsed.error);
 
       setExtractedData(parsed);
       setStep('review');
@@ -208,21 +178,16 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
     }
   };
 
-  const [saveSuccess, setSaveSuccess] = useState(false);
-
   const handleSaveProject = async () => {
     setLoading(true);
     setError('');
-    setSaveSuccess(false);
 
     try {
-      // Get auth token for API calls
       const { data: sessionData } = await supabase.auth.getSession();
       const authToken = sessionData?.session?.access_token;
       const headers = { 'Content-Type': 'application/json' };
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
-      }
+      if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+
       const projectPayload = {
         user_id: user.id,
         owner_email: user?.email || '',
@@ -279,7 +244,7 @@ export default function DocumentImport({ user, onProjectCreated, onCancel }) {
 
       if (dbError) throw dbError;
 
-      // Generate project brief via AI (non-blocking)
+      // Generate project brief (non-blocking)
       try {
         const briefPrompt = `You are a professional project manager. Write a concise project brief for this project.
 
@@ -291,11 +256,13 @@ Methodology: ${projectPayload.methodology}
 Risks: ${(extractedData.risks || []).map(r => r.description).join(', ') || 'None listed'}
 Milestones: ${(extractedData.milestones || []).map(m => m.title).join(', ') || 'None set'}
 
-Write a professional project brief in HTML (h1 for title, h2 for sections, p for paragraphs). No html/head/body tags. Include: Project Overview, Objectives, Scope, Team and Roles, Timeline, Key Risks, Success Metrics. Make it specific to their actual inputs. Minimum 400 words.`;
+Write a professional project brief in HTML (h1 for title, h2 for sections, p for paragraphs). No html/head/body tags. Include: Project Overview, Objectives, Scope, Team and Roles, Timeline, Key Risks, Success Metrics. Minimum 400 words.`;
+
         const { data: briefSession } = await supabase.auth.getSession();
         const briefToken = briefSession?.session?.access_token;
         const briefHeaders = { 'Content-Type': 'application/json' };
         if (briefToken) briefHeaders['Authorization'] = `Bearer ${briefToken}`;
+
         const briefRes = await fetch('/api/gemini', {
           method: 'POST',
           headers: briefHeaders,
@@ -319,17 +286,14 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
         console.error('[PM Buddy] Brief generation failed (non-blocking):', briefErr);
       }
 
-      setSaveSuccess(true);
       setLoading(false);
 
-      // Call the callback to navigate to project
-      if (onProjectCreated) {
-        onProjectCreated(data);
-      }
+      // FIX: call onComplete (not onProjectCreated) so Dashboard navigates to project
+      const callback = onComplete || onCancel;
+      if (callback) callback(data);
 
     } catch (err) {
       console.error('[PM Buddy] Save project error:', err);
-      console.error('[PM Buddy] Error details:', JSON.stringify(err, null, 2));
       setError(err.message || err.error_description || 'Failed to save project. Please try again.');
       setLoading(false);
     }
@@ -354,19 +318,14 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
   if (step === 'review' && extractedData) {
     return (
       <div className="document-import" style={{ maxWidth: 800, margin: '0 auto', padding: 24 }}>
-        <h2 style={{ marginBottom: 8 }}>Review Extracted Information</h2>
+        <h2 style={{ marginBottom: 8 }}>Review what PM Buddy found</h2>
         <p style={{ color: '#666', marginBottom: 24 }}>
-          PM Buddy read your document. Review and edit before saving.
+          PM Buddy read your document. Check the details below and fix anything before saving.
         </p>
 
         {error && (
           <div style={{ background: '#fee2e2', color: '#991b1b', padding: 12, borderRadius: 8, marginBottom: 16 }}>
             {error}
-          </div>
-        )}
-        {saveSuccess && (
-          <div style={{ background: '#dcfce7', color: '#166534', padding: 12, borderRadius: 8, marginBottom: 16 }}>
-            Project saved. Taking you there now...
           </div>
         )}
 
@@ -398,8 +357,8 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
             onChange={v => updateField('risks', v)}
             fields={[
               { key: 'description', label: 'Description', width: '50%' },
-              { key: 'impact', label: 'Impact', width: '20%', type: 'select', options: ['High', 'Medium', 'Low'] },
-              { key: 'mitigation', label: 'Mitigation', width: '30%' },
+              { key: 'impact', label: 'How serious?', width: '20%', type: 'select', options: ['High', 'Medium', 'Low'] },
+              { key: 'mitigation', label: 'How to handle it', width: '30%' },
             ]}
           />
 
@@ -410,12 +369,12 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
             fields={[
               { key: 'name', label: 'Name', width: '35%' },
               { key: 'role', label: 'Role', width: '40%' },
-              { key: 'interest', label: 'Interest', width: '25%', type: 'select', options: ['High', 'Medium', 'Low'] },
+              { key: 'interest', label: 'How involved?', width: '25%', type: 'select', options: ['High', 'Medium', 'Low'] },
             ]}
           />
 
           <ArrayEditor
-            label="What You Will Produce"
+            label="What You Will Deliver"
             items={extractedData.key_deliverables || []}
             onChange={v => updateField('key_deliverables', v)}
             simple
@@ -426,29 +385,14 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
           <button
             onClick={() => { setStep('input'); setExtractedData(null); }}
             disabled={loading}
-            style={{
-              padding: '10px 20px',
-              borderRadius: 8,
-              border: '1px solid #d1d5db',
-              background: '#fff',
-              cursor: 'pointer',
-            }}
+            style={btnSecondary}
           >
             Back
           </button>
           <button
             onClick={handleSaveProject}
             disabled={loading}
-            style={{
-              padding: '10px 24px',
-              borderRadius: 8,
-              border: 'none',
-              background: '#2563eb',
-              color: '#fff',
-              fontWeight: 600,
-              cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.7 : 1,
-            }}
+            style={btnPrimary(loading)}
           >
             {loading ? 'Saving...' : 'Save Project'}
           </button>
@@ -460,10 +404,10 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
   return (
     <div className="document-import" style={{ maxWidth: 700, margin: '0 auto', padding: 24 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-        <h2 style={{ margin: 0 }}>Import Project from Document</h2>
+        <h2 style={{ margin: 0 }}>Bring in your planning document</h2>
       </div>
       <p style={{ color: '#666', marginBottom: 24 }}>
-        Already have a project plan, proposal, or brief? Upload it and PM Buddy will structure it for you.
+        Already have a project plan, proposal, or brief? Upload it and PM Buddy will read it and set up your project.
       </p>
 
       {error && (
@@ -476,14 +420,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <button
             onClick={() => setMode('paste')}
-            style={{
-              padding: 32,
-              borderRadius: 12,
-              border: '2px dashed #d1d5db',
-              background: '#f9fafb',
-              cursor: 'pointer',
-              textAlign: 'center',
-            }}
+            style={{ padding: 32, borderRadius: 12, border: '2px dashed #d1d5db', background: '#f9fafb', cursor: 'pointer', textAlign: 'center' }}
           >
             <div style={{ fontSize: 32, marginBottom: 8 }}>📋</div>
             <div style={{ fontWeight: 600 }}>Paste Text</div>
@@ -491,14 +428,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
           </button>
           <button
             onClick={() => setMode('upload')}
-            style={{
-              padding: 32,
-              borderRadius: 12,
-              border: '2px dashed #d1d5db',
-              background: '#f9fafb',
-              cursor: 'pointer',
-              textAlign: 'center',
-            }}
+            style={{ padding: 32, borderRadius: 12, border: '2px dashed #d1d5db', background: '#f9fafb', cursor: 'pointer', textAlign: 'center' }}
           >
             <div style={{ fontSize: 32, marginBottom: 8 }}>📁</div>
             <div style={{ fontWeight: 600 }}>Upload File</div>
@@ -514,20 +444,12 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
             onChange={e => setPastedText(e.target.value)}
             placeholder="Paste your project document here..."
             rows={12}
-            style={{
-              width: '100%',
-              padding: 16,
-              borderRadius: 8,
-              border: '1px solid #d1d5db',
-              fontSize: 14,
-              lineHeight: 1.6,
-              resize: 'vertical',
-            }}
+            style={{ width: '100%', padding: 16, borderRadius: 8, border: '1px solid #d1d5db', fontSize: 14, lineHeight: 1.6, resize: 'vertical' }}
           />
           <div style={{ display: 'flex', gap: 12, marginTop: 16, justifyContent: 'flex-end' }}>
-            <button onClick={() => { setMode(null); setPastedText(''); setError(''); }} style={btnSecondary}>Cancel</button>
+            <button onClick={() => { setMode(null); setPastedText(''); setError(''); }} style={btnSecondary}>Back</button>
             <button onClick={handleExtract} disabled={loading || !pastedText.trim()} style={btnPrimary(loading || !pastedText.trim())}>
-              {loading ? 'Reading...' : 'Extract Project'}
+              {loading ? 'Reading...' : 'Read Document'}
             </button>
           </div>
         </div>
@@ -569,16 +491,16 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
             )}
           </div>
           <div style={{ display: 'flex', gap: 12, marginTop: 16, justifyContent: 'flex-end' }}>
-            <button onClick={() => { setMode(null); setFile(null); setFileName(''); setError(''); }} style={btnSecondary}>Cancel</button>
+            <button onClick={() => { setMode(null); setFile(null); setFileName(''); setError(''); }} style={btnSecondary}>Back</button>
             <button onClick={handleExtract} disabled={loading || !file} style={btnPrimary(loading || !file)}>
-              {loading ? 'Reading...' : 'Extract Project'}
+              {loading ? 'Reading...' : 'Read Document'}
             </button>
           </div>
         </div>
       )}
 
-      {onCancel && (
-        <button onClick={onCancel} style={{ ...btnSecondary, marginTop: 16 }}>
+      {(onBack || onCancel) && !mode && (
+        <button onClick={onBack || onCancel} style={{ ...btnSecondary, marginTop: 16 }}>
           ← Back to Dashboard
         </button>
       )}
@@ -586,28 +508,18 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
   );
 }
 
-// ─── Sub-components ─────────────────────────────────────
-
 function Field({ label, value, onChange, textarea = false }) {
   const Input = textarea ? 'textarea' : 'input';
   return (
     <div>
-      <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+      <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 4 }}>
         {label}
       </label>
       <Input
         value={value}
         onChange={e => onChange(e.target.value)}
         rows={textarea ? 3 : undefined}
-        style={{
-          width: '100%',
-          padding: '10px 12px',
-          borderRadius: 6,
-          border: '1px solid #d1d5db',
-          fontSize: 14,
-          fontFamily: 'inherit',
-          resize: textarea ? 'vertical' : undefined,
-        }}
+        style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 14, fontFamily: 'inherit', resize: textarea ? 'vertical' : undefined }}
       />
     </div>
   );
@@ -626,17 +538,12 @@ function ArrayEditor({ label, items, onChange, fields, simple = false }) {
 
   const updateItem = (index, key, value) => {
     const next = [...items];
-    if (simple) {
-      next[index] = value;
-    } else {
-      next[index] = { ...next[index], [key]: value };
-    }
+    if (simple) { next[index] = value; }
+    else { next[index] = { ...next[index], [key]: value }; }
     onChange(next);
   };
 
-  const removeItem = (index) => {
-    onChange(items.filter((_, i) => i !== index));
-  };
+  const removeItem = (index) => onChange(items.filter((_, i) => i !== index));
 
   return (
     <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 16 }}>
@@ -645,7 +552,7 @@ function ArrayEditor({ label, items, onChange, fields, simple = false }) {
         <button onClick={addItem} style={{ fontSize: 20, lineHeight: 1, padding: '2px 8px', borderRadius: 4, border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer' }}>+</button>
       </div>
       {items.length === 0 && (
-        <div style={{ color: '#9ca3af', fontSize: 13, fontStyle: 'italic' }}>None extracted. Click + to add.</div>
+        <div style={{ color: '#9ca3af', fontSize: 13, fontStyle: 'italic' }}>None found. Click + to add.</div>
       )}
       {items.map((item, i) => (
         <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
@@ -659,32 +566,13 @@ function ArrayEditor({ label, items, onChange, fields, simple = false }) {
           ) : (
             fields.map(f => (
               f.type === 'select' ? (
-                <select
-                  key={f.key}
-                  value={item[f.key] || ''}
-                  onChange={e => updateItem(i, f.key, e.target.value)}
-                  style={{ width: f.width, padding: '8px 10px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 14 }}
-                >
+                <select key={f.key} value={item[f.key] || ''} onChange={e => updateItem(i, f.key, e.target.value)} style={{ width: f.width, padding: '8px 10px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 14 }}>
                   {f.options.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
               ) : f.textarea ? (
-                <textarea
-                  key={f.key}
-                  value={item[f.key] || ''}
-                  onChange={e => updateItem(i, f.key, e.target.value)}
-                  placeholder={f.label}
-                  rows={2}
-                  style={{ width: f.width, padding: '8px 10px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 14, resize: 'vertical' }}
-                />
+                <textarea key={f.key} value={item[f.key] || ''} onChange={e => updateItem(i, f.key, e.target.value)} placeholder={f.label} rows={2} style={{ width: f.width, padding: '8px 10px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 14, resize: 'vertical' }} />
               ) : (
-                <input
-                  key={f.key}
-                  type={f.type || 'text'}
-                  value={item[f.key] || ''}
-                  onChange={e => updateItem(i, f.key, e.target.value)}
-                  placeholder={f.label}
-                  style={{ width: f.width, padding: '8px 10px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 14 }}
-                />
+                <input key={f.key} type={f.type || 'text'} value={item[f.key] || ''} onChange={e => updateItem(i, f.key, e.target.value)} placeholder={f.label} style={{ width: f.width, padding: '8px 10px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 14 }} />
               )
             ))
           )}
