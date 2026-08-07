@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import DocumentImport from './DocumentImport';
 
 const BLUE = '#0284C7';
 const BL = '#0A0A0A';
@@ -30,17 +31,22 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   const [invitedProjects, setInvitedProjects] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeNav, setActiveNav] = useState(() => localStorage.getItem('pmbuddy_active_nav') || 'home');
+  const [activeNav, setActiveNav] = useState(() => {
+    // Use sessionStorage first (survives tab switches), fall back to localStorage
+    return sessionStorage.getItem('pmbuddy_active_nav') || localStorage.getItem('pmbuddy_active_nav') || 'home';
+  });
   const [viewingDoc, setViewingDoc] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(null); // { type, id, name }
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [showImport, setShowImport] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
   const [installPrompt, setInstallPrompt] = useState(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
 
@@ -110,9 +116,8 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   const quickDocs = documents.filter(d => d.type === 'quick' || !d.project_id);
   const projectDocs = documents.filter(d => d.type !== 'quick' && d.project_id);
 
-  const handleNewCampaign = () => onNewCampaign({ onSaved: () => { fetchAll(); setActiveNav('campaigns'); localStorage.setItem('pmbuddy_active_nav', 'campaigns'); } });
+  const handleNewCampaign = () => onNewCampaign({ onSaved: () => { fetchAll(); setActiveNav('campaigns'); localStorage.setItem('pmbuddy_active_nav', 'campaigns'); sessionStorage.setItem('pmbuddy_active_nav', 'campaigns'); } });
 
-  // Onboarding checklist state
   const checklistDone = {
     signup: true,
     project: projects.length > 0,
@@ -130,6 +135,21 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
     if (action === 'doc') onNewQuickDoc();
     if (action === 'validation') onNewValidation();
   };
+
+  // Show import screen full-page
+  if (showImport) {
+    return (
+      <DocumentImport
+        user={user}
+        onComplete={(project) => {
+          setShowImport(false);
+          fetchAll();
+          onOpenProject(project);
+        }}
+        onBack={() => setShowImport(false)}
+      />
+    );
+  }
 
   return (
     <div style={s.shell}>
@@ -157,7 +177,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
             <button
               key={item.id}
               style={{ ...s.navItem, background: activeNav === item.id ? '#EFF6FF' : 'none', color: activeNav === item.id ? BLUE : '#374151', fontWeight: activeNav === item.id ? 700 : 500 }}
-              onClick={() => { setActiveNav(item.id); localStorage.setItem('pmbuddy_active_nav', item.id); setSidebarOpen(false); }}
+              onClick={() => { setActiveNav(item.id); localStorage.setItem('pmbuddy_active_nav', item.id); sessionStorage.setItem('pmbuddy_active_nav', item.id); setSidebarOpen(false); }}
             >
               <span style={{ ...s.navIcon, color: activeNav === item.id ? BLUE : '#9CA3AF' }}>{item.icon}</span>
               {item.label}
@@ -193,6 +213,10 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                 <button style={s.installDismiss} onClick={() => { setShowInstallBanner(false); localStorage.setItem('pmbuddy_install_dismissed', '1'); }}>✕</button>
               </div>
             )}
+            <button
+              style={{ ...s.newBtn, background: WH, color: BL, border: `1.5px solid ${RULE}`, marginRight: 8 }}
+              onClick={() => setShowImport(true)}
+            >⬆ Import Doc</button>
             <button style={s.newBtn} onClick={onNewProject}>+ New Project</button>
           </div>
         </div>
@@ -207,7 +231,6 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                 <p style={s.pageSub}>Here is where your work lives.</p>
               </div>
 
-              {/* Onboarding checklist for new users */}
               {isNewUser && (
                 <div style={s.checklistCard}>
                   <div style={s.checklistHead}>
@@ -245,8 +268,8 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
               {/* Stats row */}
               <div style={s.statsRow}>
                 {[
-                  { label: 'Projects', value: projects.length, color: BLUE, action: () => { setActiveNav('projects'); localStorage.setItem('pmbuddy_active_nav', 'projects'); } },
-                  { label: 'Documents', value: documents.length, color: '#C2410C', action: () => { setActiveNav('docs'); localStorage.setItem('pmbuddy_active_nav', 'docs'); } },
+                  { label: 'Projects', value: projects.length, color: BLUE, action: () => { setActiveNav('projects'); localStorage.setItem('pmbuddy_active_nav', 'projects'); sessionStorage.setItem('pmbuddy_active_nav', 'projects'); } },
+                  { label: 'Documents', value: documents.length, color: '#C2410C', action: () => { setActiveNav('docs'); localStorage.setItem('pmbuddy_active_nav', 'docs'); sessionStorage.setItem('pmbuddy_active_nav', 'docs'); } },
                 ].map((stat, i) => (
                   <button key={i} style={s.statCard} onClick={stat.action}>
                     <p style={{ ...s.statNum, color: stat.color }}>{stat.value}</p>
@@ -260,6 +283,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
               <div style={s.quickGrid}>
                 {[
                   { icon: '◈', label: 'New Project', sub: 'Start a structured project', action: onNewProject, bg: BL, color: WH },
+                  { icon: '⬆', label: 'Import Document', sub: 'Paste an existing plan or brief', action: () => setShowImport(true), bg: '#EFF6FF', color: BLUE },
                 ].map((item, i) => (
                   <button key={i} style={s.quickCard} onClick={item.action}>
                     <div style={{ ...s.quickIcon, background: item.bg, color: item.color }}>{item.icon}</div>
@@ -276,7 +300,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                 <>
                   <div style={s.sectionHead}>
                     <p style={s.sectionLabel}>Recent projects</p>
-                    <button style={s.seeAll} onClick={() => { setActiveNav('projects'); localStorage.setItem('pmbuddy_active_nav', 'projects'); }}>See all</button>
+                    <button style={s.seeAll} onClick={() => { setActiveNav('projects'); localStorage.setItem('pmbuddy_active_nav', 'projects'); sessionStorage.setItem('pmbuddy_active_nav', 'projects'); }}>See all</button>
                   </div>
                   <div style={s.projectsGrid}>
                     {projects.slice(0, 3).map(p => <ProjectCard key={p.id} p={p} onOpen={() => onOpenProject(p)} onDelete={() => confirmAndDelete('project', p.id, p.name)} />)}
@@ -294,7 +318,10 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                   <h1 style={s.pageTitle}>Projects</h1>
                   <p style={s.pageSub}>{projects.length} project{projects.length !== 1 ? 's' : ''}</p>
                 </div>
-                <button style={s.primaryBtn} onClick={onNewProject}>+ New project</button>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button style={{ ...s.primaryBtn, background: WH, color: BL, border: `1.5px solid ${RULE}` }} onClick={() => setShowImport(true)}>⬆ Import Doc</button>
+                  <button style={s.primaryBtn} onClick={onNewProject}>+ New project</button>
+                </div>
               </div>
               {loading && <p style={s.emptyText}>Loading...</p>}
               {!loading && projects.length === 0 && (
@@ -302,7 +329,10 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                   <div style={s.emptyIcon}>◈</div>
                   <p style={s.emptyTitle}>No projects yet</p>
                   <p style={s.emptyBody}>Create your first project and PM Buddy will set it up with risks, milestones, team roles and a communication plan.</p>
-                  <button style={s.primaryBtn} onClick={onNewProject}>Create your first project</button>
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <button style={s.primaryBtn} onClick={onNewProject}>Create your first project</button>
+                    <button style={{ ...s.primaryBtn, background: WH, color: BL, border: `1.5px solid ${RULE}` }} onClick={() => setShowImport(true)}>⬆ Import from document</button>
+                  </div>
                 </div>
               )}
               {!loading && projects.length > 0 && (
@@ -437,7 +467,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                   {projectDocs.map(doc => (
                     <DocRow key={doc.id} doc={doc} type="Internal" typeBg="#EFF6FF" typeColor={BLUE}
                       onOpen={() => {
-                        const project = [...projects, ...campaigns].find(p => p.id === doc.project_id);
+                        const project = projects.find(p => p.id === doc.project_id);
                         if (project) onOpenProject({ ...project, _openDoc: doc });
                         else setViewingDoc(doc);
                       }}
@@ -522,14 +552,8 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
             </p>
             <p style={{ fontSize: 13, color: '#DC2626', fontWeight: 600, marginBottom: 24 }}>This cannot be undone.</p>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                style={{ flex: 1, padding: '11px', background: '#DC2626', color: WH, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
-                onClick={executeDelete}
-              >Yes, delete it</button>
-              <button
-                style={{ flex: 1, padding: '11px', background: 'none', color: '#6B7280', border: `1px solid ${RULE}`, borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
-                onClick={() => setConfirmDelete(null)}
-              >Cancel</button>
+              <button style={{ flex: 1, padding: '11px', background: '#DC2626', color: WH, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={executeDelete}>Yes, delete it</button>
+              <button style={{ flex: 1, padding: '11px', background: 'none', color: '#6B7280', border: `1px solid ${RULE}`, borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setConfirmDelete(null)}>Cancel</button>
             </div>
           </div>
         </div>
@@ -588,7 +612,12 @@ function ProjectCard({ p, onOpen, onDelete, isCampaign }) {
         <span style={{ ...s.industryBadge, background: isCampaign ? '#FFF7ED' : '#EFF6FF', color: isCampaign ? '#C2410C' : BLUE }}>
           {isCampaign ? 'Campaign' : p.industry}
         </span>
-        <span style={s.methodBadge}>{p.methodology}</span>
+        <span style={s.methodBadge}>{
+          p.methodology === 'Agile' ? 'Flexible approach' :
+          p.methodology === 'Predictive' ? 'Structured approach' :
+          p.methodology === 'Hybrid' ? 'Mixed approach' :
+          p.methodology || 'Mixed approach'
+        }</span>
       </div>
       <p style={s.projectName}>{p.name}</p>
       <p style={s.projectDesc}>{p.description}</p>
@@ -661,7 +690,7 @@ function DocViewerModal({ doc, onClose, onUpdate }) {
 const s = {
   shell: { display: 'flex', minHeight: '100vh', background: GREY, fontFamily: "'DM Sans', system-ui, sans-serif" },
   overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 40 },
-  sidebar: { width: SIDEBAR_W, flexShrink: 0, background: WH, borderRight: `1px solid ${RULE}`, display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, height: '100vh', zIndex: 50, transition: 'transform 0.25s ease', '@media(max-width:768px)': { transform: 'translateX(-100%)' } },
+  sidebar: { width: SIDEBAR_W, flexShrink: 0, background: WH, borderRight: `1px solid ${RULE}`, display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, height: '100vh', zIndex: 50, transition: 'transform 0.25s ease' },
   sidebarTop: { padding: '20px 16px 16px' },
   brand: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 },
   brandDot: { width: 8, height: 8, borderRadius: '50%', background: BLUE },
