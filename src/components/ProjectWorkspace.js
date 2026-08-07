@@ -392,6 +392,19 @@ function TasksTab({ data, onSave }) {
     { id: 'done', label: 'Done', color: '#15803D', bg: '#F0FDF4' },
   ];
 
+  // Milestones appear on the board as cards — status maps to column
+  const milestoneStatusToColumn = { pending: 'todo', in_progress: 'in_progress', done: 'done' };
+  const milestonesAsCards = milestones.map((m, i) => ({
+    ...m,
+    id: `milestone-${i}`,
+    isMilestone: true,
+    milestoneIdx: i,
+    status: milestoneStatusToColumn[m.status] || 'todo',
+  }));
+
+  // Combined board items: milestone cards + tasks
+  const allBoardItems = [...milestonesAsCards, ...tasks];
+
   const addTask = () => {
     if (!newTask.title.trim()) return;
     const task = { id: Date.now().toString(), title: newTask.title.trim(), assignee: newTask.assignee.trim(), dueDate: newTask.dueDate, status: 'todo', milestoneId: newTask.milestoneId, createdAt: new Date().toISOString() };
@@ -485,7 +498,7 @@ function TasksTab({ data, onSave }) {
       {activeView === 'kanban' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 32 }}>
           {COLUMNS.map(col => {
-            const colTasks = tasks.filter(t => t.status === col.id);
+            const colTasks = allBoardItems.filter(t => t.status === col.id);
             return (
               <div key={col.id} style={{ background: col.bg, borderRadius: 12, padding: 12, border: `1px solid ${RULE}`, minHeight: 200 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
@@ -494,8 +507,31 @@ function TasksTab({ data, onSave }) {
                 </div>
                 {colTasks.length === 0 && <p style={{ fontSize: 12, color: '#9CA3AF', textAlign: 'center', padding: '20px 0', fontStyle: 'italic' }}>No tasks here</p>}
                 {colTasks.map(task => {
+                  const overdue = task.status !== 'done' && isOverdue(task.dueDate || task.date);
+
+                  // MILESTONE CARD
+                  if (task.isMilestone) {
+                    const mi = task.milestoneIdx;
+                    const m = milestones[mi];
+                    if (!m) return null;
+                    return (
+                      <div key={task.id} style={{ background: '#F0F9FF', borderRadius: 8, padding: '10px 12px', marginBottom: 8, border: `1px solid ${overdue ? '#FECACA' : '#BAE6FD'}`, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
+                          <span style={{ fontSize: 9, fontWeight: 800, color: BLUE, textTransform: 'uppercase', letterSpacing: '0.08em', background: '#EFF6FF', padding: '1px 6px', borderRadius: 100 }}>Milestone</span>
+                        </div>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: BL, marginBottom: 4, lineHeight: 1.4 }}>{m.title}</p>
+                        {m.date && <p style={{ fontSize: 11, color: overdue ? '#DC2626' : '#6B7280', fontWeight: overdue ? 700 : 400 }}>{overdue ? '⚠ Overdue · ' : ''}{formatDate(m.date)}</p>}
+                        <div style={{ display: 'flex', gap: 4, marginTop: 8, flexWrap: 'wrap' }}>
+                          {m.status !== 'pending' && <button style={s.miniBtn} onClick={() => { const updated = milestones.map((ml, idx) => idx === mi ? { ...ml, status: 'pending' } : ml); onSave({ milestones: updated }); }}>← To Do</button>}
+                          {m.status !== 'in_progress' && <button style={s.miniBtn} onClick={() => { const updated = milestones.map((ml, idx) => idx === mi ? { ...ml, status: 'in_progress' } : ml); onSave({ milestones: updated }); }}>In Progress</button>}
+                          {m.status !== 'done' && <button style={{ ...s.miniBtn, background: '#F0FDF4', color: '#15803D', borderColor: '#BBF7D0' }} onClick={() => { const updated = milestones.map((ml, idx) => idx === mi ? { ...ml, status: 'done' } : ml); onSave({ milestones: updated }); if (m.status !== 'done') notify('milestone_done', data, { milestone: m.title }); }}>✓ Done</button>}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // TASK CARD
                   const taskIdx = tasks.findIndex(t => t.id === task.id);
-                  const overdue = task.status !== 'done' && isOverdue(task.dueDate);
                   if (editingTaskIdx === taskIdx) {
                     return (
                       <div key={task.id} style={{ background: WH, borderRadius: 8, padding: 10, marginBottom: 8, border: `1px solid ${BLUE}` }}>
