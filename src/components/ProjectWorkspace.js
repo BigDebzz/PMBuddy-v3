@@ -973,7 +973,9 @@ function DocumentsTab({ data, onSave, project }) {
     setProgressMap(null);
     const prompt = `You are PM Buddy. Write a plain-English progress summary in 3-4 paragraphs: where the project started, what has been achieved, what to focus on next, and one honest observation about what could go wrong. Be specific, warm but direct. No bullet points.\n\n${projectContext}\nHistory entries: ${data.history?.length || 0}`;
     try {
-      const result = await callGemini(prompt);
+      const authHeader = await getAuthHeader();
+      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader }, body: JSON.stringify({ prompt }) });
+      const result = await res.json();
       setProgressMap(result.result || 'Could not generate. Try again.');
       setShowProgressMap(true);
     } catch { setProgressMap('Could not generate. Try again.'); setShowProgressMap(true); }
