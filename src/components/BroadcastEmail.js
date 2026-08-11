@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase';
 const BLUE = '#0284C7';
 const BL = '#0A0A0A';
 const WH = '#FFFFFF';
-const GREY = '#F8FAFC';
 const RULE = '#E5E7EB';
 
 const FEATURE_UPDATE_TEMPLATE = `<p style="font-size:15px;color:#374151;line-height:1.8;margin:0 0 20px;">
