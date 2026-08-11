@@ -28,9 +28,9 @@ const CHECKLIST = [
 const ADMIN_EMAILS = ['akpodeborah@gmail.com', 'hello@pmbuddy.app'];
 
 export default function Dashboard({ user, onOpenValidation, onOpenProject, onNewValidation, onNewProject, onNewCampaign, onNewQuickDoc, onLogout }) {
-  const [validations, setValidations] = useState([]);
+  const [validations, setValidations] = useState([]); // eslint-disable-line no-unused-vars
   const [projects, setProjects] = useState([]);
-  const [campaigns, setCampaigns] = useState([]);
+  const [campaigns, setCampaigns] = useState([]); // eslint-disable-line no-unused-vars
   const [invitedProjects, setInvitedProjects] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -130,7 +130,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   const quickDocs = documents.filter(d => d.type === 'quick' || !d.project_id);
   const projectDocs = documents.filter(d => d.type !== 'quick' && d.project_id);
 
-  const handleNewCampaign = () => onNewCampaign({ onSaved: () => { fetchAll(); setNav('campaigns'); } });
+  const handleNewCampaign = () => onNewCampaign({ onSaved: () => { fetchAll(); setNav('campaigns'); } }); // eslint-disable-line no-unused-vars
 
   const checklistDone = {
     signup: true,
