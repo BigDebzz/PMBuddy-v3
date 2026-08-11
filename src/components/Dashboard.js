@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import DocumentImport from './DocumentImport';
+import BroadcastEmail from './BroadcastEmail';
 
 const BLUE = '#0284C7';
 const BL = '#0A0A0A';
@@ -21,8 +22,10 @@ const CHECKLIST = [
   { id: 'project', label: 'Start your first project', action: 'project' },
   { id: 'milestone', label: 'Add a milestone to your project', action: 'project' },
   { id: 'assistant', label: 'Talk to PM Buddy assistant', hint: 'Open any project and click the chat bubble' },
-  { id: 'invite', label: 'Invite a team member', hint: 'Open a project and go to the Team tab' },
+  { id: 'invite', label: 'Invite a team member', hint: 'Open a project and go to the People tab' },
 ];
+
+const ADMIN_EMAILS = ['akpodeborah@gmail.com', 'hello@pmbuddy.app'];
 
 export default function Dashboard({ user, onOpenValidation, onOpenProject, onNewValidation, onNewProject, onNewCampaign, onNewQuickDoc, onLogout }) {
   const [validations, setValidations] = useState([]);
@@ -32,7 +35,6 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeNav, setActiveNav] = useState(() => {
-    // Use sessionStorage first (survives tab switches), fall back to localStorage
     return sessionStorage.getItem('pmbuddy_active_nav') || localStorage.getItem('pmbuddy_active_nav') || 'home';
   });
   const [viewingDoc, setViewingDoc] = useState(null);
@@ -40,6 +42,9 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [showImport, setShowImport] = useState(false);
+  const [showBroadcast, setShowBroadcast] = useState(false);
+
+  const isAdmin = ADMIN_EMAILS.includes(user?.email);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -102,6 +107,15 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
     setLoading(false);
   };
 
+  const setNav = (id) => {
+    setActiveNav(id);
+    localStorage.setItem('pmbuddy_active_nav', id);
+    sessionStorage.setItem('pmbuddy_active_nav', id);
+    setSidebarOpen(false);
+    setShowBroadcast(false);
+    setShowImport(false);
+  };
+
   const confirmAndDelete = (type, id, name) => setConfirmDelete({ type, id, name });
 
   const executeDelete = async () => {
@@ -116,7 +130,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   const quickDocs = documents.filter(d => d.type === 'quick' || !d.project_id);
   const projectDocs = documents.filter(d => d.type !== 'quick' && d.project_id);
 
-  const handleNewCampaign = () => onNewCampaign({ onSaved: () => { fetchAll(); setActiveNav('campaigns'); localStorage.setItem('pmbuddy_active_nav', 'campaigns'); sessionStorage.setItem('pmbuddy_active_nav', 'campaigns'); } });
+  const handleNewCampaign = () => onNewCampaign({ onSaved: () => { fetchAll(); setNav('campaigns'); } });
 
   const checklistDone = {
     signup: true,
@@ -132,20 +146,13 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
 
   const handleChecklistAction = (action) => {
     if (action === 'project') onNewProject();
-    if (action === 'doc') onNewQuickDoc();
-    if (action === 'validation') onNewValidation();
   };
 
-  // Show import screen full-page
   if (showImport) {
     return (
       <DocumentImport
         user={user}
-        onComplete={(project) => {
-          setShowImport(false);
-          fetchAll();
-          onOpenProject(project);
-        }}
+        onComplete={(project) => { setShowImport(false); fetchAll(); onOpenProject(project); }}
         onBack={() => setShowImport(false)}
       />
     );
@@ -153,7 +160,6 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
 
   return (
     <div style={s.shell}>
-      {/* Mobile overlay */}
       {sidebarOpen && <div style={s.overlay} onClick={() => setSidebarOpen(false)} />}
 
       {/* Sidebar */}
@@ -165,7 +171,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
           </div>
           <div style={s.userCard}>
             <div style={s.avatar}>{(firstName[0] || '?').toUpperCase()}</div>
-            <div>
+            <div style={{ overflow: 'hidden' }}>
               <p style={s.userName}>{firstName}</p>
               <p style={s.userEmail}>{user?.email}</p>
             </div>
@@ -174,11 +180,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
 
         <nav style={s.nav}>
           {NAV.map(item => (
-            <button
-              key={item.id}
-              style={{ ...s.navItem, background: activeNav === item.id ? '#EFF6FF' : 'none', color: activeNav === item.id ? BLUE : '#374151', fontWeight: activeNav === item.id ? 700 : 500 }}
-              onClick={() => { setActiveNav(item.id); localStorage.setItem('pmbuddy_active_nav', item.id); sessionStorage.setItem('pmbuddy_active_nav', item.id); setSidebarOpen(false); }}
-            >
+            <button key={item.id} style={{ ...s.navItem, background: activeNav === item.id ? '#EFF6FF' : 'none', color: activeNav === item.id ? BLUE : '#374151', fontWeight: activeNav === item.id ? 700 : 500 }} onClick={() => setNav(item.id)}>
               <span style={{ ...s.navIcon, color: activeNav === item.id ? BLUE : '#9CA3AF' }}>{item.icon}</span>
               {item.label}
               {item.id === 'projects' && projects.length > 0 && <span style={s.navBadge}>{projects.length}</span>}
@@ -201,7 +203,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
         </div>
       </aside>
 
-      {/* Main content */}
+      {/* Main */}
       <main style={{ ...s.main, marginLeft: isMobile ? 0 : SIDEBAR_W }}>
         {/* Top bar */}
         <div style={s.topBar}>
@@ -213,10 +215,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                 <button style={s.installDismiss} onClick={() => { setShowInstallBanner(false); localStorage.setItem('pmbuddy_install_dismissed', '1'); }}>✕</button>
               </div>
             )}
-            <button
-              style={{ ...s.newBtn, background: WH, color: BL, border: `1.5px solid ${RULE}`, marginRight: 8 }}
-              onClick={() => setShowImport(true)}
-            >⬆ Import Doc</button>
+            <button style={{ ...s.newBtn, background: WH, color: BL, border: `1.5px solid ${RULE}`, marginRight: 8 }} onClick={() => setShowImport(true)}>⬆ Import Doc</button>
             <button style={s.newBtn} onClick={onNewProject}>+ New Project</button>
           </div>
         </div>
@@ -265,11 +264,10 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                 </div>
               )}
 
-              {/* Stats row */}
               <div style={s.statsRow}>
                 {[
-                  { label: 'Projects', value: projects.length, color: BLUE, action: () => { setActiveNav('projects'); localStorage.setItem('pmbuddy_active_nav', 'projects'); sessionStorage.setItem('pmbuddy_active_nav', 'projects'); } },
-                  { label: 'Documents', value: documents.length, color: '#C2410C', action: () => { setActiveNav('docs'); localStorage.setItem('pmbuddy_active_nav', 'docs'); sessionStorage.setItem('pmbuddy_active_nav', 'docs'); } },
+                  { label: 'Projects', value: projects.length, color: BLUE, action: () => setNav('projects') },
+                  { label: 'Documents', value: documents.length, color: '#C2410C', action: () => setNav('docs') },
                 ].map((stat, i) => (
                   <button key={i} style={s.statCard} onClick={stat.action}>
                     <p style={{ ...s.statNum, color: stat.color }}>{stat.value}</p>
@@ -278,12 +276,11 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                 ))}
               </div>
 
-              {/* Quick actions */}
               <p style={s.sectionLabel}>Quick actions</p>
               <div style={s.quickGrid}>
                 {[
                   { icon: '◈', label: 'New Project', sub: 'Start a structured project', action: onNewProject, bg: BL, color: WH },
-                  { icon: '⬆', label: 'Import Document', sub: 'Paste an existing plan or brief', action: () => setShowImport(true), bg: '#EFF6FF', color: BLUE },
+                  { icon: '⬆', label: 'Import Document', sub: 'Paste or upload an existing plan', action: () => setShowImport(true), bg: '#EFF6FF', color: BLUE },
                 ].map((item, i) => (
                   <button key={i} style={s.quickCard} onClick={item.action}>
                     <div style={{ ...s.quickIcon, background: item.bg, color: item.color }}>{item.icon}</div>
@@ -295,12 +292,11 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                 ))}
               </div>
 
-              {/* Recent projects */}
               {projects.length > 0 && (
                 <>
                   <div style={s.sectionHead}>
                     <p style={s.sectionLabel}>Recent projects</p>
-                    <button style={s.seeAll} onClick={() => { setActiveNav('projects'); localStorage.setItem('pmbuddy_active_nav', 'projects'); sessionStorage.setItem('pmbuddy_active_nav', 'projects'); }}>See all</button>
+                    <button style={s.seeAll} onClick={() => setNav('projects')}>See all</button>
                   </div>
                   <div style={s.projectsGrid}>
                     {projects.slice(0, 3).map(p => <ProjectCard key={p.id} p={p} onOpen={() => onOpenProject(p)} onDelete={() => confirmAndDelete('project', p.id, p.name)} />)}
@@ -328,7 +324,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                 <div style={s.emptyState}>
                   <div style={s.emptyIcon}>◈</div>
                   <p style={s.emptyTitle}>No projects yet</p>
-                  <p style={s.emptyBody}>Create your first project and PM Buddy will set it up with risks, milestones, team roles and a communication plan.</p>
+                  <p style={s.emptyBody}>Create your first project or import an existing document.</p>
                   <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                     <button style={s.primaryBtn} onClick={onNewProject}>Create your first project</button>
                     <button style={{ ...s.primaryBtn, background: WH, color: BL, border: `1.5px solid ${RULE}` }} onClick={() => setShowImport(true)}>⬆ Import from document</button>
@@ -357,81 +353,6 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                     ))}
                   </div>
                 </>
-              )}
-            </div>
-          )}
-
-          {/* CAMPAIGNS */}
-          {activeNav === 'campaigns' && (
-            <div>
-              <div style={s.pageHead}>
-                <div>
-                  <h1 style={s.pageTitle}>Campaigns</h1>
-                  <p style={s.pageSub}>{campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''}</p>
-                </div>
-                <button style={s.primaryBtn} onClick={handleNewCampaign}>+ New campaign</button>
-              </div>
-              {loading && <p style={s.emptyText}>Loading...</p>}
-              {!loading && campaigns.length === 0 && (
-                <div style={s.emptyState}>
-                  <div style={s.emptyIcon}>◉</div>
-                  <p style={s.emptyTitle}>No campaigns yet</p>
-                  <p style={s.emptyBody}>Campaigns are short-term projects, initiatives, events or focused efforts. Create one to get a structured plan with milestones and an AI review.</p>
-                  <button style={s.primaryBtn} onClick={handleNewCampaign}>Start a campaign</button>
-                </div>
-              )}
-              {!loading && campaigns.length > 0 && (
-                <div style={s.projectsGrid}>
-                  {campaigns.map(p => <ProjectCard key={p.id} p={p} onOpen={() => onOpenProject(p)} onDelete={() => confirmAndDelete('campaign', p.id, p.name)} isCampaign />)}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* VALIDATIONS */}
-          {activeNav === 'validations' && (
-            <div>
-              <div style={s.pageHead}>
-                <div>
-                  <h1 style={s.pageTitle}>Validations</h1>
-                  <p style={s.pageSub}>{validations.length} validation{validations.length !== 1 ? 's' : ''}</p>
-                </div>
-                <button style={s.primaryBtn} onClick={onNewValidation}>+ New validation</button>
-              </div>
-              {loading && <p style={s.emptyText}>Loading...</p>}
-              {!loading && validations.length === 0 && (
-                <div style={s.emptyState}>
-                  <div style={s.emptyIcon}>✦</div>
-                  <p style={s.emptyTitle}>No validations yet</p>
-                  <p style={s.emptyBody}>Answer honest questions about your idea and get a detailed report in 10 minutes.</p>
-                  <button style={s.primaryBtn} onClick={onNewValidation}>Start a validation</button>
-                </div>
-              )}
-              {!loading && validations.length > 0 && (
-                <div style={s.validationsGrid}>
-                  {validations.map(v => (
-                    <div key={v.id} style={s.validationRow}>
-                      <div style={s.validationLeft}>
-                        <div style={s.validationMeta}>
-                          <span style={s.modeBadge}>{v.mode === 'hackathon' ? 'Hackathon' : 'Startup'}</span>
-                          <span style={s.validationDate}>{new Date(v.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                        </div>
-                        <p style={s.validationTitle}>{v.title || 'Untitled Validation'}</p>
-                        <p style={{ fontSize: 12, fontWeight: 600, color: v.analysis?.color }}>{v.analysis?.verdict}</p>
-                      </div>
-                      <div style={s.validationRight}>
-                        <div style={s.scoreRing}>
-                          <span style={{ fontSize: 28, fontWeight: 600, color: v.analysis?.color }}>{v.analysis?.score}</span>
-                          <span style={{ fontSize: 12, color: '#9CA3AF' }}>/100</span>
-                        </div>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <button style={s.openBtn} onClick={() => onOpenValidation(v)}>Open</button>
-                          <button style={s.deleteBtn} onClick={() => confirmAndDelete('validation', v.id, v.title || 'Untitled Validation')}>Delete</button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
               )}
             </div>
           )}
@@ -482,60 +403,94 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
           {/* SETTINGS */}
           {activeNav === 'settings' && (
             <div>
-              <div style={s.pageHead}>
-                <h1 style={s.pageTitle}>Settings</h1>
-                <p style={s.pageSub}>Manage your account and preferences.</p>
-              </div>
-              <div style={s.settingsCard}>
-                <p style={s.settingsSection}>Account</p>
-                <div style={s.settingsRow}>
-                  <div>
-                    <p style={s.settingsLabel}>Name</p>
-                    <p style={s.settingsValue}>{user?.user_metadata?.first_name} {user?.user_metadata?.last_name}</p>
+              {showBroadcast ? (
+                <BroadcastEmail user={user} onBack={() => setShowBroadcast(false)} />
+              ) : (
+                <>
+                  <div style={s.pageHead}>
+                    <h1 style={s.pageTitle}>Settings</h1>
+                    <p style={s.pageSub}>Manage your account and preferences.</p>
                   </div>
-                </div>
-                <div style={s.settingsRow}>
-                  <div>
-                    <p style={s.settingsLabel}>Email</p>
-                    <p style={s.settingsValue}>{user?.email}</p>
+
+                  <div style={s.settingsCard}>
+                    <p style={s.settingsSection}>Account</p>
+                    <div style={s.settingsRow}>
+                      <div>
+                        <p style={s.settingsLabel}>Name</p>
+                        <p style={s.settingsValue}>{user?.user_metadata?.first_name} {user?.user_metadata?.last_name}</p>
+                      </div>
+                    </div>
+                    <div style={s.settingsRow}>
+                      <div>
+                        <p style={s.settingsLabel}>Email</p>
+                        <p style={s.settingsValue}>{user?.email}</p>
+                      </div>
+                    </div>
+                    <div style={s.settingsRow}>
+                      <div>
+                        <p style={s.settingsLabel}>Role</p>
+                        <p style={s.settingsValue}>{user?.user_metadata?.role || 'Not set'}</p>
+                      </div>
+                    </div>
+                    <div style={{ ...s.settingsRow, borderBottom: 'none' }}>
+                      <div>
+                        <p style={s.settingsLabel}>Member since</p>
+                        <p style={s.settingsValue}>{new Date(user?.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div style={s.settingsRow}>
-                  <div>
-                    <p style={s.settingsLabel}>Role</p>
-                    <p style={s.settingsValue}>{user?.user_metadata?.role || 'Not set'}</p>
+
+                  {isAdmin && (
+                    <div style={{ ...s.settingsCard, marginTop: 16 }}>
+                      <p style={s.settingsSection}>Admin</p>
+                      <div style={{ ...s.settingsRow, borderBottom: 'none' }}>
+                        <div>
+                          <p style={s.settingsLabel}>Email newsletter</p>
+                          <p style={{ fontSize: 13, color: '#9CA3AF' }}>Send a feature update to all PM Buddy users.</p>
+                        </div>
+                        <button style={{ ...s.openBtn }} onClick={() => setShowBroadcast(true)}>Compose</button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ ...s.settingsCard, marginTop: 16 }}>
+                    <p style={s.settingsSection}>Email Users</p>
+                    <div style={{ ...s.settingsRow, borderBottom: 'none' }}>
+                      <div>
+                        <p style={s.settingsLabel}>Send newsletter</p>
+                        <p style={{ fontSize: 13, color: '#9CA3AF' }}>Send a feature update to all PM Buddy users.</p>
+                      </div>
+                      <button style={s.openBtn} onClick={() => setShowBroadcast(true)}>Compose</button>
+                    </div>
                   </div>
-                </div>
-                <div style={{ ...s.settingsRow, borderBottom: 'none' }}>
-                  <div>
-                    <p style={s.settingsLabel}>Member since</p>
-                    <p style={s.settingsValue}>{new Date(user?.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+
+                  <div style={{ ...s.settingsCard, marginTop: 16 }}>
+                    <p style={s.settingsSection}>Danger zone</p>
+                    <div style={{ ...s.settingsRow, borderBottom: 'none' }}>
+                      <div>
+                        <p style={s.settingsLabel}>Sign out</p>
+                        <p style={{ fontSize: 13, color: '#9CA3AF' }}>You will be signed out of this device.</p>
+                      </div>
+                      <button style={{ ...s.openBtn, background: 'none', color: '#DC2626', border: '1px solid #FECACA' }} onClick={onLogout}>Log out</button>
+                    </div>
                   </div>
-                </div>
-              </div>
-              <div style={{ ...s.settingsCard, marginTop: 16 }}>
-                <p style={s.settingsSection}>Danger zone</p>
-                <div style={{ ...s.settingsRow, borderBottom: 'none' }}>
-                  <div>
-                    <p style={s.settingsLabel}>Sign out</p>
-                    <p style={{ fontSize: 13, color: '#9CA3AF' }}>You will be signed out of this device.</p>
+
+                  <div style={{ ...s.settingsCard, marginTop: 16 }}>
+                    <p style={s.settingsSection}>About PM Buddy</p>
+                    <div style={{ ...s.settingsRow, borderBottom: 'none' }}>
+                      <div>
+                        <p style={s.settingsLabel}>Version</p>
+                        <p style={s.settingsValue}>3.0 — Early Access</p>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 16, padding: '0 20px 16px' }}>
+                      <a href="/privacy.html" style={{ fontSize: 13, color: BLUE }}>Privacy Policy</a>
+                      <a href="/terms.html" style={{ fontSize: 13, color: BLUE }}>Terms of Service</a>
+                      <a href="/about.html" style={{ fontSize: 13, color: BLUE }}>About</a>
+                    </div>
                   </div>
-                  <button style={{ ...s.openBtn, background: 'none', color: '#DC2626', border: '1px solid #FECACA' }} onClick={onLogout}>Log out</button>
-                </div>
-              </div>
-              <div style={{ ...s.settingsCard, marginTop: 16 }}>
-                <p style={s.settingsSection}>About PM Buddy</p>
-                <div style={{ ...s.settingsRow, borderBottom: 'none' }}>
-                  <div>
-                    <p style={s.settingsLabel}>Version</p>
-                    <p style={s.settingsValue}>3.0 — Early Access</p>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 16, padding: '0 0 4px' }}>
-                  <a href="/privacy.html" style={{ fontSize: 13, color: BLUE }}>Privacy Policy</a>
-                  <a href="/terms.html" style={{ fontSize: 13, color: BLUE }}>Terms of Service</a>
-                </div>
-              </div>
+                </>
+              )}
             </div>
           )}
 
@@ -560,14 +515,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
       )}
 
       {viewingDoc && (
-        <DocViewerModal
-          doc={viewingDoc}
-          onClose={() => setViewingDoc(null)}
-          onUpdate={(updated) => {
-            setViewingDoc(updated);
-            setDocuments(docs => docs.map(d => d.id === updated.id ? updated : d));
-          }}
-        />
+        <DocViewerModal doc={viewingDoc} onClose={() => setViewingDoc(null)} onUpdate={(updated) => { setViewingDoc(updated); setDocuments(docs => docs.map(d => d.id === updated.id ? updated : d)); }} />
       )}
     </div>
   );
@@ -605,24 +553,23 @@ function ProjectCard({ p, onOpen, onDelete, isCampaign }) {
   const openRisks = (p.risks || []).filter(r => r.status === 'open').length;
   const doneMilestones = (p.milestones || []).filter(m => m.status === 'done').length;
   const totalMilestones = (p.milestones || []).length;
+  const openTasks = (p.tasks || []).filter(t => t.status !== 'done').length;
+  const blockers = (p.tasks || []).filter(t => t.isBlocker && t.status !== 'done').length;
 
   return (
-    <div style={s.projectCard}>
+    <div style={{ ...s.projectCard, borderColor: blockers > 0 ? '#FED7AA' : RULE }}>
       <div style={s.projectBadges}>
         <span style={{ ...s.industryBadge, background: isCampaign ? '#FFF7ED' : '#EFF6FF', color: isCampaign ? '#C2410C' : BLUE }}>
           {isCampaign ? 'Campaign' : p.industry}
         </span>
-        <span style={s.methodBadge}>{
-          p.methodology === 'Agile' ? 'Flexible approach' :
-          p.methodology === 'Predictive' ? 'Structured approach' :
-          p.methodology === 'Hybrid' ? 'Mixed approach' :
-          p.methodology || 'Mixed approach'
-        }</span>
+        {blockers > 0 && <span style={{ fontSize: 10, fontWeight: 700, background: '#FFF7ED', color: '#EA580C', padding: '2px 8px', borderRadius: 100 }}>🚧 {blockers} blocker{blockers > 1 ? 's' : ''}</span>}
       </div>
       <p style={s.projectName}>{p.name}</p>
       <p style={s.projectDesc}>{p.description}</p>
       <div style={s.projectStats}>
         <div style={s.stat}><span style={s.statNum2}>{doneMilestones}/{totalMilestones}</span><span style={s.statLabel2}>Milestones</span></div>
+        <div style={s.statDivider} />
+        <div style={s.stat}><span style={{ ...s.statNum2, color: openTasks > 0 ? BL : '#15803D' }}>{openTasks}</span><span style={s.statLabel2}>Open tasks</span></div>
         <div style={s.statDivider} />
         <div style={s.stat}><span style={{ ...s.statNum2, color: openRisks > 0 ? '#DC2626' : '#15803D' }}>{openRisks}</span><span style={s.statLabel2}>Risks</span></div>
         <div style={s.statDivider} />
@@ -647,7 +594,9 @@ function DocViewerModal({ doc, onClose, onUpdate }) {
     setUpdating(true);
     const prompt = `You are editing a professional document. The user has a specific change request.\n\nCURRENT DOCUMENT:\n${content}\n\nUSER'S REQUEST: "${updateInput}"\n\nReturn the COMPLETE document in HTML with your changes applied. No html/head/body tags. No markdown.`;
     try {
-      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, mode: 'document' }) });
+      const { data } = await supabase.auth.getSession();
+      const token = data?.session?.access_token;
+      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }, body: JSON.stringify({ prompt, mode: 'document' }) });
       const result = await res.json();
       const updated = (result.result || '').replace(/```html|```/g, '').trim();
       if (updated && updated.length > 100) {
@@ -665,12 +614,9 @@ function DocViewerModal({ doc, onClose, onUpdate }) {
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px', overflowY: 'auto' }}>
       <div style={{ background: WH, borderRadius: 16, width: '100%', maxWidth: 800, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 28px', borderBottom: `1px solid ${RULE}` }}>
-          <div>
-            <p style={{ fontSize: 11, fontWeight: 700, color: '#C2410C', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Quick Doc</p>
-            <p style={{ fontSize: 16, fontWeight: 700, color: BL }}>{doc.title}</p>
-          </div>
+          <p style={{ fontSize: 16, fontWeight: 700, color: BL }}>{doc.title}</p>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button style={{ padding: '7px 16px', background: WH, color: BLUE, border: `1px solid ${BLUE}`, borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadDoc({ ...doc, content })}>Download</button>
+            <button style={{ padding: '7px 16px', background: WH, color: BLUE, border: `1px solid ${BLUE}`, borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => { const blob = new Blob([content], { type: 'text/html' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${doc.title.replace(/\s+/g, '_')}.html`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); }}>Download</button>
             <button style={{ padding: '7px 16px', background: BL, color: WH, border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={onClose}>Close</button>
           </div>
         </div>
@@ -708,7 +654,7 @@ const s = {
   miniBar: { height: 4, background: RULE, borderRadius: 2, overflow: 'hidden' },
   miniBarFill: { height: '100%', background: BLUE, borderRadius: 2, transition: 'width 0.4s' },
   logoutBtn: { width: '100%', padding: '9px', background: 'none', border: `1px solid ${RULE}`, borderRadius: 8, fontSize: 13, color: '#6B7280', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center' },
-  main: { flex: 1, marginLeft: SIDEBAR_W, minHeight: '100vh', display: 'flex', flexDirection: 'column', transition: 'margin-left 0.25s' },
+  main: { flex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column', transition: 'margin-left 0.25s' },
   topBar: { position: 'sticky', top: 0, background: WH, borderBottom: `1px solid ${RULE}`, padding: '0 28px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 30 },
   menuBtn: { background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6B7280', fontFamily: 'inherit' },
   topActions: { display: 'flex', alignItems: 'center', gap: 10 },
@@ -731,25 +677,25 @@ const s = {
   checklistBarFill: { height: '100%', background: BLUE, borderRadius: 2, transition: 'width 0.4s' },
   checklistItems: { display: 'flex', flexDirection: 'column', gap: 0 },
   checklistItem: { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: `1px solid ${GREY}` },
-  checkBox: { width: 20, height: 20, borderRadius: 6, border: `2px solid`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' },
+  checkBox: { width: 20, height: 20, borderRadius: 6, border: '2px solid', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' },
   checkLabel: { fontSize: 14, fontWeight: 500 },
   checkHint: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
   checkAction: { padding: '5px 12px', background: '#EFF6FF', color: BLUE, border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 },
   statsRow: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 28 },
-  statCard: { background: WH, border: `1px solid ${RULE}`, borderRadius: 12, padding: '16px', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', transition: 'border-color 0.15s' },
+  statCard: { background: WH, border: `1px solid ${RULE}`, borderRadius: 12, padding: '16px', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' },
   statNum: { fontSize: 28, fontWeight: 800, letterSpacing: '-0.5px', marginBottom: 4 },
   statLabel: { fontSize: 12, color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' },
   sectionLabel: { fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 },
   sectionHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, marginTop: 28 },
   seeAll: { background: 'none', border: 'none', color: BLUE, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
   quickGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, marginBottom: 8 },
-  quickCard: { display: 'flex', alignItems: 'center', gap: 12, background: WH, border: `1px solid ${RULE}`, borderRadius: 12, padding: '14px 16px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'border-color 0.15s' },
+  quickCard: { display: 'flex', alignItems: 'center', gap: 12, background: WH, border: `1px solid ${RULE}`, borderRadius: 12, padding: '14px 16px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' },
   quickIcon: { width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 },
   quickLabel: { fontSize: 13, fontWeight: 700, color: BL, marginBottom: 2 },
   quickSub: { fontSize: 12, color: '#9CA3AF' },
   projectsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 },
   projectCard: { background: WH, border: `1px solid ${RULE}`, borderRadius: 12, padding: '20px' },
-  projectBadges: { display: 'flex', gap: 6, marginBottom: 12 },
+  projectBadges: { display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' },
   industryBadge: { fontSize: 10, fontWeight: 700, background: '#EFF6FF', color: BLUE, padding: '3px 9px', borderRadius: 100 },
   methodBadge: { fontSize: 10, fontWeight: 700, background: GREY, color: '#6B7280', padding: '3px 9px', borderRadius: 100 },
   projectName: { fontSize: 15, fontWeight: 700, color: BL, marginBottom: 4 },
@@ -767,16 +713,7 @@ const s = {
   emptyTitle: { fontSize: 18, fontWeight: 700, color: BL, marginBottom: 8 },
   emptyBody: { fontSize: 14, color: '#9CA3AF', lineHeight: 1.7, marginBottom: 24 },
   emptyText: { color: '#9CA3AF', fontSize: 14, padding: '24px 0' },
-  validationsGrid: { display: 'flex', flexDirection: 'column', gap: 0 },
-  validationRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 0', borderBottom: `1px solid ${RULE}`, gap: 20, flexWrap: 'wrap' },
-  validationLeft: { flex: 1, minWidth: 200 },
-  validationMeta: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 },
-  modeBadge: { fontSize: 10, fontWeight: 700, background: '#EFF6FF', color: BLUE, padding: '3px 9px', borderRadius: 100 },
-  validationDate: { fontSize: 12, color: '#9CA3AF' },
-  validationTitle: { fontSize: 15, fontWeight: 600, color: BL, marginBottom: 4 },
-  validationRight: { display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 },
-  scoreRing: { display: 'flex', alignItems: 'baseline', gap: 3 },
-  docRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: `1px solid ${RULE}`, gap: 16, flexWrap: 'wrap' },
+  docRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: `1px solid ${RULE}`, flexWrap: 'wrap', gap: 16 },
   docRowLeft: { flex: 1 },
   docTypeBadge: { fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 100, display: 'inline-block', marginBottom: 4 },
   docRowTitle: { fontSize: 14, fontWeight: 600, color: BL, marginBottom: 2 },
