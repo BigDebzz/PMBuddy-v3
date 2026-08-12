@@ -60,22 +60,25 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
   }, [project.id]);
 
   const save = useCallback(async (updates, historyEntry) => {
-    const currentHistory = data.history || [];
-    const newHistory = historyEntry
-      ? [...currentHistory, { ...historyEntry, timestamp: new Date().toISOString(), by: project._currentUser?.user_metadata?.first_name || project._currentUser?.email || 'You' }]
-      : currentHistory;
-    const finalUpdates = historyEntry ? { ...updates, history: newHistory } : updates;
-    const updated = { ...data, ...finalUpdates, updated_at: new Date().toISOString() };
-    setData(updated);
-    setSaveStatus('unsaved');
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(async () => {
-      setSaveStatus('saving');
-      await supabase.from('pm_projects').update(finalUpdates).eq('id', project.id);
-      setSaveStatus('saved');
-      if (onUpdate) onUpdate(updated);
-    }, 1500);
-  }, [data, project.id, onUpdate, project._currentUser]);
+    const by = project._currentUser?.user_metadata?.first_name || project._currentUser?.email || 'You';
+    setData(prev => {
+      const currentHistory = prev.history || [];
+      const newHistory = historyEntry
+        ? [...currentHistory, { ...historyEntry, timestamp: new Date().toISOString(), by }]
+        : currentHistory;
+      const finalUpdates = historyEntry ? { ...updates, history: newHistory } : updates;
+      const updated = { ...prev, ...finalUpdates, updated_at: new Date().toISOString() };
+      setSaveStatus('unsaved');
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(async () => {
+        setSaveStatus('saving');
+        await supabase.from('pm_projects').update(finalUpdates).eq('id', project.id);
+        setSaveStatus('saved');
+        if (onUpdate) onUpdate(updated);
+      }, 1500);
+      return updated;
+    });
+  }, [project.id, onUpdate, project._currentUser]);
 
   return (
     <div style={s.page}>
