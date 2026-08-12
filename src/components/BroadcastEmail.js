@@ -8,11 +8,7 @@ const RULE = '#E5E7EB';
 
 const DEFAULT_SUBJECT = 'We have been building something for you';
 
-const DEFAULT_BODY = `<p style="font-size:16px;color:#0A0A0A;line-height:1.9;margin:0 0 16px;">
-  Hey there,
-</p>
-
-<p style="font-size:15px;color:#374151;line-height:1.9;margin:0 0 16px;">
+const DEFAULT_BODY = `<p style="font-size:15px;color:#374151;line-height:1.9;margin:0 0 16px;">
   It has been a while! While you were away, we have been building some things that I think will genuinely make managing your projects a lot easier.
 </p>
 
