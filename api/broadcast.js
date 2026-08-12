@@ -6,7 +6,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
 
-const FROM_EMAIL = 'hello@pmbuddy.app';
+const FROM_EMAIL = 'pmbuddy1@gmail.com';
 const FROM_NAME = 'Debbie from PM Buddy';
 
 // Only allow Deborah to trigger this
@@ -82,6 +82,7 @@ function buildEmailHTML(firstName, subject, body) {
   <title>${subject}</title>
 </head>
 <body style="margin:0;padding:0;background:#F8FAFC;font-family:'Helvetica Neue',Arial,sans-serif;">
+  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">We have been building some things I think will genuinely help you manage your projects better.&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;padding:40px 20px;">
     <tr>
       <td align="center">
