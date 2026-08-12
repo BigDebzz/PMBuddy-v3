@@ -378,6 +378,8 @@ function TasksTab({ data, onSave }) {
   const milestones = data.milestones || [];
   const [newTask, setNewTask] = useState({ title: '', assignee: '', dueDate: '', milestoneId: '' });
   const [showAddTask, setShowAddTask] = useState(false);
+  const [expandedTaskId, setExpandedTaskId] = useState(null);
+  const [noteDraft, setNoteDraft] = useState('');
   const [editingTaskIdx, setEditingTaskIdx] = useState(null);
   const [editTaskDraft, setEditTaskDraft] = useState({});
   const [newMilestone, setNewMilestone] = useState({ title: '', date: '' });
@@ -407,16 +409,23 @@ function TasksTab({ data, onSave }) {
 
   const addTask = () => {
     if (!newTask.title.trim()) return;
-    const task = { id: Date.now().toString(), title: newTask.title.trim(), assignee: newTask.assignee.trim(), dueDate: newTask.dueDate, status: 'todo', milestoneId: newTask.milestoneId, createdAt: new Date().toISOString() };
-    onSave({ tasks: [...tasks, task] }, { type: 'task_added', label: 'Task added', detail: newTask.title });
+    const task = { id: Date.now().toString(), title: newTask.title.trim(), assignee: newTask.assignee.trim(), dueDate: newTask.dueDate, status: 'todo', milestoneId: newTask.milestoneId, notes: '', isBlocker: false, createdAt: new Date().toISOString() };
+    onSave({ tasks: [...tasks, task] }, { type: 'task_added', label: 'Task added', detail: `${newTask.title.trim()}${newTask.assignee.trim() ? ' (assigned to ' + newTask.assignee.trim() + ')' : ''}` });
     setNewTask({ title: '', assignee: '', dueDate: '', milestoneId: '' });
     setShowAddTask(false);
   };
 
   const moveTask = (taskId, newStatus) => {
+    const task = tasks.find(t => t.id === taskId);
     const updated = tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t);
-    onSave({ tasks: updated });
-    if (newStatus === 'done') notify('task_done', data, { task: tasks.find(t => t.id === taskId)?.title });
+    const statusLabels = { todo: 'To Do', in_progress: 'In Progress', done: 'Done' };
+    const historyEntry = {
+      type: 'task_moved',
+      label: `Task moved to ${statusLabels[newStatus] || newStatus}`,
+      detail: task?.title || '',
+    };
+    onSave({ tasks: updated }, historyEntry);
+    if (newStatus === 'done') notify('task_done', data, { task: task?.title });
   };
 
   const deleteTask = (taskId) => onSave({ tasks: tasks.filter(t => t.id !== taskId) });
@@ -532,6 +541,7 @@ function TasksTab({ data, onSave }) {
 
                   // TASK CARD
                   const taskIdx = tasks.findIndex(t => t.id === task.id);
+                  const isExpanded = expandedTaskId === task.id;
                   if (editingTaskIdx === taskIdx) {
                     return (
                       <div key={task.id} style={{ background: WH, borderRadius: 8, padding: 10, marginBottom: 8, border: `1px solid ${BLUE}` }}>
@@ -546,15 +556,65 @@ function TasksTab({ data, onSave }) {
                     );
                   }
                   return (
-                    <div key={task.id} style={{ background: WH, borderRadius: 8, padding: '10px 12px', marginBottom: 8, border: `1px solid ${overdue ? '#FECACA' : RULE}`, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                    <div key={task.id} style={{ background: WH, borderRadius: 8, padding: '10px 12px', marginBottom: 8, border: `1px solid ${task.isBlocker ? '#F97316' : overdue ? '#FECACA' : RULE}`, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                      {task.isBlocker && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6, padding: '3px 8px', background: '#FFF7ED', borderRadius: 6, width: 'fit-content' }}>
+                          <span style={{ fontSize: 10 }}>🚧</span>
+                          <span style={{ fontSize: 10, fontWeight: 800, color: '#EA580C', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Blocker</span>
+                        </div>
+                      )}
                       <p style={{ fontSize: 13, fontWeight: 600, color: BL, marginBottom: 4, lineHeight: 1.4 }}>{task.title}</p>
                       {task.assignee && <p style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>👤 {task.assignee}</p>}
                       {task.dueDate && <p style={{ fontSize: 11, color: overdue ? '#DC2626' : '#6B7280', fontWeight: overdue ? 700 : 400 }}>{overdue ? '⚠ Overdue · ' : ''}{formatDate(task.dueDate)}</p>}
+                      {task.notes && !isExpanded && <p style={{ fontSize: 11, color: '#6B7280', marginTop: 4, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📝 {task.notes}</p>}
+
+                      {isExpanded && (
+                        <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${RULE}` }}>
+                          <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Notes / Updates</label>
+                          <textarea
+                            style={{ width: '100%', border: `1px solid ${RULE}`, borderRadius: 6, padding: '7px 9px', fontSize: 12, fontFamily: 'inherit', resize: 'vertical', minHeight: 60, boxSizing: 'border-box', outline: 'none', lineHeight: 1.6 }}
+                            placeholder="Add a note, update, or describe the blocker..."
+                            value={noteDraft}
+                            onChange={e => setNoteDraft(e.target.value)}
+                          />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: 12, color: '#374151', fontWeight: 600 }}>
+                              <input
+                                type="checkbox"
+                                checked={editTaskDraft.isBlocker !== undefined ? editTaskDraft.isBlocker : task.isBlocker || false}
+                                onChange={e => setEditTaskDraft(p => ({ ...p, isBlocker: e.target.checked }))}
+                                style={{ width: 14, height: 14, cursor: 'pointer' }}
+                              />
+                              🚧 Mark as blocker
+                            </label>
+                            <button style={{ ...s.miniBtn, background: BLUE, color: WH, borderColor: BLUE, marginLeft: 'auto' }} onClick={() => {
+                              const updatedTask = tasks[taskIdx];
+                              const wasBlocker = updatedTask?.isBlocker || false;
+                              const nowBlocker = editTaskDraft.isBlocker !== undefined ? editTaskDraft.isBlocker : wasBlocker;
+                              const updated = tasks.map((t, idx) => idx === taskIdx ? { ...t, notes: noteDraft, isBlocker: nowBlocker } : t);
+                              const noteHistory = {
+                                type: nowBlocker && !wasBlocker ? 'task_blocked' : 'task_note',
+                                label: nowBlocker && !wasBlocker ? 'Task flagged as blocker' : 'Note added to task',
+                                detail: `${updatedTask?.title || ''}${noteDraft ? ': ' + noteDraft.substring(0, 60) : ''}`,
+                              };
+                              onSave({ tasks: updated }, noteHistory);
+                              setExpandedTaskId(null);
+                              setNoteDraft('');
+                              setEditTaskDraft({});
+                            }}>Save note</button>
+                            <button style={s.miniBtn} onClick={() => { setExpandedTaskId(null); setNoteDraft(''); setEditTaskDraft({}); }}>Cancel</button>
+                          </div>
+                        </div>
+                      )}
+
                       <div style={{ display: 'flex', gap: 4, marginTop: 8, flexWrap: 'wrap' }}>
                         {col.id !== 'todo' && <button style={{ ...s.miniBtn }} onClick={() => moveTask(task.id, 'todo')}>← To Do</button>}
                         {col.id !== 'in_progress' && <button style={{ ...s.miniBtn }} onClick={() => moveTask(task.id, 'in_progress')}>In Progress</button>}
                         {col.id !== 'done' && <button style={{ ...s.miniBtn, background: '#F0FDF4', color: '#15803D', borderColor: '#BBF7D0' }} onClick={() => moveTask(task.id, 'done')}>✓ Done</button>}
                         <button style={s.miniBtn} onClick={() => { setEditingTaskIdx(taskIdx); setEditTaskDraft({ ...task }); }}>Edit</button>
+                        <button style={{ ...s.miniBtn, color: BLUE, borderColor: '#BFDBFE', background: '#EFF6FF' }} onClick={() => { setExpandedTaskId(isExpanded ? null : task.id); setNoteDraft(task.notes || ''); setEditTaskDraft({ isBlocker: task.isBlocker || false }); }}>
+                          {isExpanded ? 'Close' : '📝 Notes'}
+                        </button>
                         <button style={{ ...s.miniBtn, color: '#DC2626', borderColor: '#FECACA' }} onClick={() => deleteTask(task.id)}>✕</button>
                       </div>
                     </div>
