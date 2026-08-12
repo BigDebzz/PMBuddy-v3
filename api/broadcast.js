@@ -165,12 +165,33 @@ export default async function handler(request, response) {
       return response.status(400).json({ error: 'subject and bodyHTML are required.' });
     }
 
-    // Preview mode — just send to Deborah
+    // Preview mode — just send to the logged in user
     if (preview) {
-      const previewName = user.user_metadata?.first_name || 'Deborah';
+      const previewName = user.user_metadata?.first_name || user.email.split('@')[0];
+      console.log('Preview: sending to', user.email, 'name:', previewName);
+      console.log('BREVO_API_KEY exists:', !!BREVO_API_KEY);
       const html = buildEmailHTML(previewName, subject, bodyHTML);
-      const sent = await sendEmail(user.email, previewName, `[PREVIEW] ${subject}`, html);
-      return response.status(200).json({ success: sent, message: `Preview sent to ${user.email}` });
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': BREVO_API_KEY,
+        },
+        body: JSON.stringify({
+          sender: { name: FROM_NAME, email: FROM_EMAIL },
+          to: [{ email: user.email, name: previewName }],
+          subject: `[PREVIEW] ${subject}`,
+          htmlContent: html,
+        }),
+      });
+      const resBody = await res.text();
+      console.log('Brevo response status:', res.status);
+      console.log('Brevo response body:', resBody);
+      if (res.ok) {
+        return response.status(200).json({ success: true, message: `Preview sent to ${user.email}` });
+      } else {
+        return response.status(200).json({ success: false, message: `Brevo error ${res.status}: ${resBody}` });
+      }
     }
 
     // Fetch all confirmed users
