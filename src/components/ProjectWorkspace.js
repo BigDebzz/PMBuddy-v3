@@ -112,7 +112,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
           {tab === 'Tasks' && <TasksTab data={data} onSave={save} />}
           {tab === 'Risks' && <RisksTab data={data} onSave={save} />}
           {tab === 'People' && <PeopleTab data={data} onSave={save} project={project} acceptedMembers={acceptedMembers} />}
-          {tab === 'Documents' && <DocumentsTab data={data} onSave={save} project={project} />}
+          {tab === 'Documents' && <DocumentsTab data={data} history={data.history || []} onSave={save} project={project} />}
         </div>
       </div>
       <PMBuddyAssistant project={data} />
@@ -945,7 +945,7 @@ function StakeholdersList({ data, onSave }) {
 
 // ─── DOCUMENTS TAB ────────────────────────────────────────────
 
-function DocumentsTab({ data, onSave, project }) {
+function DocumentsTab({ data, history, onSave, project }) {
   const [section, setSection] = useState('reports');
   const [reportType, setReportType] = useState('progress');
   const [generating, setGenerating] = useState(false);
@@ -1070,7 +1070,7 @@ function DocumentsTab({ data, onSave, project }) {
   const generateProgressMap = async () => {
     setGeneratingMap(true);
     setProgressMap(null);
-    const prompt = `You are PM Buddy. Write a plain-English progress summary in 3-4 paragraphs: where the project started, what has been achieved, what to focus on next, and one honest observation about what could go wrong. Be specific, warm but direct. No bullet points.\n\n${projectContext}\nHistory entries: ${data.history?.length || 0}`;
+    const prompt = `You are PM Buddy. Write a plain-English progress summary in 3-4 paragraphs: where the project started, what has been achieved, what to focus on next, and one honest observation about what could go wrong. Be specific, warm but direct. No bullet points.\n\n${projectContext}\nHistory entries: ${history?.length || 0}`;
     try {
       const authHeader = await getAuthHeader();
       const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader }, body: JSON.stringify({ prompt }) });
@@ -1169,8 +1169,8 @@ function DocumentsTab({ data, onSave, project }) {
             </div>
           )}
           <p style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>Activity Log</p>
-          {(data.history || []).length === 0 && <p style={s.emptyText}>No recorded history yet.</p>}
-          {(data.history || []).slice().reverse().map((entry, i) => (
+          {(history || []).length === 0 && <p style={s.emptyText}>No recorded history yet.</p>}
+          {(history || []).slice().reverse().map((entry, i) => (
             <div key={i} style={{ display: 'flex', gap: 12, padding: '12px 0', borderBottom: `1px solid ${RULE}`, alignItems: 'flex-start' }}>
               <div style={{ width: 28, height: 28, borderRadius: 6, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: BLUE, flexShrink: 0, fontWeight: 700 }}>
                 {entry.type === 'goal_updated' ? '◈' : entry.type === 'milestone_done' ? '✓' : entry.type === 'risk_added' ? '⚠' : '·'}
