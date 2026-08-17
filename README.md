@@ -1,5 +1,7 @@
 # PM Buddy
 
+**Built by [Deborah Akpokige](https://www.linkedin.com/in/deborah-akpokige)** — PMP-certified Programs Manager, Nigeria
+
 **Project management for people who aren't project managers.**
 
 PM Buddy is a web app that takes your existing project documents — a plan, a proposal, a brief, even a WhatsApp message — and turns them into a structured project with milestones, a task board, risks, a communication plan, and downloadable reports. No PM training required.
@@ -158,6 +160,18 @@ PM Buddy is built by a non-developer using a chat-based coding workflow: describ
 - **About:** https://pmbuddy-v3.vercel.app/about.html
 - **Privacy Policy:** https://pmbuddy-v3.vercel.app/privacy.html
 - **Terms of Service:** https://pmbuddy-v3.vercel.app/terms.html
+
+---
+
+## Author
+
+**Deborah Akpokige**
+PMP-certified Programs Manager | State Programs Manager, FCT — 3MTT Program, Nigeria's Federal Ministry of Communications, Innovation and Digital Economy
+
+Building PM Buddy as a tool I use myself on real projects. The goal is to make project management accessible to anyone running a project, regardless of their background or training.
+
+Connect on LinkedIn: [linkedin.com/in/deborah-akpokige](https://www.linkedin.com/in/deborah-akpokige)
+Email: hello@pmbuddy.app
 
 ---
 
