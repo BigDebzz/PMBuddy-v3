@@ -963,6 +963,7 @@ function DocumentsTab({ data, history, onSave, project }) {
   const [showProgressMap, setShowProgressMap] = useState(false);
   const [progressMap, setProgressMap] = useState(null);
   const [generatingMap, setGeneratingMap] = useState(false);
+  const [docError, setDocError] = useState('');
 
   const SECTIONS = [
     { id: 'reports', label: 'Reports' },
@@ -1016,7 +1017,10 @@ function DocumentsTab({ data, history, onSave, project }) {
         const label = reportType === 'progress' ? 'Progress Update' : 'Funder Report';
         await saveDoc(html, `${data.name} — ${label} — ${new Date().toLocaleDateString('en-GB')}`, 'report');
       }
-    } catch { setReportContent('<p>Could not generate. Please try again.</p>'); }
+    } catch (err) {
+      console.error('generateReport error:', err);
+      setReportContent('<p style="color:#DC2626;font-weight:600;">Could not generate. Please try again.</p>');
+    }
     setGenerating(false);
   };
 
@@ -1037,7 +1041,10 @@ function DocumentsTab({ data, history, onSave, project }) {
         setDocPreviewType(type);
         await saveDoc(html, `${data.name} — Project Management Plan — ${new Date().toLocaleDateString('en-GB')}`, type);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error('generateDoc error:', err);
+      setDocError('Could not generate. Please try again.');
+    }
     setDocGenerating(null);
   };
 
@@ -1143,7 +1150,8 @@ function DocumentsTab({ data, history, onSave, project }) {
       {section === 'pm_plan' && (
         <div>
           <p style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.7, marginBottom: 16 }}>Full project management plan generated from your live project data.</p>
-          <button style={{ padding: '12px 24px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: docGenerating === 'pm' ? 0.6 : 1, marginBottom: 16 }} onClick={() => generateDoc('pm')} disabled={!!docGenerating}>{docGenerating === 'pm' ? 'Writing...' : 'Generate PM Plan'}</button>
+          <button style={{ padding: '12px 24px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: docGenerating === 'pm' ? 0.6 : 1, marginBottom: 16 }} onClick={() => { setDocError(''); generateDoc('pm'); }} disabled={!!docGenerating}>{docGenerating === 'pm' ? 'Writing your plan...' : 'Generate PM Plan'}</button>
+          {docError && <div style={{ padding: '12px 14px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, marginBottom: 16 }}><p style={{ fontSize: 13, color: '#DC2626' }}>{docError}</p></div>}
           {docPreview && docPreviewType === 'pm' && (
             <div>
               <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
