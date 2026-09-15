@@ -22,125 +22,39 @@ async function verifyAuth(request) {
   } catch { return null; }
 }
 
-async function callModel(model, prompt, mode) {
-  const API_KEY = process.env.GEMINI_API_KEY;
+async function callClaude(prompt, mode) {
+  const API_KEY = process.env.ANTHROPIC_API_KEY;
   const maxTokens = mode === 'document' ? 8000 : 2000;
 
   try {
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: maxTokens },
-        }),
-      }
-    );
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: maxTokens,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
 
-    if (geminiResponse.ok) {
-      const data = await geminiResponse.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (res.ok) {
+      const data = await res.json();
+      const text = data.content?.[0]?.text || '';
       if (text) return { text, error: null };
       return { text: null, error: 'Empty response', status: 0 };
     }
 
-    const body = await geminiResponse.text();
-    console.error(`Model ${model} error ${geminiResponse.status}:`, body.substring(0, 200));
-    return { text: null, error: geminiResponse.status, status: geminiResponse.status };
+    const body = await res.text();
+    console.error(`Claude API error ${res.status}:`, body.substring(0, 200));
+    return { text: null, error: res.status, status: res.status };
   } catch (err) {
-    console.error(`Model ${model} fetch error:`, err.message);
+    console.error('Claude fetch error:', err.message);
     return { text: null, error: err.message, status: 0 };
   }
-}
-
-async function callModelWithFile(model, prompt, fileUri, mimeType) {
-  const API_KEY = process.env.GEMINI_API_KEY;
-
-  try {
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { file_data: { mime_type: mimeType, file_uri: fileUri } },
-              { text: prompt },
-            ],
-          }],
-          generationConfig: { maxOutputTokens: 8000 },
-        }),
-      }
-    );
-
-    if (geminiResponse.ok) {
-      const data = await geminiResponse.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      if (text) return { text, error: null };
-      return { text: null, error: 'Empty response', status: 0 };
-    }
-
-    const body = await geminiResponse.text();
-    console.error(`Model ${model} file error ${geminiResponse.status}:`, body.substring(0, 200));
-    return { text: null, error: geminiResponse.status, status: geminiResponse.status };
-  } catch (err) {
-    console.error(`Model ${model} file fetch error:`, err.message);
-    return { text: null, error: err.message, status: 0 };
-  }
-}
-
-// Try all models — don't break early on non-rate-limit errors
-async function callGemini(prompt, mode) {
-  const MODELS = [
-    'gemini-2.5-flash',
-    'gemini-3.5-flash',
-    'gemini-3.6-flash',
-    'gemini-3.1-flash-lite',
-  ];
-
-  let lastError = 'AI is currently unavailable. Please try again in a moment.';
-
-  for (const model of MODELS) {
-    console.log(`Trying model: ${model}`);
-    const result = await callModel(model, prompt, mode);
-    if (result.text) {
-      console.log(`Success with model: ${model}`);
-      return result;
-    }
-    lastError = result.error;
-    console.log(`Model ${model} failed:`, result.error);
-    // Small delay between attempts
-    await new Promise(r => setTimeout(r, 500));
-  }
-
-  return { text: null, error: lastError };
-}
-
-async function callGeminiWithFile(prompt, fileUri, mimeType) {
-  const MODELS = [
-    'gemini-2.5-flash',
-    'gemini-3.5-flash',
-    'gemini-3.6-flash',
-  ];
-
-  let lastError = 'AI is currently unavailable. Please try again in a moment.';
-
-  for (const model of MODELS) {
-    console.log(`Trying model with file: ${model}`);
-    const result = await callModelWithFile(model, prompt, fileUri, mimeType);
-    if (result.text) {
-      console.log(`File success with model: ${model}`);
-      return result;
-    }
-    lastError = result.error;
-    console.log(`Model ${model} file failed:`, result.error);
-    await new Promise(r => setTimeout(r, 500));
-  }
-
-  return { text: null, error: lastError };
 }
 
 export default async function handler(request, response) {
@@ -148,7 +62,7 @@ export default async function handler(request, response) {
     return response.status(405).json({ error: 'Method not allowed' });
   }
 
-  const API_KEY = process.env.GEMINI_API_KEY;
+  const API_KEY = process.env.ANTHROPIC_API_KEY;
   if (!API_KEY) {
     return response.status(500).json({ error: 'API key not configured' });
   }
@@ -164,29 +78,22 @@ export default async function handler(request, response) {
       try { body = JSON.parse(body); } catch (e) { body = {}; }
     }
 
-    const { prompt, mode, fileUri, mimeType } = body || {};
+    const { prompt, mode } = body || {};
 
     if (!prompt) {
       return response.status(400).json({ error: 'No prompt provided' });
     }
 
-    let result;
-
-    if (fileUri && mimeType) {
-      result = await callGeminiWithFile(prompt, fileUri, mimeType);
-    } else {
-      result = await callGemini(prompt, mode);
-    }
+    const result = await callClaude(prompt, mode);
 
     if (!result.text) {
-      console.error('All models failed. Last error:', result.error);
+      console.error('Claude failed. Error:', result.error);
       return response.status(503).json({ error: 'AI is currently unavailable. Please try again in a moment.' });
     }
 
     return response.status(200).json({ result: result.text });
-
   } catch (err) {
-    console.error('Gemini handler error:', err);
+    console.error('Handler error:', err);
     return response.status(500).json({ error: err.message });
   }
 }
