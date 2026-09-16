@@ -79,13 +79,11 @@ export default async function handler(request, response) {
     }
 
     const { prompt, mode } = body || {};
-
     if (!prompt) {
       return response.status(400).json({ error: 'No prompt provided' });
     }
 
     const result = await callClaude(prompt, mode);
-
     if (!result.text) {
       console.error('Claude failed. Error:', result.error);
       return response.status(503).json({ error: 'AI is currently unavailable. Please try again in a moment.' });
