@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { deepAnalyze } from '../lib/gemini';
+import { deepAnalyze } from '../lib/claude';
 import { modeConfig } from '../data/questions';
 import { Analytics } from '../lib/analytics';
 
@@ -25,7 +25,6 @@ export default function ResultsDashboard({ mode, answers, analysis, onReset, onE
   const config = modeConfig[mode];
   const tabs = TABS[mode];
 
-  // Restore deep analysis from localStorage so tab switches don't wipe it
   const [deepAnalysis, setDeepAnalysis] = useState(() => {
     try {
       const s = localStorage.getItem(DEEP_KEY(mode));
@@ -63,7 +62,6 @@ export default function ResultsDashboard({ mode, answers, analysis, onReset, onE
   return (
     <div style={s.page}>
       <div style={s.wrap}>
-
         <div style={s.header}>
           <div>
             <div style={s.breadcrumb}>
@@ -138,7 +136,6 @@ export default function ResultsDashboard({ mode, answers, analysis, onReset, onE
         </div>
 
         <FeedbackForm mode={mode} />
-
       </div>
     </div>
   );
@@ -168,7 +165,7 @@ function AIAnalysisTab({ deepAnalysis, deepLoading, onRetry }) {
 
   return (
     <div>
-      <SectionHead title="AI Powered Deep Analysis" sub="Gemini has read every word of your answers and responded directly to your specific situation. Not a template." />
+      <SectionHead title="AI Powered Deep Analysis" sub="Claude has read every word of your answers and responded directly to your specific situation. Not a template." />
 
       {deepAnalysis.founderMessage && (
         <div style={s.founderMsg}>
@@ -186,7 +183,7 @@ function AIAnalysisTab({ deepAnalysis, deepLoading, onRetry }) {
 
       {deepAnalysis.deepInsights?.length > 0 && (
         <div style={s.section}>
-          <p style={s.colLabel}>What Gemini found in your answers</p>
+          <p style={s.colLabel}>What Claude found in your answers</p>
           {deepAnalysis.deepInsights.map((item, i) => (
             <div key={i} style={{ ...s.insightCard, borderLeftColor: B }}>
               <span style={{ ...s.badge, background: B + '18', color: B }}>
@@ -222,6 +219,7 @@ function ReportTab({ analysis }) {
   return (
     <div>
       <SectionHead title="What your answers reveal" sub="This report is based on exactly what you said. Every insight and challenge is a direct response to your answers." />
+
       {analysis.insights?.length > 0 && (
         <div style={s.section}>
           <p style={s.colLabel}>What is working in your thinking</p>
@@ -235,6 +233,7 @@ function ReportTab({ analysis }) {
           ))}
         </div>
       )}
+
       {analysis.challenges?.length > 0 && (
         <div style={s.section}>
           <p style={s.colLabel}>What needs to change</p>
@@ -251,6 +250,7 @@ function ReportTab({ analysis }) {
           ))}
         </div>
       )}
+
       {analysis.nextSteps?.length > 0 && (
         <div style={s.section}>
           <p style={s.colLabel}>Your most important next steps in order</p>
@@ -406,7 +406,6 @@ function FeedbackForm({ mode }) {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
-
   const ratingLabels = ['', 'Not useful at all', 'Somewhat useful', 'Useful but incomplete', 'Very useful', 'Exactly what I needed'];
 
   const handleSubmit = async () => {
