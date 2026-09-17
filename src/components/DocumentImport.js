@@ -81,24 +81,16 @@ export default function DocumentImport({ user, onComplete, onBack, onCancel }) {
 
   const parseGeminiResponse = (text) => {
     if (!text) throw new Error('Empty AI response');
-
-    // Strategy 1: direct JSON parse
     try { return JSON.parse(text.trim()); } catch (_) {}
-
-    // Strategy 2: extract from markdown code block
     const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (codeBlockMatch) {
       try { return JSON.parse(codeBlockMatch[1].trim()); } catch (_) {}
     }
-
-    // Strategy 3: find first { and last }
     const firstBrace = text.indexOf('{');
     const lastBrace = text.lastIndexOf('}');
     if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
       try { return JSON.parse(text.slice(firstBrace, lastBrace + 1)); } catch (_) {}
     }
-
-    // Strategy 4: try to find JSON after any explanatory text
     const jsonStart = text.search(/\{\s*"/);
     if (jsonStart !== -1) {
       const jsonEnd = text.lastIndexOf('}');
@@ -106,14 +98,12 @@ export default function DocumentImport({ user, onComplete, onBack, onCancel }) {
         try { return JSON.parse(text.slice(jsonStart, jsonEnd + 1)); } catch (_) {}
       }
     }
-
     throw new Error('Could not parse AI response as JSON');
   };
 
   const handleExtract = async () => {
     setLoading(true);
     setError('');
-
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const authToken = sessionData?.session?.access_token;
@@ -129,7 +119,6 @@ export default function DocumentImport({ user, onComplete, onBack, onCancel }) {
         body.mode = 'document';
       } else if (mode === 'upload') {
         if (!file) throw new Error('Please select a file first');
-
         const base64 = await readFileAsBase64(file);
         const uploadRes = await fetch('/api/upload', {
           method: 'POST',
@@ -140,36 +129,32 @@ export default function DocumentImport({ user, onComplete, onBack, onCancel }) {
             fileName: file.name,
           }),
         });
-
         if (!uploadRes.ok) {
           const errData = await uploadRes.json().catch(() => ({}));
           throw new Error(errData.error || `Upload failed: ${uploadRes.status}`);
         }
-
         const uploadData = await uploadRes.json();
         const { fileUri, mimeType } = uploadData;
         body = { prompt: EXTRACTION_PROMPT, fileUri, mimeType };
       }
 
-      const geminiRes = await fetch('/api/gemini', {
+      const claudeRes = await fetch('/api/claude', {
         method: 'POST',
         headers,
         body: JSON.stringify(body),
       });
 
-      if (!geminiRes.ok) {
-        const errData = await geminiRes.json().catch(() => ({}));
-        throw new Error(errData.error || `AI extraction failed: ${geminiRes.status}`);
+      if (!claudeRes.ok) {
+        const errData = await claudeRes.json().catch(() => ({}));
+        throw new Error(errData.error || `AI extraction failed: ${claudeRes.status}`);
       }
 
-      const { result } = await geminiRes.json();
+      const { result } = await claudeRes.json();
       const parsed = parseGeminiResponse(result);
-
       if (parsed.error) throw new Error(parsed.error);
 
       setExtractedData(parsed);
       setStep('review');
-
     } catch (err) {
       console.error('[PM Buddy] Extraction error:', err);
       setError(err.message || 'Something went wrong. Please try again.');
@@ -181,7 +166,6 @@ export default function DocumentImport({ user, onComplete, onBack, onCancel }) {
   const handleSaveProject = async () => {
     setLoading(true);
     setError('');
-
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const authToken = sessionData?.session?.access_token;
@@ -244,7 +228,6 @@ export default function DocumentImport({ user, onComplete, onBack, onCancel }) {
 
       if (dbError) throw dbError;
 
-      // Generate project brief (non-blocking)
       try {
         const briefPrompt = `You are a professional project manager. Write a concise project brief for this project.
 
@@ -263,11 +246,12 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
         const briefHeaders = { 'Content-Type': 'application/json' };
         if (briefToken) briefHeaders['Authorization'] = `Bearer ${briefToken}`;
 
-        const briefRes = await fetch('/api/gemini', {
+        const briefRes = await fetch('/api/claude', {
           method: 'POST',
           headers: briefHeaders,
           body: JSON.stringify({ prompt: briefPrompt, mode: 'document' }),
         });
+
         if (briefRes.ok) {
           const { result: briefText } = await briefRes.json();
           const content = (briefText || '').replace(/```html|```/g, '').trim();
@@ -287,11 +271,8 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
       }
 
       setLoading(false);
-
-      // FIX: call onComplete (not onProjectCreated) so Dashboard navigates to project
       const callback = onComplete || onCancel;
       if (callback) callback(data);
-
     } catch (err) {
       console.error('[PM Buddy] Save project error:', err);
       setError(err.message || err.error_description || 'Failed to save project. Please try again.');
@@ -313,8 +294,6 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
     });
   };
 
-  // ─── RENDER ─────────────────────────────────────────────
-
   if (step === 'review' && extractedData) {
     return (
       <div className="document-import" style={{ maxWidth: 800, margin: '0 auto', padding: 24 }}>
@@ -332,10 +311,12 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
         <div style={{ display: 'grid', gap: 16 }}>
           <Field label="What is this project called?" value={extractedData.project_name || ''} onChange={v => updateField('project_name', v)} />
           <Field label="What are you trying to achieve?" value={extractedData.goal || ''} onChange={v => updateField('goal', v)} textarea />
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <Field label="What field is this in?" value={extractedData.industry || ''} onChange={v => updateField('industry', v)} />
             <Field label="How will you work?" value={extractedData.methodology || 'Hybrid'} onChange={v => updateField('methodology', v)} />
           </div>
+
           <Field label="Who is doing this?" value={extractedData.team_type || ''} onChange={v => updateField('team_type', v)} />
           <Field label="What is the budget or funding?" value={extractedData.budget_description || ''} onChange={v => updateField('budget_description', v)} />
           <Field label="How will the team stay in touch?" value={extractedData.communication_approach || ''} onChange={v => updateField('communication_approach', v)} textarea />
@@ -382,18 +363,10 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
         </div>
 
         <div style={{ display: 'flex', gap: 12, marginTop: 32, justifyContent: 'flex-end' }}>
-          <button
-            onClick={() => { setStep('input'); setExtractedData(null); }}
-            disabled={loading}
-            style={btnSecondary}
-          >
+          <button onClick={() => { setStep('input'); setExtractedData(null); }} disabled={loading} style={btnSecondary}>
             Back
           </button>
-          <button
-            onClick={handleSaveProject}
-            disabled={loading}
-            style={btnPrimary(loading)}
-          >
+          <button onClick={handleSaveProject} disabled={loading} style={btnPrimary(loading)}>
             {loading ? 'Saving...' : 'Save Project'}
           </button>
         </div>
@@ -418,18 +391,12 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
 
       {!mode && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <button
-            onClick={() => setMode('paste')}
-            style={{ padding: 32, borderRadius: 12, border: '2px dashed #d1d5db', background: '#f9fafb', cursor: 'pointer', textAlign: 'center' }}
-          >
+          <button onClick={() => setMode('paste')} style={{ padding: 32, borderRadius: 12, border: '2px dashed #d1d5db', background: '#f9fafb', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 32, marginBottom: 8 }}>📋</div>
             <div style={{ fontWeight: 600 }}>Paste Text</div>
             <div style={{ color: '#666', fontSize: 14, marginTop: 4 }}>Copy and paste your document content</div>
           </button>
-          <button
-            onClick={() => setMode('upload')}
-            style={{ padding: 32, borderRadius: 12, border: '2px dashed #d1d5db', background: '#f9fafb', cursor: 'pointer', textAlign: 'center' }}
-          >
+          <button onClick={() => setMode('upload')} style={{ padding: 32, borderRadius: 12, border: '2px dashed #d1d5db', background: '#f9fafb', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 32, marginBottom: 8 }}>📁</div>
             <div style={{ fontWeight: 600 }}>Upload File</div>
             <div style={{ color: '#666', fontSize: 14, marginTop: 4 }}>PDF, Word, text — any format</div>
@@ -469,13 +436,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
               borderColor: file ? '#10b981' : '#d1d5db',
             }}
           >
-            <input
-              ref={fileInputRef}
-              type="file"
-              onChange={handleFileSelect}
-              style={{ display: 'none' }}
-              accept="*/*"
-            />
+            <input ref={fileInputRef} type="file" onChange={handleFileSelect} style={{ display: 'none' }} accept="*/*" />
             {file ? (
               <>
                 <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
