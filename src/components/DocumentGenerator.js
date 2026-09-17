@@ -57,7 +57,6 @@ export default function DocumentGenerator({ data, methodology, user, openDoc }) 
     const milestones = freshProject.milestones || [];
     const wizardTeam = freshProject.team || [];
     const planning = freshProject.planning || {};
-
     const totalTeamSize = 1 + acceptedMembers.length;
     const teamDescription = acceptedMembers.length > 0
       ? `Owner + ${acceptedMembers.length} accepted member(s): ${acceptedMembers.map(m => `${m.email} (${m.role})`).join(', ')}`
@@ -72,7 +71,6 @@ export default function DocumentGenerator({ data, methodology, user, openDoc }) 
     const hasTeam = totalTeamSize > 1 || wizardTeam.length > 0;
     const hasDescription = !!(freshProject.description && freshProject.description.trim().length > 30);
     const hasCommunicationPlan = !!(planning.communications && planning.communications.trim().length > 10);
-
     const filledFields = [hasGoal, hasTimeline, hasMilestones, hasRisks, hasTeam, hasDescription, hasCommunicationPlan].filter(Boolean).length;
     const baseScore = Math.round((filledFields / 7) * 100);
 
@@ -122,7 +120,7 @@ Rules:
 
     try {
       const authHeader = await getAuthHeader();
-      const res = await fetch('/api/gemini', {
+      const res = await fetch('/api/claude', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeader },
         body: JSON.stringify({ prompt })
@@ -139,6 +137,7 @@ Rules:
         await supabase.from('pm_projects').update({ ai_health_check: parsed }).eq('id', data.id);
       } else { setAiReportError('No response from AI. Please try again.'); }
     } catch (err) { console.error('AI report error:', err); setAiReportError('Something went wrong. Please try again.'); }
+
     setAiReportLoading(false);
   };
 
@@ -160,10 +159,13 @@ Rules:
       const content = type === 'pm'
         ? await generatePMContent(data, methodology)
         : await generateBenefitsContent(data, benefits);
+
       if (!content || content.trim().length < 100) { setGenError('The document came back empty. Please try again.'); setGenerating(null); return; }
+
       setPreview(content);
       setPreviewType(type);
       setEditContent(content);
+
       if (user) {
         const userId = typeof user === 'string' ? user : user?.id;
         const title = type === 'pm' ? 'Project Management Plan' : 'Benefits Management Document';
@@ -269,6 +271,7 @@ Rules:
                 {aiReport.verdict}
               </span>
             </div>
+
             {aiReport.strengths?.length > 0 && (
               <div style={s.aiSection}>
                 <p style={s.aiSectionLabel}>What is working</p>
@@ -280,6 +283,7 @@ Rules:
                 ))}
               </div>
             )}
+
             {aiReport.gaps?.length > 0 && (
               <div style={s.aiSection}>
                 <p style={s.aiSectionLabel}>What needs attention</p>
@@ -296,6 +300,7 @@ Rules:
                 ))}
               </div>
             )}
+
             {aiReport.recommendation && (
               <div style={s.aiRecommendation}>
                 <p style={s.aiRecLabel}>Top recommendation</p>
@@ -424,7 +429,6 @@ Rules:
               )}
             </div>
           </div>
-
           {editing ? (
             <div style={s.editArea}>
               <p style={s.editNote}>Click anywhere in the document to edit. Your changes are saved when you click "Save changes".</p>
@@ -465,14 +469,16 @@ Write these sections: Executive Summary, Project Overview, Scope and Deliverable
   const authHeader = await getAuthHeader();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 90000);
-  const response = await fetch('/api/gemini', {
+
+  const response = await fetch('/api/claude', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeader },
     body: JSON.stringify({ prompt, mode: 'document' }),
     signal: controller.signal,
   });
+
   clearTimeout(timeout);
-  if (!response.ok) throw new Error(`Gemini API error ${response.status}`);
+  if (!response.ok) throw new Error(`Claude API error ${response.status}`);
   const result = await response.json();
   return (result.result || '').replace(/```html|```/g, '').trim();
 }
@@ -505,14 +511,16 @@ Sections: Executive Summary, The Problem We Are Solving, The Solution and Its Va
   const authHeader = await getAuthHeader();
   const controller2 = new AbortController();
   const timeout2 = setTimeout(() => controller2.abort(), 90000);
-  const response = await fetch('/api/gemini', {
+
+  const response = await fetch('/api/claude', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeader },
     body: JSON.stringify({ prompt, mode: 'document' }),
     signal: controller2.signal,
   });
+
   clearTimeout(timeout2);
-  if (!response.ok) throw new Error(`Gemini API error ${response.status}`);
+  if (!response.ok) throw new Error(`Claude API error ${response.status}`);
   const result = await response.json();
   return (result.result || '').replace(/```html|```/g, '').trim();
 }
