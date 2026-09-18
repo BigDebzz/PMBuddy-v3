@@ -26,8 +26,6 @@ async function callClaude({ prompt, mode, documentBase64, documentMediaType }) {
   const API_KEY = process.env.ANTHROPIC_API_KEY;
   const maxTokens = mode === 'document' ? 8000 : 2000;
 
-  // Build message content. If a PDF was attached, send it as a document
-  // block alongside the text prompt so Claude reads it directly.
   let content;
   if (documentBase64 && documentMediaType) {
     content = [
@@ -54,7 +52,7 @@ async function callClaude({ prompt, mode, documentBase64, documentMediaType }) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-sonnet-5',
         max_tokens: maxTokens,
         messages: [{ role: 'user', content }],
       }),
