@@ -3,11 +3,12 @@
   "version": "3.0.0",
   "private": true,
   "dependencies": {
-    "@google/generative-ai": "^0.21.0",
     "@supabase/supabase-js": "^2.39.0",
+    "mammoth": "^1.8.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1"
+    "react-scripts": "5.0.1",
+    "xlsx": "^0.18.5"
   },
   "scripts": {
     "start": "react-scripts start",
