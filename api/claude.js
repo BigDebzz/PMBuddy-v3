@@ -22,9 +22,28 @@ async function verifyAuth(request) {
   } catch { return null; }
 }
 
-async function callClaude(prompt, mode) {
+async function callClaude({ prompt, mode, documentBase64, documentMediaType }) {
   const API_KEY = process.env.ANTHROPIC_API_KEY;
   const maxTokens = mode === 'document' ? 8000 : 2000;
+
+  // Build message content. If a PDF was attached, send it as a document
+  // block alongside the text prompt so Claude reads it directly.
+  let content;
+  if (documentBase64 && documentMediaType) {
+    content = [
+      {
+        type: 'document',
+        source: {
+          type: 'base64',
+          media_type: documentMediaType,
+          data: documentBase64,
+        },
+      },
+      { type: 'text', text: prompt },
+    ];
+  } else {
+    content = prompt;
+  }
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -37,7 +56,7 @@ async function callClaude(prompt, mode) {
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: maxTokens,
-        messages: [{ role: 'user', content: prompt }],
+        messages: [{ role: 'user', content }],
       }),
     });
 
@@ -78,12 +97,12 @@ export default async function handler(request, response) {
       try { body = JSON.parse(body); } catch (e) { body = {}; }
     }
 
-    const { prompt, mode } = body || {};
+    const { prompt, mode, documentBase64, documentMediaType } = body || {};
     if (!prompt) {
       return response.status(400).json({ error: 'No prompt provided' });
     }
 
-    const result = await callClaude(prompt, mode);
+    const result = await callClaude({ prompt, mode, documentBase64, documentMediaType });
     if (!result.text) {
       console.error('Claude failed. Error:', result.error);
       return response.status(503).json({ error: 'AI is currently unavailable. Please try again in a moment.' });
