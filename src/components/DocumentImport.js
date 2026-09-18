@@ -1,4 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
+import * as XLSX from 'xlsx';
+import mammoth from 'mammoth';
 import { supabase } from '../lib/supabase';
 
 const EXTRACTION_PROMPT = `You are PM Buddy, a project management assistant. Read the attached document and extract the following project information. Return ONLY a valid JSON object with this exact structure:
@@ -37,37 +39,32 @@ Rules:
 - If the document contains no project-related content (e.g., it's a spreadsheet of random numbers, a poem, a blank file), return {"error": "This document does not appear to contain project information. Please upload a planning document, proposal, or project brief."}
 - Return ONLY the JSON. No markdown code blocks, no explanations before or after.`;
 
-// FIX: prop is onComplete (matching Dashboard) + onCancel maps to onBack
+const SUPPORTED_EXTENSIONS = ['.pdf', '.xlsx', '.xls', '.docx', '.txt', '.csv', '.md'];
+
 export default function DocumentImport({ user, onComplete, onBack, onCancel }) {
   const [mode, setMode] = useState(null); // 'paste' | 'upload'
   const [pastedText, setPastedText] = useState('');
   const [file, setFile] = useState(null);
   const [fileName, setFileName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingLabel, setLoadingLabel] = useState('Reading...');
   const [error, setError] = useState('');
   const [extractedData, setExtractedData] = useState(null);
-  const [step, setStep] = useState('input'); // 'input' | 'review' | 'saving'
+  const [step, setStep] = useState('input'); // 'input' | 'review'
   const fileInputRef = useRef(null);
 
   const handleFileSelect = useCallback((e) => {
     const selected = e.target.files[0];
     if (!selected) return;
+    const ext = '.' + selected.name.split('.').pop().toLowerCase();
+    if (!SUPPORTED_EXTENSIONS.includes(ext)) {
+      setError(`That file type isn't supported yet. Please use PDF, Word (.docx), Excel (.xlsx/.xls), CSV, TXT, or Markdown — or paste the text instead.`);
+      return;
+    }
     setFile(selected);
     setFileName(selected.name);
     setError('');
   }, []);
-
-  const readFileAsBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64 = reader.result.split(',')[1];
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
 
   const cleanPastedText = (text) => {
     return text
@@ -79,7 +76,7 @@ export default function DocumentImport({ user, onComplete, onBack, onCancel }) {
       .trim();
   };
 
-  const parseGeminiResponse = (text) => {
+  const parseAIResponse = (text) => {
     if (!text) throw new Error('Empty AI response');
     try { return JSON.parse(text.trim()); } catch (_) {}
     const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -91,14 +88,71 @@ export default function DocumentImport({ user, onComplete, onBack, onCancel }) {
     if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
       try { return JSON.parse(text.slice(firstBrace, lastBrace + 1)); } catch (_) {}
     }
-    const jsonStart = text.search(/\{\s*"/);
-    if (jsonStart !== -1) {
-      const jsonEnd = text.lastIndexOf('}');
-      if (jsonEnd > jsonStart) {
-        try { return JSON.parse(text.slice(jsonStart, jsonEnd + 1)); } catch (_) {}
-      }
-    }
     throw new Error('Could not parse AI response as JSON');
+  };
+
+  // ── File readers ──────────────────────────────────────────────────────
+  const readAsText = (f) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsText(f);
+  });
+
+  const readAsArrayBuffer = (f) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(f);
+  });
+
+  const readAsBase64 = (f) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(f);
+  });
+
+  const extractExcelText = async (f) => {
+    const buffer = await readAsArrayBuffer(f);
+    const workbook = XLSX.read(buffer, { type: 'array' });
+    let combined = '';
+    workbook.SheetNames.forEach((sheetName) => {
+      const sheet = workbook.Sheets[sheetName];
+      const csv = XLSX.utils.sheet_to_csv(sheet);
+      if (csv.trim()) {
+        combined += `--- Sheet: ${sheetName} ---\n${csv}\n\n`;
+      }
+    });
+    return combined.trim();
+  };
+
+  const extractWordText = async (f) => {
+    const buffer = await readAsArrayBuffer(f);
+    const result = await mammoth.extractRawText({ arrayBuffer: buffer });
+    return result.value;
+  };
+
+  // Reads the file and returns either { kind: 'text', content } or { kind: 'pdf', base64 }
+  const readFile = async (f) => {
+    const ext = '.' + f.name.split('.').pop().toLowerCase();
+    if (ext === '.pdf') {
+      const base64 = await readAsBase64(f);
+      return { kind: 'pdf', base64 };
+    }
+    if (ext === '.xlsx' || ext === '.xls') {
+      const text = await extractExcelText(f);
+      if (!text) throw new Error('This spreadsheet appears to be empty.');
+      return { kind: 'text', content: text };
+    }
+    if (ext === '.docx') {
+      const text = await extractWordText(f);
+      if (!text || !text.trim()) throw new Error('Could not read any text from this Word document.');
+      return { kind: 'text', content: text };
+    }
+    // .txt, .csv, .md
+    const text = await readAsText(f);
+    return { kind: 'text', content: text };
   };
 
   const handleExtract = async () => {
@@ -110,32 +164,33 @@ export default function DocumentImport({ user, onComplete, onBack, onCancel }) {
       const headers = { 'Content-Type': 'application/json' };
       if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
-      let body = { prompt: EXTRACTION_PROMPT };
+      let body;
 
       if (mode === 'paste') {
         if (!pastedText.trim()) throw new Error('Please paste some text first');
+        setLoadingLabel('Reading your document...');
         const cleaned = cleanPastedText(pastedText);
-        body.prompt = `${EXTRACTION_PROMPT}\n\nDocument content:\n\n${cleaned}`;
-        body.mode = 'document';
+        body = { prompt: `${EXTRACTION_PROMPT}\n\nDocument content:\n\n${cleaned}`, mode: 'document' };
       } else if (mode === 'upload') {
         if (!file) throw new Error('Please select a file first');
-        const base64 = await readFileAsBase64(file);
-        const uploadRes = await fetch('/api/upload', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            fileBase64: base64,
-            mimeType: file.type || 'application/octet-stream',
-            fileName: file.name,
-          }),
-        });
-        if (!uploadRes.ok) {
-          const errData = await uploadRes.json().catch(() => ({}));
-          throw new Error(errData.error || `Upload failed: ${uploadRes.status}`);
+        setLoadingLabel('Reading your file...');
+        const parsed = await readFile(file);
+
+        if (parsed.kind === 'pdf') {
+          setLoadingLabel('Sending PDF to PM Buddy...');
+          body = {
+            prompt: EXTRACTION_PROMPT,
+            mode: 'document',
+            documentBase64: parsed.base64,
+            documentMediaType: 'application/pdf',
+          };
+        } else {
+          setLoadingLabel('Analyzing document...');
+          body = {
+            prompt: `${EXTRACTION_PROMPT}\n\nDocument content:\n\n${parsed.content}`,
+            mode: 'document',
+          };
         }
-        const uploadData = await uploadRes.json();
-        const { fileUri, mimeType } = uploadData;
-        body = { prompt: EXTRACTION_PROMPT, fileUri, mimeType };
       }
 
       const claudeRes = await fetch('/api/claude', {
@@ -150,21 +205,23 @@ export default function DocumentImport({ user, onComplete, onBack, onCancel }) {
       }
 
       const { result } = await claudeRes.json();
-      const parsed = parseGeminiResponse(result);
-      if (parsed.error) throw new Error(parsed.error);
+      const parsedResult = parseAIResponse(result);
+      if (parsedResult.error) throw new Error(parsedResult.error);
 
-      setExtractedData(parsed);
+      setExtractedData(parsedResult);
       setStep('review');
     } catch (err) {
       console.error('[PM Buddy] Extraction error:', err);
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
+      setLoadingLabel('Reading...');
     }
   };
 
   const handleSaveProject = async () => {
     setLoading(true);
+    setLoadingLabel('Saving...');
     setError('');
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -228,6 +285,7 @@ export default function DocumentImport({ user, onComplete, onBack, onCancel }) {
 
       if (dbError) throw dbError;
 
+      // Generate project brief (non-blocking)
       try {
         const briefPrompt = `You are a professional project manager. Write a concise project brief for this project.
 
@@ -294,6 +352,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
     });
   };
 
+  // ─── RENDER ─────────────────────────────────────────────
   if (step === 'review' && extractedData) {
     return (
       <div className="document-import" style={{ maxWidth: 800, margin: '0 auto', padding: 24 }}>
@@ -367,7 +426,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
             Back
           </button>
           <button onClick={handleSaveProject} disabled={loading} style={btnPrimary(loading)}>
-            {loading ? 'Saving...' : 'Save Project'}
+            {loading ? loadingLabel : 'Save Project'}
           </button>
         </div>
       </div>
@@ -399,7 +458,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
           <button onClick={() => setMode('upload')} style={{ padding: 32, borderRadius: 12, border: '2px dashed #d1d5db', background: '#f9fafb', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 32, marginBottom: 8 }}>📁</div>
             <div style={{ fontWeight: 600 }}>Upload File</div>
-            <div style={{ color: '#666', fontSize: 14, marginTop: 4 }}>PDF, Word, text — any format</div>
+            <div style={{ color: '#666', fontSize: 14, marginTop: 4 }}>PDF, Word, Excel, CSV, or text</div>
           </button>
         </div>
       )}
@@ -416,7 +475,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
           <div style={{ display: 'flex', gap: 12, marginTop: 16, justifyContent: 'flex-end' }}>
             <button onClick={() => { setMode(null); setPastedText(''); setError(''); }} style={btnSecondary}>Back</button>
             <button onClick={handleExtract} disabled={loading || !pastedText.trim()} style={btnPrimary(loading || !pastedText.trim())}>
-              {loading ? 'Reading...' : 'Read Document'}
+              {loading ? loadingLabel : 'Read Document'}
             </button>
           </div>
         </div>
@@ -436,7 +495,13 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
               borderColor: file ? '#10b981' : '#d1d5db',
             }}
           >
-            <input ref={fileInputRef} type="file" onChange={handleFileSelect} style={{ display: 'none' }} accept="*/*" />
+            <input
+              ref={fileInputRef}
+              type="file"
+              onChange={handleFileSelect}
+              style={{ display: 'none' }}
+              accept=".pdf,.xlsx,.xls,.docx,.txt,.csv,.md"
+            />
             {file ? (
               <>
                 <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
@@ -447,14 +512,14 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
               <>
                 <div style={{ fontSize: 32, marginBottom: 8 }}>📁</div>
                 <div style={{ fontWeight: 600 }}>Click to upload a file</div>
-                <div style={{ color: '#666', fontSize: 14, marginTop: 4 }}>PDF, Word, TXT, or any document</div>
+                <div style={{ color: '#666', fontSize: 14, marginTop: 4 }}>PDF, Word (.docx), Excel (.xlsx/.xls), CSV, TXT, or Markdown</div>
               </>
             )}
           </div>
           <div style={{ display: 'flex', gap: 12, marginTop: 16, justifyContent: 'flex-end' }}>
             <button onClick={() => { setMode(null); setFile(null); setFileName(''); setError(''); }} style={btnSecondary}>Back</button>
             <button onClick={handleExtract} disabled={loading || !file} style={btnPrimary(loading || !file)}>
-              {loading ? 'Reading...' : 'Read Document'}
+              {loading ? loadingLabel : 'Read Document'}
             </button>
           </div>
         </div>
