@@ -221,7 +221,7 @@ Respond ONLY with raw JSON, no markdown, no code blocks:
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 25000);
-      const response = await fetch('/api/gemini', {
+      const response = await fetch('/api/claude', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) },
         body: JSON.stringify({ prompt }),

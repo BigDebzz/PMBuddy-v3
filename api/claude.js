@@ -52,7 +52,7 @@ async function callClaude({ prompt, mode, documentBase64, documentMediaType }) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-5',
+        model: 'claude-sonnet-5-5',
         max_tokens: maxTokens,
         messages: [{ role: 'user', content }],
       }),
@@ -67,7 +67,9 @@ async function callClaude({ prompt, mode, documentBase64, documentMediaType }) {
 
     const body = await res.text();
     console.error(`Claude API error ${res.status}:`, body.substring(0, 200));
-    return { text: null, error: res.status, status: res.status };
+    let detail = body.substring(0, 300);
+    try { detail = JSON.parse(body).error?.message || detail; } catch (e) {}
+    return { text: null, error: res.status, status: res.status, detail };
   } catch (err) {
     console.error('Claude fetch error:', err.message);
     return { text: null, error: err.message, status: 0 };
@@ -103,7 +105,7 @@ export default async function handler(request, response) {
     const result = await callClaude({ prompt, mode, documentBase64, documentMediaType });
     if (!result.text) {
       console.error('Claude failed. Error:', result.error);
-      return response.status(503).json({ error: 'AI is currently unavailable. Please try again in a moment.' });
+      return response.status(503).json({ error: 'AI is currently unavailable. Please try again in a moment.', debug: Claude returned  .trim() });
     }
 
     return response.status(200).json({ result: result.text });

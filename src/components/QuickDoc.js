@@ -109,7 +109,7 @@ ${context}
 This is follow-up question ${newProbeCount} of 2. Based on what they described, ask 1 to 2 specific questions to get details needed to write a thorough document. Be specific to their situation. Ask about timeline, audience, objectives, or key content areas missing. Do not ask generic questions. Keep response under 60 words. No bullet points.`;
 
       try {
-        const res = await fetch('/api/gemini', {
+        const res = await fetch('/api/claude', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt: probePrompt }),
@@ -202,7 +202,7 @@ Write EVERYTHING in full. Do not abbreviate any section. Every section must be s
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 90000);
-      const res = await fetch('/api/gemini', {
+      const res = await fetch('/api/claude', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: genPrompt, mode: 'document' }),
@@ -268,7 +268,7 @@ The user wants to update it:
 Rewrite the complete updated document in HTML (h1 for title, h2 for sections, p for paragraphs, ul/li for lists). No html/head/body tags. No markdown. Incorporate the new information naturally. Keep the same level of detail and professionalism. Minimum 600 words.`;
 
     try {
-      const res = await fetch('/api/gemini', {
+      const res = await fetch('/api/claude', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: updatePrompt, mode: 'document' }),

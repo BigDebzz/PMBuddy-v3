@@ -150,7 +150,7 @@ function OverviewTab({ data, onSave, acceptedMembers }) {
     if (!goalDraft.trim()) return;
     setRefiningGoal(true);
     try {
-      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) }, body: JSON.stringify({ prompt: `You are PM Buddy. Rewrite this as a clear measurable goal in plain English: "${goalDraft}"\n\nOne or two sentences starting with "This project will succeed when...". No jargon. Return ONLY the rewritten goal.` }) });
+      const res = await fetch('/api/claude', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) }, body: JSON.stringify({ prompt: `You are PM Buddy. Rewrite this as a clear measurable goal in plain English: "${goalDraft}"\n\nOne or two sentences starting with "This project will succeed when...". No jargon. Return ONLY the rewritten goal.` }) });
       const result = await res.json();
       if (result.result?.trim()) setGoalSuggestion(result.result.trim());
     } catch (err) { console.error(err); }
@@ -265,7 +265,7 @@ function CurrentStatus({ data, onSave }) {
     setAiReview('');
     const prompt = `You are PM Buddy. Review this project status and give honest plain-English feedback in 3 to 4 sentences. What looks good, what is concerning, what to focus on. No bullet points.\n\nProject: ${data.name}\nGoal: ${scope.goal}\nPhase: ${draft.currentPhase || 'Not specified'}\nDone: ${draft.completedWork || 'Not specified'}\nRemaining: ${draft.remainingWork || 'Not specified'}\nBlockers: ${draft.blockers || 'None'}`;
     try {
-      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) }, body: JSON.stringify({ prompt }) });
+      const res = await fetch('/api/claude', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) }, body: JSON.stringify({ prompt }) });
       const result = await res.json();
       setAiReview(result.result || 'Could not get feedback right now.');
     } catch { setAiReview('Could not get feedback right now.'); }
@@ -343,7 +343,7 @@ function InsightCard({ title, icon, savedValue, savedEdited, onSave, generatePro
   const generate = async () => {
     setGenerating(true);
     try {
-      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) }, body: JSON.stringify({ prompt: generatePrompt }) });
+      const res = await fetch('/api/claude', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) }, body: JSON.stringify({ prompt: generatePrompt }) });
       const result = await res.json();
       const text = (result.result || '').trim().replace(/\*\*/g, '').replace(/\*/g, '').replace(/#{1,6} /g, '').trim();
       if (text) { setContent(text); setEdited(false); onSave(text, false); }
@@ -1009,7 +1009,7 @@ function DocumentsTab({ data, history, onSave, project }) {
     };
     try {
       const authHeader = await getAuthHeader();
-      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader }, body: JSON.stringify({ prompt: prompts[reportType], mode: 'document' }) });
+      const res = await fetch('/api/claude', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader }, body: JSON.stringify({ prompt: prompts[reportType], mode: 'document' }) });
       const result = await res.json();
       const html = (result.result || '').replace(/```html|```/g, '').trim();
       if (html && html.length > 100) {
@@ -1033,7 +1033,7 @@ function DocumentsTab({ data, history, onSave, project }) {
     };
     try {
       const authHeader = await getAuthHeader();
-      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader }, body: JSON.stringify({ prompt: prompts[type], mode: 'document' }) });
+      const res = await fetch('/api/claude', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader }, body: JSON.stringify({ prompt: prompts[type], mode: 'document' }) });
       const result = await res.json();
       const html = (result.result || '').replace(/```html|```/g, '').trim();
       if (html && html.length > 100) {
@@ -1062,7 +1062,7 @@ function DocumentsTab({ data, history, onSave, project }) {
     const prompt = `You are PM Buddy doing an honest project health check. Be specific.\n\n${projectContext}\n\nBase score: ${baseScore}/100.\n\nRespond ONLY with JSON (no markdown):\n{"score":${baseScore},"verdict":"${baseScore >= 70 ? 'Looking good' : baseScore >= 45 ? 'Needs attention' : 'Needs work'}","strengths":[{"title":"strength","detail":"max 20 words"}],"gaps":[{"title":"gap","why":"why it matters max 15 words","howToFix":"concrete step max 15 words"}],"recommendation":"one specific sentence referencing ${data.name}"}`;
     try {
       const authHeader = await getAuthHeader();
-      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader }, body: JSON.stringify({ prompt }) });
+      const res = await fetch('/api/claude', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader }, body: JSON.stringify({ prompt }) });
       if (!res.ok) { setAiReportError('Could not run health check. Please try again.'); setAiReportLoading(false); return; }
       const result = await res.json();
       if (result.result) {
@@ -1080,7 +1080,7 @@ function DocumentsTab({ data, history, onSave, project }) {
     const prompt = `You are PM Buddy. Write a plain-English progress summary in 3-4 paragraphs: where the project started, what has been achieved, what to focus on next, and one honest observation about what could go wrong. Be specific, warm but direct. No bullet points.\n\n${projectContext}\nHistory entries: ${history?.length || 0}`;
     try {
       const authHeader = await getAuthHeader();
-      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader }, body: JSON.stringify({ prompt }) });
+      const res = await fetch('/api/claude', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader }, body: JSON.stringify({ prompt }) });
       const result = await res.json();
       setProgressMap(result.result || 'Could not generate. Try again.');
       setShowProgressMap(true);
