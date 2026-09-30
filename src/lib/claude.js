@@ -1,3 +1,13 @@
+import { supabase } from './supabase';
+
+async function getAuthHeader() {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  } catch { return {}; }
+}
+
 export async function deepAnalyze(mode, answers) {
   const questionLabels = mode === 'hackathon' ? {
     hack_theme: 'Area of focus',
@@ -49,7 +59,7 @@ Rules:
   try {
     const response = await fetch('/api/claude', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) },
       body: JSON.stringify({ prompt })
     });
 
