@@ -112,7 +112,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
           {tab === 'Tasks' && <TasksTab data={data} onSave={save} />}
           {tab === 'Risks' && <RisksTab data={data} onSave={save} />}
           {tab === 'People' && <PeopleTab data={data} onSave={save} project={project} acceptedMembers={acceptedMembers} />}
-          {tab === 'Documents' && <DocumentsTab data={data} onSave={save} project={project} />}
+          {tab === 'Documents' && <DocumentsTab data={data} history={data.history || []} onSave={save} project={project} />}
         </div>
       </div>
       <PMBuddyAssistant project={data} />
@@ -150,7 +150,7 @@ function OverviewTab({ data, onSave, acceptedMembers }) {
     if (!goalDraft.trim()) return;
     setRefiningGoal(true);
     try {
-      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) }, body: JSON.stringify({ prompt: `You are PM Buddy. Rewrite this as a clear measurable goal in plain English: "${goalDraft}"\n\nOne or two sentences starting with "This project will succeed when...". No jargon. Return ONLY the rewritten goal.` }) });
+      const res = await fetch('/api/claude', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) }, body: JSON.stringify({ prompt: `You are PM Buddy. Rewrite this as a clear measurable goal in plain English: "${goalDraft}"\n\nOne or two sentences starting with "This project will succeed when...". No jargon. Return ONLY the rewritten goal.` }) });
       const result = await res.json();
       if (result.result?.trim()) setGoalSuggestion(result.result.trim());
     } catch (err) { console.error(err); }
@@ -265,7 +265,7 @@ function CurrentStatus({ data, onSave }) {
     setAiReview('');
     const prompt = `You are PM Buddy. Review this project status and give honest plain-English feedback in 3 to 4 sentences. What looks good, what is concerning, what to focus on. No bullet points.\n\nProject: ${data.name}\nGoal: ${scope.goal}\nPhase: ${draft.currentPhase || 'Not specified'}\nDone: ${draft.completedWork || 'Not specified'}\nRemaining: ${draft.remainingWork || 'Not specified'}\nBlockers: ${draft.blockers || 'None'}`;
     try {
-      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) }, body: JSON.stringify({ prompt }) });
+      const res = await fetch('/api/claude', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) }, body: JSON.stringify({ prompt }) });
       const result = await res.json();
       setAiReview(result.result || 'Could not get feedback right now.');
     } catch { setAiReview('Could not get feedback right now.'); }
@@ -343,7 +343,7 @@ function InsightCard({ title, icon, savedValue, savedEdited, onSave, generatePro
   const generate = async () => {
     setGenerating(true);
     try {
-      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) }, body: JSON.stringify({ prompt: generatePrompt }) });
+      const res = await fetch('/api/claude', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) }, body: JSON.stringify({ prompt: generatePrompt }) });
       const result = await res.json();
       const text = (result.result || '').trim().replace(/\*\*/g, '').replace(/\*/g, '').replace(/#{1,6} /g, '').trim();
       if (text) { setContent(text); setEdited(false); onSave(text, false); }
@@ -945,7 +945,7 @@ function StakeholdersList({ data, onSave }) {
 
 // ─── DOCUMENTS TAB ────────────────────────────────────────────
 
-function DocumentsTab({ data, onSave, project }) {
+function DocumentsTab({ data, history, onSave, project }) {
   const [section, setSection] = useState('reports');
   const [reportType, setReportType] = useState('progress');
   const [generating, setGenerating] = useState(false);
@@ -963,6 +963,7 @@ function DocumentsTab({ data, onSave, project }) {
   const [showProgressMap, setShowProgressMap] = useState(false);
   const [progressMap, setProgressMap] = useState(null);
   const [generatingMap, setGeneratingMap] = useState(false);
+  const [docError, setDocError] = useState('');
 
   const SECTIONS = [
     { id: 'reports', label: 'Reports' },
@@ -1008,7 +1009,7 @@ function DocumentsTab({ data, onSave, project }) {
     };
     try {
       const authHeader = await getAuthHeader();
-      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader }, body: JSON.stringify({ prompt: prompts[reportType], mode: 'document' }) });
+      const res = await fetch('/api/claude', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader }, body: JSON.stringify({ prompt: prompts[reportType], mode: 'document' }) });
       const result = await res.json();
       const html = (result.result || '').replace(/```html|```/g, '').trim();
       if (html && html.length > 100) {
@@ -1016,7 +1017,10 @@ function DocumentsTab({ data, onSave, project }) {
         const label = reportType === 'progress' ? 'Progress Update' : 'Funder Report';
         await saveDoc(html, `${data.name} — ${label} — ${new Date().toLocaleDateString('en-GB')}`, 'report');
       }
-    } catch { setReportContent('<p>Could not generate. Please try again.</p>'); }
+    } catch (err) {
+      console.error('generateReport error:', err);
+      setReportContent('<p style="color:#DC2626;font-weight:600;">Could not generate. Please try again.</p>');
+    }
     setGenerating(false);
   };
 
@@ -1029,7 +1033,7 @@ function DocumentsTab({ data, onSave, project }) {
     };
     try {
       const authHeader = await getAuthHeader();
-      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader }, body: JSON.stringify({ prompt: prompts[type], mode: 'document' }) });
+      const res = await fetch('/api/claude', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader }, body: JSON.stringify({ prompt: prompts[type], mode: 'document' }) });
       const result = await res.json();
       const html = (result.result || '').replace(/```html|```/g, '').trim();
       if (html && html.length > 100) {
@@ -1037,7 +1041,10 @@ function DocumentsTab({ data, onSave, project }) {
         setDocPreviewType(type);
         await saveDoc(html, `${data.name} — Project Management Plan — ${new Date().toLocaleDateString('en-GB')}`, type);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error('generateDoc error:', err);
+      setDocError('Could not generate. Please try again.');
+    }
     setDocGenerating(null);
   };
 
@@ -1055,7 +1062,7 @@ function DocumentsTab({ data, onSave, project }) {
     const prompt = `You are PM Buddy doing an honest project health check. Be specific.\n\n${projectContext}\n\nBase score: ${baseScore}/100.\n\nRespond ONLY with JSON (no markdown):\n{"score":${baseScore},"verdict":"${baseScore >= 70 ? 'Looking good' : baseScore >= 45 ? 'Needs attention' : 'Needs work'}","strengths":[{"title":"strength","detail":"max 20 words"}],"gaps":[{"title":"gap","why":"why it matters max 15 words","howToFix":"concrete step max 15 words"}],"recommendation":"one specific sentence referencing ${data.name}"}`;
     try {
       const authHeader = await getAuthHeader();
-      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader }, body: JSON.stringify({ prompt }) });
+      const res = await fetch('/api/claude', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader }, body: JSON.stringify({ prompt }) });
       if (!res.ok) { setAiReportError('Could not run health check. Please try again.'); setAiReportLoading(false); return; }
       const result = await res.json();
       if (result.result) {
@@ -1070,10 +1077,10 @@ function DocumentsTab({ data, onSave, project }) {
   const generateProgressMap = async () => {
     setGeneratingMap(true);
     setProgressMap(null);
-    const prompt = `You are PM Buddy. Write a plain-English progress summary in 3-4 paragraphs: where the project started, what has been achieved, what to focus on next, and one honest observation about what could go wrong. Be specific, warm but direct. No bullet points.\n\n${projectContext}\nHistory entries: ${data.history?.length || 0}`;
+    const prompt = `You are PM Buddy. Write a plain-English progress summary in 3-4 paragraphs: where the project started, what has been achieved, what to focus on next, and one honest observation about what could go wrong. Be specific, warm but direct. No bullet points.\n\n${projectContext}\nHistory entries: ${history?.length || 0}`;
     try {
       const authHeader = await getAuthHeader();
-      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader }, body: JSON.stringify({ prompt }) });
+      const res = await fetch('/api/claude', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader }, body: JSON.stringify({ prompt }) });
       const result = await res.json();
       setProgressMap(result.result || 'Could not generate. Try again.');
       setShowProgressMap(true);
@@ -1143,7 +1150,8 @@ function DocumentsTab({ data, onSave, project }) {
       {section === 'pm_plan' && (
         <div>
           <p style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.7, marginBottom: 16 }}>Full project management plan generated from your live project data.</p>
-          <button style={{ padding: '12px 24px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: docGenerating === 'pm' ? 0.6 : 1, marginBottom: 16 }} onClick={() => generateDoc('pm')} disabled={!!docGenerating}>{docGenerating === 'pm' ? 'Writing...' : 'Generate PM Plan'}</button>
+          <button style={{ padding: '12px 24px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: docGenerating === 'pm' ? 0.6 : 1, marginBottom: 16 }} onClick={() => { setDocError(''); generateDoc('pm'); }} disabled={!!docGenerating}>{docGenerating === 'pm' ? 'Writing your plan...' : 'Generate PM Plan'}</button>
+          {docError && <div style={{ padding: '12px 14px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, marginBottom: 16 }}><p style={{ fontSize: 13, color: '#DC2626' }}>{docError}</p></div>}
           {docPreview && docPreviewType === 'pm' && (
             <div>
               <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
@@ -1169,8 +1177,8 @@ function DocumentsTab({ data, onSave, project }) {
             </div>
           )}
           <p style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>Activity Log</p>
-          {(data.history || []).length === 0 && <p style={s.emptyText}>No recorded history yet.</p>}
-          {(data.history || []).slice().reverse().map((entry, i) => (
+          {(history || []).length === 0 && <p style={s.emptyText}>No recorded history yet.</p>}
+          {(history || []).slice().reverse().map((entry, i) => (
             <div key={i} style={{ display: 'flex', gap: 12, padding: '12px 0', borderBottom: `1px solid ${RULE}`, alignItems: 'flex-start' }}>
               <div style={{ width: 28, height: 28, borderRadius: 6, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: BLUE, flexShrink: 0, fontWeight: 700 }}>
                 {entry.type === 'goal_updated' ? '◈' : entry.type === 'milestone_done' ? '✓' : entry.type === 'risk_added' ? '⚠' : '·'}

@@ -43,7 +43,6 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [showImport, setShowImport] = useState(false);
   const [showBroadcast, setShowBroadcast] = useState(false);
-
   const isAdmin = ADMIN_EMAILS.includes(user?.email);
 
   useEffect(() => {
@@ -161,7 +160,6 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   return (
     <div style={s.shell}>
       {sidebarOpen && <div style={s.overlay} onClick={() => setSidebarOpen(false)} />}
-
       {/* Sidebar */}
       <aside style={{ ...s.sidebar, transform: isMobile && !sidebarOpen ? 'translateX(-100%)' : 'translateX(0)' }}>
         <div style={s.sidebarTop}>
@@ -221,7 +219,6 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
         </div>
 
         <div style={s.content}>
-
           {/* HOME */}
           {activeNav === 'home' && (
             <div>
@@ -319,7 +316,9 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                   <button style={s.primaryBtn} onClick={onNewProject}>+ New project</button>
                 </div>
               </div>
+
               {loading && <p style={s.emptyText}>Loading...</p>}
+
               {!loading && projects.length === 0 && (
                 <div style={s.emptyState}>
                   <div style={s.emptyIcon}>◈</div>
@@ -331,11 +330,13 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                   </div>
                 </div>
               )}
+
               {!loading && projects.length > 0 && (
                 <div style={s.projectsGrid}>
                   {projects.map(p => <ProjectCard key={p.id} p={p} onOpen={() => onOpenProject(p)} onDelete={() => confirmAndDelete('project', p.id, p.name)} />)}
                 </div>
               )}
+
               {!loading && invitedProjects.length > 0 && (
                 <>
                   <p style={{ ...s.sectionLabel, marginTop: 32, marginBottom: 16 }}>Projects I was invited to</p>
@@ -367,7 +368,9 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                 </div>
                 <button style={s.primaryBtn} onClick={onNewQuickDoc}>+ New doc</button>
               </div>
+
               {loading && <p style={s.emptyText}>Loading...</p>}
+
               {!loading && documents.length === 0 && (
                 <div style={s.emptyState}>
                   <div style={s.emptyIcon}>✎</div>
@@ -376,12 +379,14 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                   <button style={s.primaryBtn} onClick={onNewQuickDoc}>Create a document</button>
                 </div>
               )}
+
               {!loading && quickDocs.length > 0 && (
                 <>
                   <p style={{ ...s.sectionLabel, marginBottom: 12 }}>Quick Docs</p>
                   {quickDocs.map(doc => <DocRow key={doc.id} doc={doc} type="Quick Doc" typeBg="#FFF7ED" typeColor="#C2410C" onOpen={() => setViewingDoc(doc)} onDownload={() => downloadDoc(doc)} />)}
                 </>
               )}
+
               {!loading && projectDocs.length > 0 && (
                 <>
                   <p style={{ ...s.sectionLabel, marginTop: 24, marginBottom: 12 }}>Project Documents</p>
@@ -493,7 +498,6 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
               )}
             </div>
           )}
-
         </div>
       </main>
 
@@ -596,7 +600,7 @@ function DocViewerModal({ doc, onClose, onUpdate }) {
     try {
       const { data } = await supabase.auth.getSession();
       const token = data?.session?.access_token;
-      const res = await fetch('/api/gemini', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }, body: JSON.stringify({ prompt, mode: 'document' }) });
+      const res = await fetch('/api/claude', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }, body: JSON.stringify({ prompt, mode: 'document' }) });
       const result = await res.json();
       const updated = (result.result || '').replace(/```html|```/g, '').trim();
       if (updated && updated.length > 100) {

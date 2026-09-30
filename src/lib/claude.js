@@ -28,20 +28,12 @@ ${formattedAnswers}
 Provide a deep personalised analysis. Read every answer carefully and respond directly to what this specific founder said. Do not give generic advice.
 
 Respond in this exact JSON format with no markdown no code blocks just raw JSON:
-
 {
   "deepInsights": [
-    {
-      "type": "strength",
-      "text": "specific insight referencing their exact answer in 1 sentence"
-    }
+    { "type": "strength", "text": "specific insight referencing their exact answer in 1 sentence" }
   ],
   "deepChallenges": [
-    {
-      "level": "high",
-      "text": "specific challenge title in 5 words or less",
-      "response": "specific actionable advice in 1 to 2 sentences"
-    }
+    { "level": "high", "text": "specific challenge title in 5 words or less", "response": "specific actionable advice in 1 to 2 sentences" }
   ],
   "topPriority": "The single most important thing this founder needs to do right now in 1 sentence",
   "founderMessage": "A 2 sentence honest message to this founder referencing what they actually said"
@@ -55,7 +47,7 @@ Rules:
 - Keep the entire response under 800 tokens`;
 
   try {
-    const response = await fetch('/api/gemini', {
+    const response = await fetch('/api/claude', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt })
@@ -63,16 +55,15 @@ Rules:
 
     if (!response.ok) {
       const err = await response.json();
-      console.error('Gemini API error:', err);
+      console.error('Claude API error:', err);
       return null;
     }
 
     const data = await response.json();
     if (!data.result) return null;
-
     return JSON.parse(data.result);
   } catch (err) {
-    console.error('Gemini fetch error:', err);
+    console.error('Claude fetch error:', err);
     return null;
   }
 }

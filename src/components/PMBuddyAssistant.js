@@ -43,6 +43,7 @@ function useSpeech() {
     r.maxAlternatives = 1;
     recognitionRef.current = r;
     baseTextRef.current = (currentValue || '').trim();
+
     r.onstart = () => setListening(true);
     r.onresult = (event) => {
       let interim = '', final = '';
@@ -127,8 +128,10 @@ function buildProjectContext(project) {
     if (m.status === 'done') return false;
     return m.date && new Date(m.date) < new Date();
   }).length;
+
   const openRisks = (project.risks || []).filter(function(r) { return r.status === 'open'; });
   const highRisks = openRisks.filter(function(r) { return r.level === 'high'; });
+
   const end = project.timeline && project.timeline.end;
   const daysLeft = end ? Math.ceil((new Date(end) - new Date()) / 86400000) : null;
   const isCampaign = project.industry === 'Campaign';
@@ -258,11 +261,14 @@ export default function PMBuddyAssistant({ project, context }) {
     var updated = messages.concat([userMsg]);
     setMessages(updated);
     saveLocal(projectId, updated);
+
     // Save to Supabase (non-blocking)
     saveToSupabase(projectId, userId, userMsg);
+
     setLoading(true);
 
     var projectContext = buildProjectContext(project);
+
     // Use last 20 messages for richer memory context
     var conversationHistory = updated.slice(-20).map(function(m) {
       return (m.role === 'user' ? 'User' : 'PM Buddy') + ': ' + m.text;
@@ -273,7 +279,8 @@ export default function PMBuddyAssistant({ project, context }) {
     try {
       var controller = new AbortController();
       var timeout = setTimeout(function() { controller.abort(); }, 20000);
-      var response = await fetch('/api/gemini', {
+
+      var response = await fetch('/api/claude', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -282,15 +289,19 @@ export default function PMBuddyAssistant({ project, context }) {
         body: JSON.stringify({ prompt: prompt }),
         signal: controller.signal,
       });
+
       clearTimeout(timeout);
+
       var result = await response.json();
       var reply = (result.result || 'Sorry, I could not get a response. Try again.').trim();
       var assistantMsg = { role: 'assistant', text: reply, ts: Date.now() };
       var finalMessages = updated.concat([assistantMsg]);
       setMessages(finalMessages);
       saveLocal(projectId, finalMessages);
+
       // Save assistant reply to Supabase too
       saveToSupabase(projectId, userId, assistantMsg);
+
       if (!openRef.current) setUnread(function(u) { return u + 1; });
     } catch (err) {
       var errMsg = { role: 'assistant', text: 'I had trouble connecting. Check your internet and try again.', ts: Date.now() };
@@ -298,6 +309,7 @@ export default function PMBuddyAssistant({ project, context }) {
       setMessages(finalWithErr);
       saveLocal(projectId, finalWithErr);
     }
+
     setLoading(false);
   };
 
@@ -388,7 +400,6 @@ export default function PMBuddyAssistant({ project, context }) {
           }, '✕')
         )
       ),
-
       React.createElement('div', {
         style: {
           flex: 1, overflowY: 'auto', padding: '16px',
@@ -399,7 +410,6 @@ export default function PMBuddyAssistant({ project, context }) {
         messages.length === 0 && React.createElement('p', {
           style: { fontSize: 13, color: '#9CA3AF', textAlign: 'center', lineHeight: 1.6, margin: 'auto' }
         }, 'Ask me anything about your project. I\'m reading your data and will give you specific guidance.'),
-
         messages.map(function(msg, i) {
           var isUser = msg.role === 'user';
           return React.createElement('div', {
@@ -425,7 +435,6 @@ export default function PMBuddyAssistant({ project, context }) {
             }, msg.text)
           );
         }),
-
         loading && React.createElement('div', {
           style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }
         },
@@ -456,10 +465,8 @@ export default function PMBuddyAssistant({ project, context }) {
             })
           )
         ),
-
         React.createElement('div', { ref: messagesEndRef })
       ),
-
       React.createElement('div', {
         style: { borderTop: '1px solid #F3F4F6', padding: '10px 12px', background: GREY }
       },

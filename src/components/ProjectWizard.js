@@ -127,7 +127,7 @@ Respond with ONLY a raw JSON array. No explanation. No markdown. No code blocks.
 [{"title":"milestone name","status":"pending"},{"title":"milestone name","status":"pending"}]`;
 
     try {
-      const res = await fetch('/api/gemini', {
+      const res = await fetch('/api/claude', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) },
         body: JSON.stringify({ prompt }),
@@ -274,7 +274,7 @@ Use simple everyday language. No jargon. Write it as one or two sentences starti
 Return ONLY the rewritten goal. Nothing else.`,
     };
     try {
-      const res = await fetch('/api/gemini', {
+      const res = await fetch('/api/claude', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) },
         body: JSON.stringify({ prompt: prompts[field] }),
@@ -348,7 +348,7 @@ Key Steps: ${data.milestones.filter(m => m.title).map(m => m.title).join(', ')}
 
 Write a professional project brief in HTML (h1 for title, h2 for sections, p for paragraphs). No html/head/body tags. Include: What This Project Is, What Success Looks Like, What Is Included, Who Is On This and Roles, When Does It Happen, What Could Go Wrong, How We Will Know It Worked. Make it specific to their actual inputs. Minimum 400 words.`;
 
-      const res = await fetch('/api/gemini', {
+      const res = await fetch('/api/claude', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) },
         body: JSON.stringify({ prompt: briefPrompt, mode: 'document' }),
