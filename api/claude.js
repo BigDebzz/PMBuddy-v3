@@ -105,7 +105,7 @@ export default async function handler(request, response) {
     const result = await callClaude({ prompt, mode, documentBase64, documentMediaType });
     if (!result.text) {
       console.error('Claude failed. Error:', result.error);
-      return response.status(503).json({ error: 'AI is currently unavailable. Please try again in a moment.', debug: Claude returned  .trim() });
+      return response.status(503).json({ error: 'AI is currently unavailable. Please try again in a moment.', debug: `Claude returned ${result.status || ''} ${result.detail || result.error}`.trim() });
     }
 
     return response.status(200).json({ result: result.text });
