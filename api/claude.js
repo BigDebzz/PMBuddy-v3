@@ -60,9 +60,13 @@ async function callClaude({ prompt, mode, documentBase64, documentMediaType }) {
 
     if (res.ok) {
       const data = await res.json();
-      const text = data.content?.[0]?.text || '';
+      const text = (data.content || [])
+        .filter((block) => block.type === 'text')
+        .map((block) => block.text)
+        .join('');
       if (text) return { text, error: null };
-      return { text: null, error: 'Empty response', status: 0 };
+      console.error('Empty Claude response. stop_reason:', data.stop_reason, 'blocks:', (data.content || []).map((b) => b.type).join(','));
+      return { text: null, error: 'Empty response', status: 0, detail: `stop_reason ${data.stop_reason}` };
     }
 
     const body = await res.text();
