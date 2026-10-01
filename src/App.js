@@ -9,7 +9,6 @@ import ProjectWorkspace from './components/ProjectWorkspace';
 import CampaignWizard from './components/CampaignWizard';
 import QuickDoc from './components/QuickDoc';
 import FeedbackButton from './components/FeedbackButton';
-import ThemeToggle from './components/ThemeToggle';
 import { supabase } from './lib/supabase';
 import { Analytics } from './lib/analytics';
 import { analyze } from './data/analysis';
@@ -348,10 +347,9 @@ export default function App() {
       <nav className="app-nav" style={nav.bar}>
         <button style={nav.logo} onClick={reset} aria-label="PM Buddy home"><Icon name="logo" size={28} style={{ color: 'var(--accent)' }} /><span className="nav-logo-text" style={nav.logoText}>PM Buddy</span></button>
         <div style={nav.right}>
-          <ThemeToggle />
           {user ? <button style={nav.dashBtn} onClick={() => setScreen(S.DASHBOARD)}>Dashboard</button> : <>
             <button className="nav-text-btn" style={nav.loginBtn} onClick={() => setScreen(S.AUTH)}>Log in</button>
-            <button className="nav-cta" style={nav.signupBtn} onClick={() => setScreen(S.AUTH)}>Get started</button>
+            <button className="nav-cta" style={nav.signupBtn} onClick={() => setScreen(S.AUTH)}>Get started free</button>
           </>}
           {screen !== S.LAND && user && <button style={nav.loginBtn} onClick={reset}>Home</button>}
         </div>

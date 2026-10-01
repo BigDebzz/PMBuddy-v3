@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import DocumentImport from './DocumentImport';
 import BroadcastEmail from './BroadcastEmail';
 import Icon from './Icon';
+import ThemeToggle from './ThemeToggle';
 
 const BLUE = 'var(--accent)';
 const BL = 'var(--text)';
@@ -198,6 +199,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
               <div style={s.miniBar}><div style={{ ...s.miniBarFill, width: `${(checklistDoneCount / checklistTotal) * 100}%` }} /></div>
             </div>
           )}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}><ThemeToggle showLabels={false} /></div>
           <button style={s.logoutBtn} onClick={onLogout}>Log out</button>
         </div>
       </aside>

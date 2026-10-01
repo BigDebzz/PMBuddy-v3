@@ -258,3 +258,11 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .lp-kan { gap: 16px; }
   body { line-height: 1.65; }
 }
+
+/* ---- Three-item feature grid ---- */
+.lp-grid3 .lp-feat { border-bottom: 0; }
+@media (max-width: 960px) {
+  .lp-grid3 { grid-template-columns: 1fr; }
+  .lp-grid3 .lp-feat { border-right: 0 !important; border-bottom: 1px solid var(--border); }
+  .lp-grid3 .lp-feat:last-child { border-bottom: 0; }
+}
