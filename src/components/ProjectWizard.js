@@ -2,10 +2,10 @@ import React, { useState, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import AiLoading from './AiLoading';
 
-const BLUE = '#0284C7';
-const BL = '#0A0A0A';
+const BLUE = '#35709A';
+const BL = '#2B2A28';
 const WH = '#FFFFFF';
-const GREY = '#F8FAFC';
+const GREY = '#FAF8F5';
 
 const INDUSTRIES = [
   'Fintech', 'Health', 'Education', 'Agriculture', 'Logistics',
@@ -99,11 +99,11 @@ function VoiceInput({ value, onChange, placeholder }) {
 }
 
 const vs = {
-  textarea: { width: '100%', border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', resize: 'vertical', lineHeight: 1.65, background: WH },
-  input: { flex: 1, border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', background: WH, width: '100%' },
+  textarea: { width: '100%', border: '1.5px solid #E7E2DA', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', resize: 'vertical', lineHeight: 1.65, background: WH },
+  input: { flex: 1, border: '1.5px solid #E7E2DA', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', background: WH, width: '100%' },
   micBtn: { width: 44, height: 80, border: 'none', borderRadius: 10, color: WH, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   micBtnSm: { width: 44, height: 44, border: 'none', borderRadius: 10, color: WH, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  badge: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#DC2626', fontWeight: 600, padding: '6px 10px', background: '#FEF2F2', borderRadius: 8, border: '1px solid #FECACA', marginTop: 6 },
+  badge: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#DC2626', fontWeight: 600, padding: '6px 10px', background: '#FEF2F2', borderRadius: 10, border: '1px solid #FECACA', marginTop: 6 },
   dot: { width: 8, height: 8, borderRadius: '50%', background: '#DC2626', flexShrink: 0 },
 };
 
@@ -163,7 +163,7 @@ Respond with ONLY a raw JSON array. No explanation. No markdown. No code blocks.
         <label style={s.label}>Key Steps</label>
         <button style={s.aiSuggestBtn} onClick={suggestSteps} disabled={suggesting}>{suggesting ? 'Suggesting...' : 'Suggest Steps for Me'}</button>
       </div>
-      <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 14 }}>
+      <p style={{ fontSize: 13, color: '#6B665F', marginBottom: 14 }}>
         {isOngoing ? 'Mark milestones as done, in progress or pending to show where you are now.' : 'Add your key project milestones. PM Buddy can suggest them based on your project.'}
       </p>
       {milestones.map((m, i) => (
@@ -382,7 +382,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
                 <div><p style={s.typeName}>Starting from scratch</p><p style={s.typeDesc}>I am starting this from the beginning. Help me plan it step by step.</p></div>
               </button>
               <button style={s.typeCard} onClick={() => selectType('ongoing')}>
-                <div style={{ ...s.typeIcon, background: '#EFF6FF', color: BLUE }}>↻</div>
+                <div style={{ ...s.typeIcon, background: '#E8F1F6', color: BLUE }}>↻</div>
                 <div><p style={s.typeName}>Already started</p><p style={s.typeDesc}>This is already running. I want to organise it better inside PM Buddy.</p></div>
               </button>
             </div>
@@ -403,7 +403,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
         <div style={s.progressTrack}><div style={{ ...s.progressFill, width: `${progress}%` }} /></div>
         <div style={s.steps}>
           {stepLabels.map((label, i) => (
-            <div key={i} style={{ ...s.stepPill, background: step > i ? BLUE : step === i + 1 ? BLUE : '#E5E7EB', color: step >= i + 1 ? WH : '#9CA3AF' }}>{label}</div>
+            <div key={i} style={{ ...s.stepPill, background: step > i ? BLUE : step === i + 1 ? BLUE : '#E7E2DA', color: step >= i + 1 ? WH : '#77716A' }}>{label}</div>
           ))}
         </div>
 
@@ -458,7 +458,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
               <label style={s.label}>What field is this in?</label>
               <div style={s.industryGrid}>
                 {INDUSTRIES.map(ind => (
-                  <button key={ind} style={{ ...s.industryBtn, background: data.industry === ind ? BLUE : WH, color: data.industry === ind ? WH : BL, borderColor: data.industry === ind ? BLUE : '#E5E7EB' }} onClick={() => update('industry', ind)}>{ind}</button>
+                  <button key={ind} style={{ ...s.industryBtn, background: data.industry === ind ? BLUE : WH, color: data.industry === ind ? WH : BL, borderColor: data.industry === ind ? BLUE : '#E7E2DA' }} onClick={() => update('industry', ind)}>{ind}</button>
                 ))}
               </div>
             </div>
@@ -471,7 +471,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
               <p style={s.stepSub}>Even if it is just you, defining roles prevents confusion later.</p>
               <div style={s.teamTypeGrid}>
                 {[{ val: 'solo', label: 'Just me', desc: 'I am doing this alone' }, { val: 'small', label: 'Small Who Is On This', desc: '2 to 5 people' }, { val: 'large', label: 'Larger Who Is On This', desc: '6 or more people' }].map(t => (
-                  <button key={t.val} style={{ ...s.teamTypeBtn, borderColor: data.teamType === t.val ? BLUE : '#E5E7EB', background: data.teamType === t.val ? '#EFF6FF' : WH }} onClick={() => update('teamType', t.val)}>
+                  <button key={t.val} style={{ ...s.teamTypeBtn, borderColor: data.teamType === t.val ? BLUE : '#E7E2DA', background: data.teamType === t.val ? '#E8F1F6' : WH }} onClick={() => update('teamType', t.val)}>
                     <p style={{ ...s.teamTypeName, color: data.teamType === t.val ? BLUE : BL }}>{t.label}</p>
                     <p style={s.teamTypeDesc}>{t.desc}</p>
                   </button>
@@ -516,7 +516,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
                   { val: 'Hybrid', desc: 'Plan the big picture, stay flexible on the details' },
                   { val: 'Not sure', desc: 'Not sure — PM Buddy will suggest the best way' },
                 ].map(m => (
-                  <button key={m.val} style={{ ...s.methodBtn, borderColor: data.methodology === m.val ? BLUE : '#E5E7EB', background: data.methodology === m.val ? '#EFF6FF' : WH }} onClick={() => update('methodology', m.val)}>
+                  <button key={m.val} style={{ ...s.methodBtn, borderColor: data.methodology === m.val ? BLUE : '#E7E2DA', background: data.methodology === m.val ? '#E8F1F6' : WH }} onClick={() => update('methodology', m.val)}>
                     <p style={{ ...s.methodName, color: data.methodology === m.val ? BLUE : BL }}>{m.val}</p>
                     <p style={s.methodDesc}>{m.desc}</p>
                   </button>
@@ -537,7 +537,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
               {data.startDate && data.endDate && <TimelineCheck start={data.startDate} end={data.endDate} />}
               <div style={{ marginTop: 24 }}>
                 <label style={s.label}>What Could Go Wrong</label>
-                <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 12 }}>What could go wrong? Name your top concerns.</p>
+                <p style={{ fontSize: 13, color: '#6B665F', marginBottom: 12 }}>What could go wrong? Name your top concerns.</p>
                 {[0, 1, 2].map(i => (
                   <div key={i} style={{ marginBottom: 12 }}>
                     <VoiceInput value={data.topRisks[i]} onChange={v => { const r = [...data.topRisks]; r[i] = v; update('topRisks', r); }} placeholder={getRiskPlaceholder(i, data.industry)} />
@@ -569,7 +569,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
               </div>
               <div style={{ marginTop: 24 }}>
                 <label style={s.label}>What Could Go Wrong</label>
-                <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 12 }}>What are the biggest risks right now?</p>
+                <p style={{ fontSize: 13, color: '#6B665F', marginBottom: 12 }}>What are the biggest risks right now?</p>
                 {[0, 1, 2].map(i => (
                   <div key={i} style={{ marginBottom: 12 }}>
                     <VoiceInput value={data.topRisks[i]} onChange={v => { const r = [...data.topRisks]; r[i] = v; update('topRisks', r); }} placeholder={getRiskPlaceholder(i, data.industry)} />
@@ -681,56 +681,56 @@ function StopIcon() {
 const s = {
   page: { minHeight: '100vh', background: GREY, padding: '40px 24px 80px' },
   wrap: { maxWidth: 640, margin: '0 auto' },
-  backBtn: { background: 'none', border: 'none', color: '#6B7280', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 24, padding: '8px 0', display: 'block' },
-  progressTrack: { height: 4, background: '#E5E7EB', borderRadius: 2, overflow: 'hidden', marginBottom: 16 },
+  backBtn: { background: 'none', border: 'none', color: '#6B665F', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 24, padding: '8px 0', display: 'block' },
+  progressTrack: { height: 4, background: '#E7E2DA', borderRadius: 2, overflow: 'hidden', marginBottom: 16 },
   progressFill: { height: '100%', background: BLUE, borderRadius: 2, transition: 'width 0.4s ease' },
   steps: { display: 'flex', gap: 6, marginBottom: 28, flexWrap: 'wrap' },
   stepPill: { padding: '4px 10px', borderRadius: 100, fontSize: 11, fontWeight: 600, letterSpacing: '0.04em' },
-  card: { background: WH, borderRadius: 20, padding: '36px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)', border: '1px solid #E5E7EB' },
+  card: { background: WH, borderRadius: 20, padding: '36px', boxShadow: '0 4px 20px rgba(43,42,40,0.06)', border: '1px solid #E7E2DA' },
   stepTag: { fontSize: 11, fontWeight: 800, color: BLUE, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 },
   stepTitle: { fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 900, color: BL, marginBottom: 8, letterSpacing: '-0.5px' },
-  stepSub: { fontSize: 14, color: '#6B7280', lineHeight: 1.7, marginBottom: 28 },
-  label: { display: 'block', fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 8, letterSpacing: '0.02em' },
-  input: { width: '100%', border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', marginBottom: 20, boxSizing: 'border-box', color: BL, outline: 'none', background: WH },
-  inputInline: { flex: 1, border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', background: WH },
+  stepSub: { fontSize: 14, color: '#6B665F', lineHeight: 1.7, marginBottom: 28 },
+  label: { display: 'block', fontSize: 12, fontWeight: 700, color: '#45413B', marginBottom: 8, letterSpacing: '0.02em' },
+  input: { width: '100%', border: '1.5px solid #E7E2DA', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', marginBottom: 20, boxSizing: 'border-box', color: BL, outline: 'none', background: WH },
+  inputInline: { flex: 1, border: '1.5px solid #E7E2DA', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', background: WH },
   industryGrid: { display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
-  industryBtn: { padding: '9px 16px', border: '1.5px solid', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  industryBtn: { padding: '9px 16px', border: '1.5px solid', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
   teamTypeGrid: { display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 8 },
-  teamTypeBtn: { flex: 1, minWidth: 140, padding: '16px', border: '1.5px solid', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' },
+  teamTypeBtn: { flex: 1, minWidth: 140, padding: '16px', border: '1.5px solid', borderRadius: 16, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' },
   teamTypeName: { fontSize: 15, fontWeight: 800, marginBottom: 4 },
-  teamTypeDesc: { fontSize: 12, color: '#6B7280' },
+  teamTypeDesc: { fontSize: 12, color: '#6B665F' },
   methodGrid: { display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 },
   methodBtn: { padding: '14px 16px', border: '1.5px solid', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' },
   methodName: { fontSize: 14, fontWeight: 700, marginBottom: 3 },
-  methodDesc: { fontSize: 12, color: '#6B7280' },
+  methodDesc: { fontSize: 12, color: '#6B665F' },
   memberRow: { display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10 },
-  removeBtn: { background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', fontSize: 16, fontFamily: 'inherit', flexShrink: 0 },
+  removeBtn: { background: 'none', border: 'none', color: '#77716A', cursor: 'pointer', fontSize: 16, fontFamily: 'inherit', flexShrink: 0 },
   addBtn: { background: 'none', border: 'none', color: BLUE, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', padding: 0, marginTop: 4 },
   milestoneRow: { display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' },
-  milestoneInput: { border: '1.5px solid #E5E7EB', borderRadius: 8, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', background: WH, minWidth: 80 },
-  milestoneStatus: { border: '1.5px solid #E5E7EB', borderRadius: 8, padding: '10px 8px', fontSize: 12, fontFamily: 'inherit', color: BL, background: WH, cursor: 'pointer' },
-  aiSuggestBtn: { padding: '6px 14px', background: BLUE, color: WH, border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
-  refineBtn: { padding: '6px 14px', background: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 12, display: 'inline-block' },
+  milestoneInput: { border: '1.5px solid #E7E2DA', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', background: WH, minWidth: 80 },
+  milestoneStatus: { border: '1.5px solid #E7E2DA', borderRadius: 10, padding: '10px 8px', fontSize: 12, fontFamily: 'inherit', color: BL, background: WH, cursor: 'pointer' },
+  aiSuggestBtn: { padding: '6px 14px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  refineBtn: { padding: '6px 14px', background: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 12, display: 'inline-block' },
   suggestionBox: { background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 10, padding: '14px 16px', marginBottom: 12 },
   suggestionLabel: { fontSize: 10, fontWeight: 700, color: '#15803D', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 },
   suggestionText: { fontSize: 14, color: '#166534', lineHeight: 1.7, marginBottom: 12 },
   suggestionActions: { display: 'flex', gap: 8 },
-  acceptBtn: { padding: '6px 16px', background: '#15803D', color: WH, border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
-  dismissBtn: { padding: '6px 14px', background: 'none', color: '#6B7280', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
+  acceptBtn: { padding: '6px 16px', background: '#15803D', color: WH, border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  dismissBtn: { padding: '6px 14px', background: 'none', color: '#6B665F', border: '1px solid #E7E2DA', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
   timelineWarn: { background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#DC2626', lineHeight: 1.6, marginTop: 8 },
-  timelineOk: { background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: BLUE, lineHeight: 1.6, marginTop: 8 },
+  timelineOk: { background: '#E8F1F6', border: '1px solid #BCD6E5', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: BLUE, lineHeight: 1.6, marginTop: 8 },
   reviewGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 },
   reviewItem: { background: GREY, borderRadius: 10, padding: '14px 16px' },
-  reviewLabel: { fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 },
+  reviewLabel: { fontSize: 11, fontWeight: 700, color: '#77716A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 },
   reviewValue: { fontSize: 14, fontWeight: 700, color: BL },
-  complianceCard: { background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 12, padding: '16px' },
+  complianceCard: { background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 16, padding: '16px' },
   complianceLabel: { fontSize: 11, fontWeight: 800, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 },
   complianceText: { fontSize: 14, color: '#92400E', lineHeight: 1.7 },
-  footer: { marginTop: 32, paddingTop: 24, borderTop: '1px solid #F3F4F6' },
+  footer: { marginTop: 32, paddingTop: 24, borderTop: '1px solid #F3EFE9' },
   nextBtn: { width: '100%', padding: '14px', background: BLUE, color: WH, border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
-  backFooterBtn: { padding: '14px 20px', background: 'none', color: '#6B7280', border: '1.5px solid #E5E7EB', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 },
-  typeCard: { display: 'flex', alignItems: 'flex-start', gap: 16, padding: '20px', border: '1.5px solid #E5E7EB', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', background: WH, width: '100%' },
-  typeIcon: { width: 44, height: 44, borderRadius: 10, background: BL, color: WH, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 },
+  backFooterBtn: { padding: '14px 20px', background: 'none', color: '#6B665F', border: '1.5px solid #E7E2DA', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 },
+  typeCard: { display: 'flex', alignItems: 'flex-start', gap: 16, padding: '20px', border: '1.5px solid #E7E2DA', borderRadius: 16, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', background: WH, width: '100%' },
+  typeIcon: { width: 44, height: 44, borderRadius: 10, background: 'var(--color-primary)', color: WH, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 },
   typeName: { fontSize: 16, fontWeight: 700, color: BL, marginBottom: 6 },
-  typeDesc: { fontSize: 13, color: '#6B7280', lineHeight: 1.6 },
+  typeDesc: { fontSize: 13, color: '#6B665F', lineHeight: 1.6 },
 };

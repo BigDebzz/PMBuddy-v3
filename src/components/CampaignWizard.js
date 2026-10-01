@@ -1,10 +1,10 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
-const BLUE = '#0284C7';
-const BL = '#0A0A0A';
+const BLUE = '#35709A';
+const BL = '#2B2A28';
 const WH = '#FFFFFF';
-const GREY = '#F8FAFC';
+const GREY = '#FAF8F5';
 
 const DRAFT_KEY = 'pmbuddy_campaign_draft';
 
@@ -107,11 +107,11 @@ function VoiceInput({ value, onChange, placeholder }) {
 }
 
 const vs = {
-  textarea: { width: '100%', border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', resize: 'vertical', lineHeight: 1.65, background: WH },
-  input: { flex: 1, border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', background: WH, width: '100%' },
+  textarea: { width: '100%', border: '1.5px solid #E7E2DA', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', resize: 'vertical', lineHeight: 1.65, background: WH },
+  input: { flex: 1, border: '1.5px solid #E7E2DA', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', background: WH, width: '100%' },
   mic: { width: 44, height: 88, border: 'none', borderRadius: 10, color: WH, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   micSm: { width: 44, height: 44, border: 'none', borderRadius: 10, color: WH, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  badge: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#DC2626', fontWeight: 600, padding: '6px 10px', background: '#FEF2F2', borderRadius: 8, border: '1px solid #FECACA', marginTop: 6 },
+  badge: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#DC2626', fontWeight: 600, padding: '6px 10px', background: '#FEF2F2', borderRadius: 10, border: '1px solid #FECACA', marginTop: 6 },
   dot: { width: 8, height: 8, borderRadius: '50%', background: '#DC2626', flexShrink: 0 },
 };
 
@@ -318,10 +318,10 @@ Respond ONLY with raw JSON, no markdown, no code blocks:
         <div style={s.steps}>
           {STEPS.map(st => (
             <div key={st.num} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-              <div style={{ ...s.stepDot, background: step >= st.num ? BLUE : '#E5E7EB' }}>
-                <span style={{ fontSize: 11, fontWeight: 800, color: step >= st.num ? WH : '#9CA3AF' }}>{st.num}</span>
+              <div style={{ ...s.stepDot, background: step >= st.num ? BLUE : '#E7E2DA' }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: step >= st.num ? WH : '#77716A' }}>{st.num}</span>
               </div>
-              <span style={{ fontSize: 10, color: step >= st.num ? BLUE : '#9CA3AF', fontWeight: 600 }}>{st.label}</span>
+              <span style={{ fontSize: 10, color: step >= st.num ? BLUE : '#77716A', fontWeight: 600 }}>{st.label}</span>
             </div>
           ))}
         </div>
@@ -381,7 +381,7 @@ Respond ONLY with raw JSON, no markdown, no code blocks:
                 {CHANNELS.map(ch => (
                   <button
                     key={ch}
-                    style={{ ...s.channelBtn, background: data.channels.includes(ch) ? BLUE : WH, color: data.channels.includes(ch) ? WH : BL, borderColor: data.channels.includes(ch) ? BLUE : '#E5E7EB' }}
+                    style={{ ...s.channelBtn, background: data.channels.includes(ch) ? BLUE : WH, color: data.channels.includes(ch) ? WH : BL, borderColor: data.channels.includes(ch) ? BLUE : '#E7E2DA' }}
                     onClick={() => toggleChannel(ch)}
                   >{ch}</button>
                 ))}
@@ -492,7 +492,7 @@ Respond ONLY with raw JSON, no markdown, no code blocks:
                     </div>
                   )}
                   {aiReview.keyQuestions?.length > 0 && (
-                    <div style={{ ...s.reviewBlock, borderLeftColor: BLUE, background: '#EFF6FF' }}>
+                    <div style={{ ...s.reviewBlock, borderLeftColor: BLUE, background: '#E8F1F6' }}>
                       <p style={{ ...s.reviewBlockLabel, color: BLUE }}>Questions to Answer Before You Launch</p>
                       {aiReview.keyQuestions.map((q, i) => <p key={i} style={{ ...s.reviewBlockText, marginBottom: 6 }}>· {q}</p>)}
                     </div>
@@ -504,9 +504,9 @@ Respond ONLY with raw JSON, no markdown, no code blocks:
                     </div>
                   )}
                   {aiReview.recommendation && (
-                    <div style={{ ...s.reviewBlock, borderLeftColor: BL, background: BL }}>
+                    <div style={{ ...s.reviewBlock, borderLeftColor: BLUE, background: 'var(--color-primary-tint)' }}>
                       <p style={{ ...s.reviewBlockLabel, color: BLUE }}>PM Buddy's Recommendation</p>
-                      <p style={{ ...s.reviewBlockText, color: WH }}>{aiReview.recommendation}</p>
+                      <p style={{ ...s.reviewBlockText, color: BL }}>{aiReview.recommendation}</p>
                     </div>
                   )}
                   <button style={s.retryBtn} onClick={runAiReview}>Re-run review</button>
@@ -585,7 +585,7 @@ Respond ONLY with raw JSON, no markdown, no code blocks:
                   {aiLoading ? 'Review Running...' : aiReview ? 'Continue to Launch' : 'Skip and Continue'}
                 </button>
                 {!aiReview && !aiLoading && (
-                  <p style={{ textAlign: 'center', fontSize: 12, color: '#9CA3AF', margin: 0 }}>The review helps catch gaps early. You can skip if you prefer.</p>
+                  <p style={{ textAlign: 'center', fontSize: 12, color: '#77716A', margin: 0 }}>The review helps catch gaps early. You can skip if you prefer.</p>
                 )}
               </div>
             ) : (
@@ -652,56 +652,56 @@ function StopIcon() {
 const s = {
   page: { minHeight: '100vh', background: GREY, padding: '40px 24px 80px' },
   wrap: { maxWidth: 680, margin: '0 auto' },
-  backBtn: { background: 'none', border: 'none', color: '#6B7280', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 20, padding: 0 },
+  backBtn: { background: 'none', border: 'none', color: '#6B665F', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 20, padding: 0 },
   header: { marginBottom: 24 },
-  typeBadge: { display: 'inline-block', fontSize: 11, fontWeight: 800, color: '#7C3AED', textTransform: 'uppercase', letterSpacing: '0.12em', background: '#F5F3FF', padding: '4px 12px', borderRadius: 100, marginBottom: 8 },
-  headerSub: { fontSize: 13, color: '#6B7280' },
+  typeBadge: { display: 'inline-block', fontSize: 11, fontWeight: 800, color: '#35709A', textTransform: 'uppercase', letterSpacing: '0.12em', background: '#E8F1F6', padding: '4px 12px', borderRadius: 100, marginBottom: 8 },
+  headerSub: { fontSize: 13, color: '#6B665F' },
   draftBanner: { background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: '#15803D', fontWeight: 600, marginBottom: 20 },
-  progressTrack: { height: 4, background: '#E5E7EB', borderRadius: 2, overflow: 'hidden', marginBottom: 16 },
-  progressFill: { height: '100%', background: '#7C3AED', borderRadius: 2, transition: 'width 0.4s ease' },
+  progressTrack: { height: 4, background: '#E7E2DA', borderRadius: 2, overflow: 'hidden', marginBottom: 16 },
+  progressFill: { height: '100%', background: '#35709A', borderRadius: 2, transition: 'width 0.4s ease' },
   steps: { display: 'flex', gap: 16, marginBottom: 28, justifyContent: 'space-between' },
   stepDot: { width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.3s ease' },
-  card: { background: WH, borderRadius: 20, padding: '36px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)', border: '1px solid #E5E7EB' },
-  stepTag: { fontSize: 11, fontWeight: 800, color: '#7C3AED', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 },
+  card: { background: WH, borderRadius: 20, padding: '36px', boxShadow: '0 4px 20px rgba(43,42,40,0.06)', border: '1px solid #E7E2DA' },
+  stepTag: { fontSize: 11, fontWeight: 800, color: '#35709A', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 },
   stepTitle: { fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 900, color: BL, marginBottom: 8, letterSpacing: '-0.5px' },
-  stepSub: { fontSize: 14, color: '#6B7280', lineHeight: 1.7, marginBottom: 28 },
-  label: { display: 'block', fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 8, letterSpacing: '0.02em' },
-  fieldHint: { fontSize: 12, color: '#9CA3AF', lineHeight: 1.6, marginBottom: 16, marginTop: 4 },
-  input: { width: '100%', border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', marginBottom: 4, boxSizing: 'border-box', color: BL, outline: 'none', background: WH },
+  stepSub: { fontSize: 14, color: '#6B665F', lineHeight: 1.7, marginBottom: 28 },
+  label: { display: 'block', fontSize: 12, fontWeight: 700, color: '#45413B', marginBottom: 8, letterSpacing: '0.02em' },
+  fieldHint: { fontSize: 12, color: '#77716A', lineHeight: 1.6, marginBottom: 16, marginTop: 4 },
+  input: { width: '100%', border: '1.5px solid #E7E2DA', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', marginBottom: 4, boxSizing: 'border-box', color: BL, outline: 'none', background: WH },
   twoCol: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 8 },
-  timelineOk: { background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: BLUE, lineHeight: 1.6, marginBottom: 16 },
+  timelineOk: { background: '#E8F1F6', border: '1px solid #BCD6E5', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: BLUE, lineHeight: 1.6, marginBottom: 16 },
   timelineWarn: { background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#DC2626', lineHeight: 1.6, marginBottom: 16 },
   channelGrid: { display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
-  channelBtn: { padding: '8px 14px', border: '1.5px solid', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' },
-  aiPromptBox: { background: '#F5F3FF', border: '1px solid #DDD6FE', borderRadius: 14, padding: '28px', textAlign: 'center' },
-  aiPromptText: { fontSize: 14, color: '#374151', lineHeight: 1.7, marginBottom: 20 },
-  aiSkipNote: { fontSize: 12, color: '#9CA3AF', marginTop: 12 },
-  aiBtn: { padding: '12px 28px', background: '#7C3AED', color: WH, border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
+  channelBtn: { padding: '8px 14px', border: '1.5px solid', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' },
+  aiPromptBox: { background: '#E8F1F6', border: '1px solid #BCD6E5', borderRadius: 16, padding: '28px', textAlign: 'center' },
+  aiPromptText: { fontSize: 14, color: '#45413B', lineHeight: 1.7, marginBottom: 20 },
+  aiSkipNote: { fontSize: 12, color: '#77716A', marginTop: 12 },
+  aiBtn: { padding: '12px 28px', background: '#35709A', color: WH, border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
   aiLoading: { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '48px 20px', gap: 14 },
-  aiSpinner: { width: 36, height: 36, border: '3px solid #F3F4F6', borderTop: '3px solid #7C3AED', borderRadius: '50%', animation: 'spin 0.8s linear infinite' },
-  aiLoadingText: { fontSize: 15, fontWeight: 600, color: '#374151', textAlign: 'center' },
-  aiLoadingSub: { fontSize: 13, color: '#9CA3AF' },
-  aiErrorBox: { background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 14, padding: '24px', textAlign: 'center' },
+  aiSpinner: { width: 36, height: 36, border: '3px solid #F3EFE9', borderTop: '3px solid #35709A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' },
+  aiLoadingText: { fontSize: 15, fontWeight: 600, color: '#45413B', textAlign: 'center' },
+  aiLoadingSub: { fontSize: 13, color: '#77716A' },
+  aiErrorBox: { background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 16, padding: '24px', textAlign: 'center' },
   aiErrorText: { fontSize: 14, color: '#991B1B', lineHeight: 1.7, marginBottom: 16 },
-  reviewBlock: { borderLeft: '3px solid #E5E7EB', padding: '14px 16px', marginBottom: 12, borderRadius: '0 10px 10px 0', background: GREY },
-  reviewBlockLabel: { fontSize: 11, fontWeight: 800, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 },
-  reviewBlockText: { fontSize: 14, color: '#374151', lineHeight: 1.7 },
-  retryBtn: { background: 'none', border: 'none', color: '#7C3AED', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', padding: 0, marginTop: 8 },
+  reviewBlock: { borderLeft: '3px solid #E7E2DA', padding: '14px 16px', marginBottom: 12, borderRadius: '0 10px 10px 0', background: GREY },
+  reviewBlockLabel: { fontSize: 11, fontWeight: 800, color: '#6B665F', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 },
+  reviewBlockText: { fontSize: 14, color: '#45413B', lineHeight: 1.7 },
+  retryBtn: { background: 'none', border: 'none', color: '#35709A', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', padding: 0, marginTop: 8 },
   summaryGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 },
   summaryItem: { background: GREY, borderRadius: 10, padding: '14px 16px' },
-  summaryLabel: { fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 },
+  summaryLabel: { fontSize: 11, fontWeight: 700, color: '#77716A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 },
   summaryValue: { fontSize: 14, fontWeight: 700, color: BL },
   summaryNote: { background: GREY, borderRadius: 10, padding: '14px 16px', marginBottom: 12 },
-  summaryNoteLabel: { fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 },
-  summaryNoteText: { fontSize: 14, color: '#374151', lineHeight: 1.65 },
-  milestonesPreview: { background: '#F5F3FF', border: '1px solid #DDD6FE', borderRadius: 12, padding: '18px', marginTop: 8 },
-  milestonesLabel: { fontSize: 11, fontWeight: 800, color: '#7C3AED', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 },
+  summaryNoteLabel: { fontSize: 11, fontWeight: 700, color: '#77716A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 },
+  summaryNoteText: { fontSize: 14, color: '#45413B', lineHeight: 1.65 },
+  milestonesPreview: { background: '#E8F1F6', border: '1px solid #BCD6E5', borderRadius: 16, padding: '18px', marginTop: 8 },
+  milestonesLabel: { fontSize: 11, fontWeight: 800, color: '#35709A', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 },
   milestoneRow: { display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10 },
-  milestoneDot: { width: 8, height: 8, borderRadius: '50%', background: '#7C3AED', flexShrink: 0, marginTop: 5 },
+  milestoneDot: { width: 8, height: 8, borderRadius: '50%', background: '#35709A', flexShrink: 0, marginTop: 5 },
   milestoneTitle: { fontSize: 14, fontWeight: 600, color: BL },
-  milestoneDate: { fontSize: 12, color: '#6B7280' },
+  milestoneDate: { fontSize: 12, color: '#6B665F' },
   saveErrorBox: { background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '14px 16px', marginTop: 16 },
   saveErrorText: { fontSize: 14, fontWeight: 700, color: '#991B1B' },
-  footer: { marginTop: 32, paddingTop: 24, borderTop: '1px solid #F3F4F6' },
-  nextBtn: { width: '100%', padding: '14px', background: '#7C3AED', color: WH, border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'opacity 0.15s ease' },
+  footer: { marginTop: 32, paddingTop: 24, borderTop: '1px solid #F3EFE9' },
+  nextBtn: { width: '100%', padding: '14px', background: '#35709A', color: WH, border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'opacity 0.15s ease' },
 };

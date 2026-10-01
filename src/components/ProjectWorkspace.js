@@ -6,11 +6,11 @@ import PMBuddyAssistant from './PMBuddyAssistant';
 import AiLoading from './AiLoading';
 import ProgressOverview from './ProgressOverview';
 
-const BLUE = '#0284C7';
-const BL = '#0A0A0A';
+const BLUE = '#35709A';
+const BL = '#2B2A28';
 const WH = '#FFFFFF';
-const GREY = '#F8FAFC';
-const RULE = '#E5E7EB';
+const GREY = '#FAF8F5';
+const RULE = '#E7E2DA';
 
 const TABS = ['Overview', 'Tasks', 'Risks', 'People', 'Documents'];
 
@@ -89,7 +89,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
         <div style={s.header}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <button style={s.backBtn} onClick={onBack}>← All Projects</button>
-            <span style={{ fontSize: 12, color: saveStatus === 'saved' ? '#15803D' : saveStatus === 'saving' ? '#D97706' : '#9CA3AF' }}>
+            <span style={{ fontSize: 12, color: saveStatus === 'saved' ? '#15803D' : saveStatus === 'saving' ? '#D97706' : '#77716A' }}>
               {saveStatus === 'saved' ? '✓ Saved' : saveStatus === 'saving' ? 'Saving...' : 'Unsaved changes'}
             </span>
           </div>
@@ -105,7 +105,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
         {/* Tabs */}
         <div style={s.tabBar}>
           {TABS.map(t => (
-            <button key={t} style={{ ...s.tabBtn, color: tab === t ? BLUE : '#6B7280', borderBottomColor: tab === t ? BLUE : 'transparent', fontWeight: tab === t ? 700 : 500 }} onClick={() => setTab(t)}>{t}</button>
+            <button key={t} style={{ ...s.tabBtn, color: tab === t ? BLUE : '#6B665F', borderBottomColor: tab === t ? BLUE : 'transparent', fontWeight: tab === t ? 700 : 500 }} onClick={() => setTab(t)}>{t}</button>
           ))}
         </div>
 
@@ -167,7 +167,7 @@ function OverviewTab({ data, onSave, acceptedMembers }) {
         {editingGoal && <textarea style={s.textarea} rows={3} value={goalDraft} onChange={e => setGoalDraft(e.target.value)} />}
         {editingGoal && goalDraft.length > 20 && !goalSuggestion && <button style={{ ...s.smallBtn, color: '#15803D', borderColor: '#BBF7D0', background: '#F0FDF4', marginTop: 8 }} onClick={refineGoal} disabled={refiningGoal}>{refiningGoal ? 'Refining...' : 'AI Refine'}</button>}
         {goalSuggestion && (
-          <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8, padding: '12px', marginTop: 10 }}>
+          <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 10, padding: '12px', marginTop: 10 }}>
             <p style={{ fontSize: 11, fontWeight: 700, color: '#15803D', marginBottom: 6 }}>PM BUDDY SUGGESTION</p>
             <p style={{ fontSize: 14, color: '#166534', lineHeight: 1.7, marginBottom: 10 }}>{goalSuggestion}</p>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -187,12 +187,12 @@ function OverviewTab({ data, onSave, acceptedMembers }) {
         {milestones.length === 0 && <p style={s.emptyText}>No milestones yet. Add them in the Tasks tab.</p>}
         {milestones.slice(0, 5).map((m, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: i < Math.min(milestones.length, 5) - 1 ? `1px solid ${RULE}` : 'none' }}>
-            <div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${m.status === 'done' ? BLUE : m.status === 'in_progress' ? '#D97706' : '#D1D5DB'}`, background: m.status === 'done' ? BLUE : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${m.status === 'done' ? BLUE : m.status === 'in_progress' ? '#D97706' : '#D8D2C8'}`, background: m.status === 'done' ? BLUE : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               {m.status === 'done' && <span style={{ color: WH, fontSize: 9, fontWeight: 900 }}>✓</span>}
             </div>
-            <p style={{ flex: 1, fontSize: 14, color: m.status === 'done' ? '#9CA3AF' : BL, textDecoration: m.status === 'done' ? 'line-through' : 'none' }}>{m.title}</p>
-            <span style={{ fontSize: 11, color: '#9CA3AF' }}>{m.date ? formatDate(m.date) : ''}</span>
-            <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 100, background: m.status === 'done' ? '#F0FDF4' : m.status === 'in_progress' ? '#FFF7ED' : '#EFF6FF', color: m.status === 'done' ? '#15803D' : m.status === 'in_progress' ? '#D97706' : BLUE }}>
+            <p style={{ flex: 1, fontSize: 14, color: m.status === 'done' ? '#77716A' : BL, textDecoration: m.status === 'done' ? 'line-through' : 'none' }}>{m.title}</p>
+            <span style={{ fontSize: 11, color: '#77716A' }}>{m.date ? formatDate(m.date) : ''}</span>
+            <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 100, background: m.status === 'done' ? '#F0FDF4' : m.status === 'in_progress' ? '#FFF7ED' : '#E8F1F6', color: m.status === 'done' ? '#15803D' : m.status === 'in_progress' ? '#D97706' : BLUE }}>
               {m.status === 'done' ? 'Done' : m.status === 'in_progress' ? 'In Progress' : 'Pending'}
             </span>
           </div>
@@ -202,7 +202,7 @@ function OverviewTab({ data, onSave, acceptedMembers }) {
 
       {/* Compliance heads up */}
       {data.compliance?.flags?.length > 0 && (
-        <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
+        <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 16, padding: '14px 16px', marginBottom: 16 }}>
           <p style={{ fontSize: 11, fontWeight: 800, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Things to keep in mind</p>
           {data.compliance.flags.map((f, i) => <p key={i} style={{ fontSize: 13, color: '#92400E', lineHeight: 1.7 }}>· {f}</p>)}
         </div>
@@ -238,7 +238,7 @@ function CurrentStatus({ data, onSave }) {
   const hasContent = scope.currentPhase || scope.completedWork || scope.remainingWork || scope.blockers;
 
   return (
-    <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+    <div style={{ background: '#E8F1F6', border: '1px solid #BCD6E5', borderRadius: 16, padding: 16, marginBottom: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: hasContent || editing ? 12 : 0 }}>
         <p style={{ fontSize: 12, fontWeight: 700, color: BLUE, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Current Status</p>
         <div style={{ display: 'flex', gap: 6 }}>
@@ -249,7 +249,7 @@ function CurrentStatus({ data, onSave }) {
         </div>
       </div>
       {reviewing && <AiLoading compact kind="think" />}
-      {!editing && !hasContent && <p style={{ fontSize: 13, color: '#6B7280' }}>No status yet. Click Edit to add where things stand.</p>}
+      {!editing && !hasContent && <p style={{ fontSize: 13, color: '#6B665F' }}>No status yet. Click Edit to add where things stand.</p>}
       {!editing && hasContent && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {[{ label: 'Phase', value: scope.currentPhase }, { label: 'Done so far', value: scope.completedWork }, { label: 'Still to do', value: scope.remainingWork }, { label: 'Blockers', value: scope.blockers }].map(({ label, value }) => value ? (
@@ -267,7 +267,7 @@ function CurrentStatus({ data, onSave }) {
           ))}
         </div>
       )}
-      {aiReview && <div style={{ marginTop: 12, background: WH, borderRadius: 8, padding: '12px', border: '1px solid #BFDBFE' }}><p style={{ fontSize: 11, fontWeight: 700, color: BLUE, marginBottom: 6 }}>PM BUDDY'S TAKE</p><p style={{ fontSize: 14, color: '#374151', lineHeight: 1.7 }}>{aiReview}</p></div>}
+      {aiReview && <div style={{ marginTop: 12, background: WH, borderRadius: 10, padding: '12px', border: '1px solid #BCD6E5' }}><p style={{ fontSize: 11, fontWeight: 700, color: BLUE, marginBottom: 6 }}>PM BUDDY'S TAKE</p><p style={{ fontSize: 14, color: '#45413B', lineHeight: 1.7 }}>{aiReview}</p></div>}
     </div>
   );
 }
@@ -284,7 +284,7 @@ function AIInsights({ data, onSave }) {
 
   return (
     <div style={{ marginTop: 8 }}>
-      <p style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>PM Buddy Insights</p>
+      <p style={{ fontSize: 11, fontWeight: 700, color: '#77716A', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>PM Buddy Insights</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {defs.map(ins => (
           <InsightCard key={ins.key} title={ins.title} icon={ins.icon} savedValue={insights[ins.key]?.content || ''} savedEdited={insights[ins.key]?.edited || false} generatePrompt={ins.prompt}
@@ -321,18 +321,18 @@ function InsightCard({ title, icon, savedValue, savedEdited, onSave, generatePro
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 14, color: BLUE }}>{icon}</span>
           <p style={{ fontSize: 13, fontWeight: 700, color: BL }}>{title}</p>
-          {content && <span style={{ fontSize: 10, fontWeight: 600, color: edited ? '#D97706' : BLUE, background: edited ? '#FFFBEB' : '#EFF6FF', padding: '1px 6px', borderRadius: 100 }}>{edited ? 'Edited' : 'AI'}</span>}
+          {content && <span style={{ fontSize: 10, fontWeight: 600, color: edited ? '#D97706' : BLUE, background: edited ? '#FFFBEB' : '#E8F1F6', padding: '1px 6px', borderRadius: 100 }}>{edited ? 'Edited' : 'AI'}</span>}
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           {content && !editing && <button style={s.smallBtn} onClick={() => { setDraft(content); setEditing(true); }}>Edit</button>}
           {editing && <button style={{ ...s.smallBtn, background: BLUE, color: WH, borderColor: BLUE }} onClick={() => { setContent(draft); setEdited(true); onSave(draft, true); setEditing(false); }}>Save</button>}
           {editing && <button style={s.smallBtn} onClick={() => setEditing(false)}>Cancel</button>}
-          {!editing && <button style={{ ...s.smallBtn, background: content ? GREY : BLUE, color: content ? '#374151' : WH, borderColor: content ? RULE : BLUE }} onClick={generate} disabled={generating}>{generating ? 'Generating...' : content ? 'Regenerate' : 'Generate'}</button>}
+          {!editing && <button style={{ ...s.smallBtn, background: content ? GREY : BLUE, color: content ? '#45413B' : WH, borderColor: content ? RULE : BLUE }} onClick={generate} disabled={generating}>{generating ? 'Generating...' : content ? 'Regenerate' : 'Generate'}</button>}
         </div>
       </div>
-      {!content && !generating && <p style={{ fontSize: 13, color: '#9CA3AF' }}>Click Generate and PM Buddy will fill this in from your project details.</p>}
+      {!content && !generating && <p style={{ fontSize: 13, color: '#77716A' }}>Click Generate and PM Buddy will fill this in from your project details.</p>}
       {generating && <AiLoading compact kind="write" />}
-      {content && !editing && <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>{content}</div>}
+      {content && !editing && <div style={{ fontSize: 14, color: '#45413B', lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>{content}</div>}
       {editing && <textarea style={{ ...s.textarea, marginTop: 8, minHeight: 100 }} value={draft} onChange={e => setDraft(e.target.value)} rows={4} />}
     </div>
   );
@@ -356,7 +356,7 @@ function TasksTab({ data, onSave }) {
   const [activeView, setActiveView] = useState('kanban'); // 'kanban' | 'list'
 
   const COLUMNS = [
-    { id: 'todo', label: 'To Do', color: '#6B7280', bg: GREY },
+    { id: 'todo', label: 'To Do', color: '#6B665F', bg: GREY },
     { id: 'in_progress', label: 'In Progress', color: '#D97706', bg: '#FFFBEB' },
     { id: 'done', label: 'Done', color: '#15803D', bg: '#F0FDF4' },
   ];
@@ -432,12 +432,12 @@ function TasksTab({ data, onSave }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div>
           <h3 style={{ fontSize: 17, fontWeight: 800, color: BL, marginBottom: 2 }}>Task Board</h3>
-          <p style={{ fontSize: 13, color: '#6B7280' }}>Move tasks between columns as work progresses.</p>
+          <p style={{ fontSize: 13, color: '#6B665F' }}>Move tasks between columns as work progresses.</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button style={{ ...s.smallBtn, background: activeView === 'kanban' ? BL : WH, color: activeView === 'kanban' ? WH : '#374151', borderColor: activeView === 'kanban' ? BL : RULE }} onClick={() => setActiveView('kanban')}>Board</button>
-          <button style={{ ...s.smallBtn, background: activeView === 'list' ? BL : WH, color: activeView === 'list' ? WH : '#374151', borderColor: activeView === 'list' ? BL : RULE }} onClick={() => setActiveView('list')}>List</button>
-          <button style={{ padding: '7px 14px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setShowAddTask(p => !p)}>+ Add Task</button>
+          <button style={{ ...s.smallBtn, background: activeView === 'kanban' ? 'var(--color-primary)' : WH, color: activeView === 'kanban' ? WH : '#45413B', borderColor: activeView === 'kanban' ? 'var(--color-primary)' : RULE }} onClick={() => setActiveView('kanban')}>Board</button>
+          <button style={{ ...s.smallBtn, background: activeView === 'list' ? 'var(--color-primary)' : WH, color: activeView === 'list' ? WH : '#45413B', borderColor: activeView === 'list' ? 'var(--color-primary)' : RULE }} onClick={() => setActiveView('list')}>List</button>
+          <button style={{ padding: '7px 14px', background: BLUE, color: WH, border: 'none', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setShowAddTask(p => !p)}>+ Add Task</button>
         </div>
       </div>
 
@@ -464,7 +464,7 @@ function TasksTab({ data, onSave }) {
             </select>
           )}
           <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-            <button style={{ padding: '8px 20px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={addTask}>Add Task</button>
+            <button style={{ padding: '8px 20px', background: BLUE, color: WH, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={addTask}>Add Task</button>
             <button style={s.smallBtn} onClick={() => setShowAddTask(false)}>Cancel</button>
           </div>
         </div>
@@ -476,12 +476,12 @@ function TasksTab({ data, onSave }) {
           {COLUMNS.map(col => {
             const colTasks = allBoardItems.filter(t => t.status === col.id);
             return (
-              <div key={col.id} style={{ background: col.bg, borderRadius: 12, padding: 12, border: `1px solid ${RULE}`, minHeight: 200 }}>
+              <div key={col.id} style={{ background: col.bg, borderRadius: 16, padding: 12, border: `1px solid ${RULE}`, minHeight: 200 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                   <p style={{ fontSize: 12, fontWeight: 700, color: col.color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{col.label}</p>
                   <span style={{ fontSize: 11, fontWeight: 700, color: col.color, background: WH, padding: '1px 7px', borderRadius: 100, border: `1px solid ${RULE}` }}>{colTasks.length}</span>
                 </div>
-                {colTasks.length === 0 && <p style={{ fontSize: 12, color: '#9CA3AF', textAlign: 'center', padding: '20px 0', fontStyle: 'italic' }}>No tasks here</p>}
+                {colTasks.length === 0 && <p style={{ fontSize: 12, color: '#77716A', textAlign: 'center', padding: '20px 0', fontStyle: 'italic' }}>No tasks here</p>}
                 {colTasks.map(task => {
                   const overdue = task.status !== 'done' && isOverdue(task.dueDate || task.date);
 
@@ -491,12 +491,12 @@ function TasksTab({ data, onSave }) {
                     const m = milestones[mi];
                     if (!m) return null;
                     return (
-                      <div key={task.id} style={{ background: '#F0F9FF', borderRadius: 8, padding: '10px 12px', marginBottom: 8, border: `1px solid ${overdue ? '#FECACA' : '#BAE6FD'}`, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                      <div key={task.id} style={{ background: '#E8F1F6', borderRadius: 10, padding: '10px 12px', marginBottom: 8, border: `1px solid ${overdue ? '#FECACA' : '#BCD6E5'}`, boxShadow: '0 1px 3px rgba(43,42,40,0.05)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
-                          <span style={{ fontSize: 9, fontWeight: 800, color: BLUE, textTransform: 'uppercase', letterSpacing: '0.08em', background: '#EFF6FF', padding: '1px 6px', borderRadius: 100 }}>Milestone</span>
+                          <span style={{ fontSize: 9, fontWeight: 800, color: BLUE, textTransform: 'uppercase', letterSpacing: '0.08em', background: '#E8F1F6', padding: '1px 6px', borderRadius: 100 }}>Milestone</span>
                         </div>
                         <p style={{ fontSize: 13, fontWeight: 700, color: BL, marginBottom: 4, lineHeight: 1.4 }}>{m.title}</p>
-                        {m.date && <p style={{ fontSize: 11, color: overdue ? '#DC2626' : '#6B7280', fontWeight: overdue ? 700 : 400 }}>{overdue ? '⚠ Overdue · ' : ''}{formatDate(m.date)}</p>}
+                        {m.date && <p style={{ fontSize: 11, color: overdue ? '#DC2626' : '#6B665F', fontWeight: overdue ? 700 : 400 }}>{overdue ? '⚠ Overdue · ' : ''}{formatDate(m.date)}</p>}
                         <div style={{ display: 'flex', gap: 4, marginTop: 8, flexWrap: 'wrap' }}>
                           {m.status !== 'pending' && <button style={s.miniBtn} onClick={() => { const updated = milestones.map((ml, idx) => idx === mi ? { ...ml, status: 'pending' } : ml); onSave({ milestones: updated }); }}>← To Do</button>}
                           {m.status !== 'in_progress' && <button style={s.miniBtn} onClick={() => { const updated = milestones.map((ml, idx) => idx === mi ? { ...ml, status: 'in_progress' } : ml); onSave({ milestones: updated }); }}>In Progress</button>}
@@ -511,7 +511,7 @@ function TasksTab({ data, onSave }) {
                   const isExpanded = expandedTaskId === task.id;
                   if (editingTaskIdx === taskIdx) {
                     return (
-                      <div key={task.id} style={{ background: WH, borderRadius: 8, padding: 10, marginBottom: 8, border: `1px solid ${BLUE}` }}>
+                      <div key={task.id} style={{ background: WH, borderRadius: 10, padding: 10, marginBottom: 8, border: `1px solid ${BLUE}` }}>
                         <input style={{ ...s.input, marginBottom: 6, fontSize: 13 }} value={editTaskDraft.title || ''} onChange={e => setEditTaskDraft(p => ({ ...p, title: e.target.value }))} />
                         <input style={{ ...s.input, marginBottom: 6, fontSize: 12 }} placeholder="Who is doing this?" value={editTaskDraft.assignee || ''} onChange={e => setEditTaskDraft(p => ({ ...p, assignee: e.target.value }))} />
                         <input style={{ ...s.input, marginBottom: 8, fontSize: 12 }} type="date" value={editTaskDraft.dueDate || ''} onChange={e => setEditTaskDraft(p => ({ ...p, dueDate: e.target.value }))} />
@@ -523,29 +523,29 @@ function TasksTab({ data, onSave }) {
                     );
                   }
                   return (
-                    <div key={task.id} style={{ background: WH, borderRadius: 8, padding: '10px 12px', marginBottom: 8, border: `1px solid ${task.isBlocker ? '#F97316' : overdue ? '#FECACA' : RULE}`, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                    <div key={task.id} style={{ background: WH, borderRadius: 10, padding: '10px 12px', marginBottom: 8, border: `1px solid ${task.isBlocker ? '#F97316' : overdue ? '#FECACA' : RULE}`, boxShadow: '0 1px 3px rgba(43,42,40,0.05)' }}>
                       {task.isBlocker && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6, padding: '3px 8px', background: '#FFF7ED', borderRadius: 6, width: 'fit-content' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6, padding: '3px 8px', background: '#FFF7ED', borderRadius: 8, width: 'fit-content' }}>
                           <span style={{ fontSize: 10 }}>🚧</span>
                           <span style={{ fontSize: 10, fontWeight: 800, color: '#EA580C', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Blocker</span>
                         </div>
                       )}
                       <p style={{ fontSize: 13, fontWeight: 600, color: BL, marginBottom: 4, lineHeight: 1.4 }}>{task.title}</p>
-                      {task.assignee && <p style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>👤 {task.assignee}</p>}
-                      {task.dueDate && <p style={{ fontSize: 11, color: overdue ? '#DC2626' : '#6B7280', fontWeight: overdue ? 700 : 400 }}>{overdue ? '⚠ Overdue · ' : ''}{formatDate(task.dueDate)}</p>}
-                      {task.notes && !isExpanded && <p style={{ fontSize: 11, color: '#6B7280', marginTop: 4, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📝 {task.notes}</p>}
+                      {task.assignee && <p style={{ fontSize: 11, color: '#6B665F', marginBottom: 4 }}>👤 {task.assignee}</p>}
+                      {task.dueDate && <p style={{ fontSize: 11, color: overdue ? '#DC2626' : '#6B665F', fontWeight: overdue ? 700 : 400 }}>{overdue ? '⚠ Overdue · ' : ''}{formatDate(task.dueDate)}</p>}
+                      {task.notes && !isExpanded && <p style={{ fontSize: 11, color: '#6B665F', marginTop: 4, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📝 {task.notes}</p>}
 
                       {isExpanded && (
                         <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${RULE}` }}>
-                          <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Notes / Updates</label>
+                          <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#77716A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Notes / Updates</label>
                           <textarea
-                            style={{ width: '100%', border: `1px solid ${RULE}`, borderRadius: 6, padding: '7px 9px', fontSize: 12, fontFamily: 'inherit', resize: 'vertical', minHeight: 60, boxSizing: 'border-box', outline: 'none', lineHeight: 1.6 }}
+                            style={{ width: '100%', border: `1px solid ${RULE}`, borderRadius: 8, padding: '7px 9px', fontSize: 12, fontFamily: 'inherit', resize: 'vertical', minHeight: 60, boxSizing: 'border-box', outline: 'none', lineHeight: 1.6 }}
                             placeholder="Add a note, update, or describe the blocker..."
                             value={noteDraft}
                             onChange={e => setNoteDraft(e.target.value)}
                           />
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: 12, color: '#374151', fontWeight: 600 }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: 12, color: '#45413B', fontWeight: 600 }}>
                               <input
                                 type="checkbox"
                                 checked={editTaskDraft.isBlocker !== undefined ? editTaskDraft.isBlocker : task.isBlocker || false}
@@ -579,7 +579,7 @@ function TasksTab({ data, onSave }) {
                         {col.id !== 'in_progress' && <button style={{ ...s.miniBtn }} onClick={() => moveTask(task.id, 'in_progress')}>In Progress</button>}
                         {col.id !== 'done' && <button style={{ ...s.miniBtn, background: '#F0FDF4', color: '#15803D', borderColor: '#BBF7D0' }} onClick={() => moveTask(task.id, 'done')}>✓ Done</button>}
                         <button style={s.miniBtn} onClick={() => { setEditingTaskIdx(taskIdx); setEditTaskDraft({ ...task }); }}>Edit</button>
-                        <button style={{ ...s.miniBtn, color: BLUE, borderColor: '#BFDBFE', background: '#EFF6FF' }} onClick={() => { setExpandedTaskId(isExpanded ? null : task.id); setNoteDraft(task.notes || ''); setEditTaskDraft({ isBlocker: task.isBlocker || false }); }}>
+                        <button style={{ ...s.miniBtn, color: BLUE, borderColor: '#BCD6E5', background: '#E8F1F6' }} onClick={() => { setExpandedTaskId(isExpanded ? null : task.id); setNoteDraft(task.notes || ''); setEditTaskDraft({ isBlocker: task.isBlocker || false }); }}>
                           {isExpanded ? 'Close' : '📝 Notes'}
                         </button>
                         <button style={{ ...s.miniBtn, color: '#DC2626', borderColor: '#FECACA' }} onClick={() => deleteTask(task.id)}>✕</button>
@@ -599,16 +599,16 @@ function TasksTab({ data, onSave }) {
           {tasks.length === 0 && <p style={s.emptyText}>No tasks yet. Click + Add Task to get started.</p>}
           {tasks.map((task, taskIdx) => {
             const overdue = task.status !== 'done' && isOverdue(task.dueDate);
-            const sc = { todo: { label: 'To Do', color: '#6B7280', bg: GREY }, in_progress: { label: 'In Progress', color: '#D97706', bg: '#FFFBEB' }, done: { label: 'Done', color: '#15803D', bg: '#F0FDF4' } };
+            const sc = { todo: { label: 'To Do', color: '#6B665F', bg: GREY }, in_progress: { label: 'In Progress', color: '#D97706', bg: '#FFFBEB' }, done: { label: 'Done', color: '#15803D', bg: '#F0FDF4' } };
             const status = sc[task.status] || sc.todo;
             return (
               <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px', background: WH, borderRadius: 10, border: `1px solid ${overdue ? '#FECACA' : RULE}`, marginBottom: 8 }}>
-                <button style={{ width: 20, height: 20, borderRadius: '50%', border: `2px solid ${task.status === 'done' ? '#15803D' : '#D1D5DB'}`, background: task.status === 'done' ? '#15803D' : WH, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} onClick={() => moveTask(task.id, task.status === 'done' ? 'todo' : 'done')}>
+                <button style={{ width: 20, height: 20, borderRadius: '50%', border: `2px solid ${task.status === 'done' ? '#15803D' : '#D8D2C8'}`, background: task.status === 'done' ? '#15803D' : WH, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} onClick={() => moveTask(task.id, task.status === 'done' ? 'todo' : 'done')}>
                   {task.status === 'done' && <span style={{ color: WH, fontSize: 9, fontWeight: 900 }}>✓</span>}
                 </button>
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: task.status === 'done' ? '#9CA3AF' : BL, textDecoration: task.status === 'done' ? 'line-through' : 'none' }}>{task.title}</p>
-                  <p style={{ fontSize: 12, color: overdue ? '#DC2626' : '#9CA3AF' }}>{task.assignee ? `${task.assignee} · ` : ''}{task.dueDate ? (overdue ? '⚠ Overdue · ' : '') + formatDate(task.dueDate) : ''}</p>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: task.status === 'done' ? '#77716A' : BL, textDecoration: task.status === 'done' ? 'line-through' : 'none' }}>{task.title}</p>
+                  <p style={{ fontSize: 12, color: overdue ? '#DC2626' : '#77716A' }}>{task.assignee ? `${task.assignee} · ` : ''}{task.dueDate ? (overdue ? '⚠ Overdue · ' : '') + formatDate(task.dueDate) : ''}</p>
                 </div>
                 <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 100, background: status.bg, color: status.color, whiteSpace: 'nowrap' }}>{status.label}</span>
                 <button style={{ ...s.smallBtn, fontSize: 11 }} onClick={() => { setEditingTaskIdx(taskIdx); setEditTaskDraft({ ...task }); setActiveView('kanban'); }}>Edit</button>
@@ -624,9 +624,9 @@ function TasksTab({ data, onSave }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>
             <h3 style={{ fontSize: 17, fontWeight: 800, color: BL, marginBottom: 2 }}>Milestones</h3>
-            <p style={{ fontSize: 13, color: '#6B7280' }}>Key checkpoints that show the project is on track.</p>
+            <p style={{ fontSize: 13, color: '#6B665F' }}>Key checkpoints that show the project is on track.</p>
           </div>
-          <button style={{ padding: '7px 14px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setShowAddMilestone(p => !p)}>+ Add Milestone</button>
+          <button style={{ padding: '7px 14px', background: BLUE, color: WH, border: 'none', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setShowAddMilestone(p => !p)}>+ Add Milestone</button>
         </div>
 
         {showAddMilestone && (
@@ -634,7 +634,7 @@ function TasksTab({ data, onSave }) {
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <input style={{ ...s.input, flex: 2, marginBottom: 0 }} placeholder="e.g. Launch beta, Complete training" value={newMilestone.title} onChange={e => setNewMilestone(p => ({ ...p, title: e.target.value }))} onKeyDown={e => e.key === 'Enter' && addMilestone()} />
               <input style={{ ...s.input, flex: 1, marginBottom: 0 }} type="date" value={newMilestone.date} onChange={e => setNewMilestone(p => ({ ...p, date: e.target.value }))} />
-              <button style={{ padding: '8px 16px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={addMilestone}>Add</button>
+              <button style={{ padding: '8px 16px', background: BLUE, color: WH, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={addMilestone}>Add</button>
               <button style={s.smallBtn} onClick={() => setShowAddMilestone(false)}>Cancel</button>
             </div>
           </div>
@@ -643,7 +643,7 @@ function TasksTab({ data, onSave }) {
         {milestones.length === 0 && <p style={s.emptyText}>No milestones yet. Add one above.</p>}
         {milestones.map((m, i) => {
           const overdue = m.status !== 'done' && isOverdue(m.date);
-          const sc = { done: { label: 'Done', color: '#15803D', bg: '#F0FDF4', next: 'Mark Pending' }, in_progress: { label: 'In Progress', color: '#D97706', bg: '#FFFBEB', next: 'Mark Done' }, pending: { label: 'Pending', color: BLUE, bg: '#EFF6FF', next: 'Start' } };
+          const sc = { done: { label: 'Done', color: '#15803D', bg: '#F0FDF4', next: 'Mark Pending' }, in_progress: { label: 'In Progress', color: '#D97706', bg: '#FFFBEB', next: 'Mark Done' }, pending: { label: 'Pending', color: BLUE, bg: '#E8F1F6', next: 'Start' } };
           const status = sc[m.status] || sc.pending;
 
           if (editingMilestoneIdx === i) {
@@ -667,8 +667,8 @@ function TasksTab({ data, onSave }) {
           return (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px', background: WH, borderRadius: 10, border: `1px solid ${overdue ? '#FECACA' : RULE}`, marginBottom: 8, flexWrap: 'wrap' }}>
               <div style={{ flex: 1, minWidth: 120 }}>
-                <p style={{ fontSize: 14, fontWeight: 600, color: m.status === 'done' ? '#9CA3AF' : BL, textDecoration: m.status === 'done' ? 'line-through' : 'none' }}>{m.title}</p>
-                {m.date && <p style={{ fontSize: 12, color: overdue ? '#DC2626' : '#9CA3AF', fontWeight: overdue ? 700 : 400 }}>{overdue ? '⚠ Overdue · ' : ''}{formatDate(m.date)}</p>}
+                <p style={{ fontSize: 14, fontWeight: 600, color: m.status === 'done' ? '#77716A' : BL, textDecoration: m.status === 'done' ? 'line-through' : 'none' }}>{m.title}</p>
+                {m.date && <p style={{ fontSize: 12, color: overdue ? '#DC2626' : '#77716A', fontWeight: overdue ? 700 : 400 }}>{overdue ? '⚠ Overdue · ' : ''}{formatDate(m.date)}</p>}
               </div>
               <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 100, background: status.bg, color: status.color }}>{status.label}</span>
               <button style={s.smallBtn} onClick={() => cycleMilestone(i)}>{status.next}</button>
@@ -729,7 +729,7 @@ function RisksTab({ data, onSave }) {
 
       <div style={{ marginBottom: 24 }}>
         <h3 style={{ fontSize: 15, fontWeight: 800, color: BL, marginBottom: 4 }}>What could go wrong?</h3>
-        <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 14 }}>Add anything that could delay, derail or affect this project.</p>
+        <p style={{ fontSize: 13, color: '#6B665F', marginBottom: 14 }}>Add anything that could delay, derail or affect this project.</p>
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
           <input style={{ ...s.input, flex: 1, marginBottom: 0, minWidth: 180 }} placeholder="Describe a risk..." value={newRisk} onChange={e => setNewRisk(e.target.value)} onKeyDown={e => e.key === 'Enter' && addRisk()} />
           <select style={{ ...s.input, marginBottom: 0, width: 120 }} value={newLevel} onChange={e => setNewLevel(e.target.value)}>
@@ -737,7 +737,7 @@ function RisksTab({ data, onSave }) {
             <option value="medium">Medium</option>
             <option value="high">High</option>
           </select>
-          <button style={{ padding: '11px 20px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={addRisk}>Add</button>
+          <button style={{ padding: '11px 20px', background: BLUE, color: WH, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={addRisk}>Add</button>
         </div>
 
         {risks.length === 0 && <p style={s.emptyText}>No risks added yet.</p>}
@@ -746,7 +746,7 @@ function RisksTab({ data, onSave }) {
           return (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px', background: r.status === 'mitigated' ? GREY : WH, borderRadius: 10, border: `1px solid ${RULE}`, marginBottom: 8, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 100, background: lc.bg, color: lc.color, flexShrink: 0 }}>{lc.label}</span>
-              <p style={{ flex: 1, fontSize: 14, fontWeight: 500, color: r.status === 'mitigated' ? '#9CA3AF' : BL, textDecoration: r.status === 'mitigated' ? 'line-through' : 'none', minWidth: 100 }}>{r.title}</p>
+              <p style={{ flex: 1, fontSize: 14, fontWeight: 500, color: r.status === 'mitigated' ? '#77716A' : BL, textDecoration: r.status === 'mitigated' ? 'line-through' : 'none', minWidth: 100 }}>{r.title}</p>
               <button style={s.smallBtn} onClick={() => toggleRisk(i)}>{r.status === 'mitigated' ? 'Reopen' : 'Mark Handled'}</button>
               <button style={{ ...s.miniBtn, color: '#DC2626', borderColor: '#FECACA' }} onClick={() => deleteRisk(i)}>✕</button>
             </div>
@@ -757,7 +757,7 @@ function RisksTab({ data, onSave }) {
       {/* Compliance */}
       <div style={{ borderTop: `2px solid ${RULE}`, paddingTop: 20 }}>
         <h3 style={{ fontSize: 15, fontWeight: 800, color: BL, marginBottom: 4 }}>Rules and Compliance</h3>
-        <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 16 }}>Legal, regulatory or internal rules this project must follow.</p>
+        <p style={{ fontSize: 13, color: '#6B665F', marginBottom: 16 }}>Legal, regulatory or internal rules this project must follow.</p>
 
         {data.compliance?.flags?.length > 0 && (
           <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '12px 14px', marginBottom: 16 }}>
@@ -769,11 +769,11 @@ function RisksTab({ data, onSave }) {
         <p style={{ fontSize: 13, fontWeight: 700, color: BL, marginBottom: 8 }}>Internal rules</p>
         <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
           <input style={{ ...s.input, flex: 1, marginBottom: 0 }} placeholder="e.g. All outputs must be approved by the director" value={newInternal} onChange={e => setNewInternal(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCompliance('internal', newInternal, setNewInternal)} />
-          <button style={{ padding: '11px 16px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => addCompliance('internal', newInternal, setNewInternal)}>Add</button>
+          <button style={{ padding: '11px 16px', background: BLUE, color: WH, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => addCompliance('internal', newInternal, setNewInternal)}>Add</button>
         </div>
         {(compliance.internal || []).map((item, i) => (
           <div key={i} style={{ display: 'flex', gap: 8, padding: '8px 0', borderBottom: `1px solid ${RULE}`, alignItems: 'center' }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#7C3AED', flexShrink: 0 }} />
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#35709A', flexShrink: 0 }} />
             <span style={{ flex: 1, fontSize: 13, color: BL }}>{item}</span>
             <button style={s.removeBtn} onClick={() => removeCompliance('internal', i)}>✕</button>
           </div>
@@ -782,7 +782,7 @@ function RisksTab({ data, onSave }) {
         <p style={{ fontSize: 13, fontWeight: 700, color: BL, marginBottom: 8, marginTop: 16 }}>External regulations</p>
         <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
           <input style={{ ...s.input, flex: 1, marginBottom: 0 }} placeholder="e.g. Must comply with NDPR data protection" value={newExternal} onChange={e => setNewExternal(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCompliance('external', newExternal, setNewExternal)} />
-          <button style={{ padding: '11px 16px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => addCompliance('external', newExternal, setNewExternal)}>Add</button>
+          <button style={{ padding: '11px 16px', background: BLUE, color: WH, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => addCompliance('external', newExternal, setNewExternal)}>Add</button>
         </div>
         {(compliance.external || []).map((item, i) => (
           <div key={i} style={{ display: 'flex', gap: 8, padding: '8px 0', borderBottom: `1px solid ${RULE}`, alignItems: 'center' }}>
@@ -808,14 +808,14 @@ function PeopleTab({ data, onSave, project, acceptedMembers }) {
       {/* Team */}
       <div style={{ marginBottom: 28 }}>
         <h3 style={{ fontSize: 15, fontWeight: 800, color: BL, marginBottom: 4 }}>Your Team</h3>
-        <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 16 }}>Manage who is working on this project and invite new members.</p>
+        <p style={{ fontSize: 13, color: '#6B665F', marginBottom: 16 }}>Manage who is working on this project and invite new members.</p>
         <TeamTab project={data} currentUser={project._currentUser} onSave={onSave} />
       </div>
 
       {/* Stakeholders */}
       <div style={{ borderTop: `2px solid ${RULE}`, paddingTop: 20, marginBottom: 28 }}>
         <h3 style={{ fontSize: 15, fontWeight: 800, color: BL, marginBottom: 4 }}>People With an Interest</h3>
-        <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 16 }}>Anyone outside the team who cares about this project — funders, leadership, beneficiaries.</p>
+        <p style={{ fontSize: 13, color: '#6B665F', marginBottom: 16 }}>Anyone outside the team who cares about this project — funders, leadership, beneficiaries.</p>
         <StakeholdersList data={data} onSave={onSave} />
       </div>
 
@@ -824,7 +824,7 @@ function PeopleTab({ data, onSave, project, acceptedMembers }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <div>
             <h3 style={{ fontSize: 15, fontWeight: 800, color: BL, marginBottom: 2 }}>How we share updates</h3>
-            <p style={{ fontSize: 13, color: '#6B7280' }}>Who gets updates, how often, and through what channel.</p>
+            <p style={{ fontSize: 13, color: '#6B665F' }}>Who gets updates, how often, and through what channel.</p>
           </div>
           {!editingComms && <button style={s.smallBtn} onClick={() => setEditingComms(true)}>Edit</button>}
           {editingComms && (
@@ -834,14 +834,14 @@ function PeopleTab({ data, onSave, project, acceptedMembers }) {
             </div>
           )}
         </div>
-        {!editingComms && <p style={{ fontSize: 14, color: planning.communications ? BL : '#9CA3AF', lineHeight: 1.7 }}>{planning.communications || 'Nothing set yet. Click Edit to add how the team stays in touch.'}</p>}
+        {!editingComms && <p style={{ fontSize: 14, color: planning.communications ? BL : '#77716A', lineHeight: 1.7 }}>{planning.communications || 'Nothing set yet. Click Edit to add how the team stays in touch.'}</p>}
         {editingComms && <textarea style={s.textarea} rows={4} placeholder="e.g. Weekly WhatsApp updates every Monday. Monthly report to funder. Daily standup at 9am via Zoom." value={commsDraft} onChange={e => setCommsDraft(e.target.value)} />}
       </div>
 
       {/* Reminders */}
       <div style={{ borderTop: `2px solid ${RULE}`, paddingTop: 20 }}>
         <h3 style={{ fontSize: 15, fontWeight: 800, color: BL, marginBottom: 4 }}>Reminders</h3>
-        <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 16 }}>Set reminders for important dates and checkpoints.</p>
+        <p style={{ fontSize: 13, color: '#6B665F', marginBottom: 16 }}>Set reminders for important dates and checkpoints.</p>
         <RemindersPanel project={data} onUpdate={(updated) => { onSave({}); }} />
       </div>
     </div>
@@ -882,7 +882,7 @@ function StakeholdersList({ data, onSave }) {
             <input style={{ ...s.input, flex: 1, marginBottom: 0 }} placeholder="How to communicate with them" value={comms} onChange={e => setComms(e.target.value)} />
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button style={{ padding: '8px 16px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={add}>Add</button>
+            <button style={{ padding: '8px 16px', background: BLUE, color: WH, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={add}>Add</button>
             <button style={s.smallBtn} onClick={() => setShowAdd(false)}>Cancel</button>
           </div>
         </div>
@@ -896,7 +896,7 @@ function StakeholdersList({ data, onSave }) {
             <div style={{ width: 34, height: 34, borderRadius: '50%', background: BLUE, color: WH, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{(st.name[0] || '?').toUpperCase()}</div>
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: 14, fontWeight: 700, color: BL }}>{st.name}</p>
-              <p style={{ fontSize: 12, color: '#6B7280' }}>{st.role}{st.comms ? ` · ${st.comms}` : ''}</p>
+              <p style={{ fontSize: 12, color: '#6B665F' }}>{st.role}{st.comms ? ` · ${st.comms}` : ''}</p>
             </div>
             <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 100, background: c.bg, color: c.color }}>{st.influence}</span>
             <button style={s.removeBtn} onClick={() => remove(i)}>✕</button>
@@ -1052,7 +1052,7 @@ function DocumentsTab({ data, history, onSave, project }) {
     setGeneratingMap(false);
   };
 
-  const buildHTML = (html, title) => `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title><style>body{font-family:Georgia,serif;max-width:800px;margin:40px auto;padding:0 40px;color:#1a1a1a;line-height:1.7;}h1{font-size:24px;}h2{font-size:16px;color:#0284C7;text-transform:uppercase;border-bottom:1px solid #e5e7eb;padding-bottom:6px;margin-top:28px;}p{font-size:14px;margin-bottom:12px;}@media print{body{margin:0;padding:20px;}}</style></head><body>${html}<p style="margin-top:40px;font-size:12px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:16px;">Generated by PM Buddy · ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p></body></html>`;
+  const buildHTML = (html, title) => `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title><style>body{font-family:Georgia,serif;max-width:800px;margin:40px auto;padding:0 40px;color:#1a1a1a;line-height:1.7;}h1{font-size:24px;}h2{font-size:16px;color:#35709A;text-transform:uppercase;border-bottom:1px solid #E7E2DA;padding-bottom:6px;margin-top:28px;}p{font-size:14px;margin-bottom:12px;}@media print{body{margin:0;padding:20px;}}</style></head><body>${html}<p style="margin-top:40px;font-size:12px;color:#77716A;border-top:1px solid #E7E2DA;padding-top:16px;">Generated by PM Buddy · ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p></body></html>`;
   const downloadPDF = (html, title) => { const w = window.open('', '_blank'); w.document.write(buildHTML(html, title)); w.document.close(); w.focus(); setTimeout(() => w.print(), 500); };
   const downloadWord = (html, title) => { const blob = new Blob([buildHTML(html, title)], { type: 'application/msword' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${title.replace(/\s+/g, '_')}.doc`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); };
   const deleteDoc = async (id) => { await supabase.from('documents').delete().eq('id', id); fetchDocs(); };
@@ -1061,7 +1061,7 @@ function DocumentsTab({ data, history, onSave, project }) {
     <div>
       <div style={{ display: 'flex', gap: 6, marginBottom: 24, flexWrap: 'wrap' }}>
         {SECTIONS.map(sec => (
-          <button key={sec.id} style={{ padding: '7px 14px', background: section === sec.id ? BL : WH, color: section === sec.id ? WH : '#374151', border: `1px solid ${section === sec.id ? BL : RULE}`, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setSection(sec.id)}>{sec.label}</button>
+          <button key={sec.id} style={{ padding: '7px 14px', background: section === sec.id ? 'var(--color-primary)' : WH, color: section === sec.id ? WH : '#45413B', border: `1px solid ${section === sec.id ? BL : RULE}`, borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setSection(sec.id)}>{sec.label}</button>
         ))}
       </div>
 
@@ -1069,25 +1069,25 @@ function DocumentsTab({ data, history, onSave, project }) {
         <div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
             {[{ id: 'progress', label: 'Progress Update', desc: 'What has been achieved and what comes next.' }, { id: 'donor', label: 'Funder or Grant Report', desc: 'Results against funded objectives. For donors or sponsors.' }].map(rt => (
-              <button key={rt.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 16px', background: reportType === rt.id ? '#EFF6FF' : WH, border: `1.5px solid ${reportType === rt.id ? BLUE : RULE}`, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }} onClick={() => { setReportType(rt.id); setReportContent(''); }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: reportType === rt.id ? BLUE : '#D1D5DB', flexShrink: 0, marginTop: 5 }} />
-                <div><p style={{ fontSize: 14, fontWeight: 700, color: reportType === rt.id ? BLUE : BL, marginBottom: 2 }}>{rt.label}</p><p style={{ fontSize: 13, color: '#6B7280' }}>{rt.desc}</p></div>
+              <button key={rt.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 16px', background: reportType === rt.id ? '#E8F1F6' : WH, border: `1.5px solid ${reportType === rt.id ? BLUE : RULE}`, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }} onClick={() => { setReportType(rt.id); setReportContent(''); }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: reportType === rt.id ? BLUE : '#D8D2C8', flexShrink: 0, marginTop: 5 }} />
+                <div><p style={{ fontSize: 14, fontWeight: 700, color: reportType === rt.id ? BLUE : BL, marginBottom: 2 }}>{rt.label}</p><p style={{ fontSize: 13, color: '#6B665F' }}>{rt.desc}</p></div>
               </button>
             ))}
           </div>
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>Extra context (optional)</label>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#45413B', marginBottom: 6 }}>Extra context (optional)</label>
             <textarea style={{ ...s.textarea, minHeight: 60 }} rows={2} placeholder="e.g. Reporting period April to June." value={additionalContext} onChange={e => setAdditionalContext(e.target.value)} />
           </div>
-          <button style={{ padding: '12px 24px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: generating ? 0.6 : 1 }} onClick={generateReport} disabled={generating}>{generating ? 'Generating...' : '✦ Generate Report'}</button>
+          <button style={{ padding: '12px 24px', background: BLUE, color: WH, border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: generating ? 0.6 : 1 }} onClick={generateReport} disabled={generating}>{generating ? 'Generating...' : '✦ Generate Report'}</button>
           {generating && <div style={{ marginTop: 20 }}><AiLoading kind="write" title="Writing your document" /></div>}
           {reportContent && !generating && (
             <div style={{ marginTop: 20 }}>
               <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-                <button style={{ padding: '8px 16px', background: WH, color: BLUE, border: `1.5px solid ${BLUE}`, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadWord(reportContent, `${data.name} Report`)}>⬇ Word</button>
-                <button style={{ padding: '8px 16px', background: BL, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadPDF(reportContent, `${data.name} Report`)}>⬇ PDF</button>
+                <button style={{ padding: '8px 16px', background: WH, color: BLUE, border: `1.5px solid ${BLUE}`, borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadWord(reportContent, `${data.name} Report`)}>⬇ Word</button>
+                <button style={{ padding: '8px 16px', background: 'var(--color-primary)', color: WH, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadPDF(reportContent, `${data.name} Report`)}>⬇ PDF</button>
               </div>
-              <div style={{ background: WH, border: `1px solid ${RULE}`, borderRadius: 12, padding: '28px 32px', fontSize: 14, lineHeight: 1.8, color: '#374151', fontFamily: 'Georgia, serif', maxHeight: '55vh', overflowY: 'auto' }} dangerouslySetInnerHTML={{ __html: reportContent }} />
+              <div style={{ background: WH, border: `1px solid ${RULE}`, borderRadius: 16, padding: '28px 32px', fontSize: 14, lineHeight: 1.8, color: '#45413B', fontFamily: 'Georgia, serif', maxHeight: '55vh', overflowY: 'auto' }} dangerouslySetInnerHTML={{ __html: reportContent }} />
             </div>
           )}
         </div>
@@ -1095,19 +1095,19 @@ function DocumentsTab({ data, history, onSave, project }) {
 
       {section === 'health' && (
         <div>
-          <p style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.6, marginBottom: 16 }}>PM Buddy reads your project data and gives you an honest score.</p>
-          <button style={{ padding: '10px 20px', background: BL, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 20 }} onClick={runHealthCheck} disabled={aiReportLoading}>{aiReportLoading ? 'Checking...' : aiReport ? 'Run Again' : 'Run Health Check'}</button>
-          {aiReportError && <div style={{ padding: '12px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, marginBottom: 16 }}><p style={{ fontSize: 13, color: '#DC2626' }}>{aiReportError}</p></div>}
+          <p style={{ fontSize: 14, color: '#6B665F', lineHeight: 1.6, marginBottom: 16 }}>PM Buddy reads your project data and gives you an honest score.</p>
+          <button style={{ padding: '10px 20px', background: 'var(--color-primary)', color: WH, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 20 }} onClick={runHealthCheck} disabled={aiReportLoading}>{aiReportLoading ? 'Checking...' : aiReport ? 'Run Again' : 'Run Health Check'}</button>
+          {aiReportError && <div style={{ padding: '12px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, marginBottom: 16 }}><p style={{ fontSize: 13, color: '#DC2626' }}>{aiReportError}</p></div>}
           {aiReportLoading && <AiLoading kind="think" title="Running your health check" />}
           {aiReport && !aiReportLoading && (
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
                 <span style={{ fontSize: 52, fontWeight: 900, color: aiReport.score >= 70 ? '#15803D' : aiReport.score >= 45 ? BLUE : '#DC2626', letterSpacing: '-2px' }}>{aiReport.score}</span>
-                <div><p style={{ fontSize: 13, color: '#9CA3AF' }}>/100</p><span style={{ fontSize: 13, fontWeight: 700, padding: '3px 10px', borderRadius: 100, background: aiReport.score >= 70 ? '#F0FDF4' : aiReport.score >= 45 ? '#FFFBEB' : '#FEF2F2', color: aiReport.score >= 70 ? '#15803D' : aiReport.score >= 45 ? '#D97706' : '#DC2626' }}>{aiReport.verdict}</span></div>
+                <div><p style={{ fontSize: 13, color: '#77716A' }}>/100</p><span style={{ fontSize: 13, fontWeight: 700, padding: '3px 10px', borderRadius: 100, background: aiReport.score >= 70 ? '#F0FDF4' : aiReport.score >= 45 ? '#FFFBEB' : '#FEF2F2', color: aiReport.score >= 70 ? '#15803D' : aiReport.score >= 45 ? '#D97706' : '#DC2626' }}>{aiReport.verdict}</span></div>
               </div>
-              {aiReport.strengths?.length > 0 && <div style={{ marginBottom: 16 }}><p style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', marginBottom: 10 }}>What is working</p>{aiReport.strengths.map((item, i) => <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 10, paddingBottom: 10, borderBottom: `1px solid ${RULE}` }}><div style={{ width: 6, height: 6, borderRadius: '50%', background: '#15803D', flexShrink: 0, marginTop: 6 }} /><div><p style={{ fontSize: 13, fontWeight: 600, color: BL, marginBottom: 2 }}>{item.title}</p>{item.detail && <p style={{ fontSize: 13, color: '#374151' }}>{item.detail}</p>}</div></div>)}</div>}
-              {aiReport.gaps?.length > 0 && <div style={{ marginBottom: 16 }}><p style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', marginBottom: 10 }}>What needs attention</p>{aiReport.gaps.map((item, i) => <div key={i} style={{ marginBottom: 10, padding: '12px 14px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8 }}><p style={{ fontSize: 13, fontWeight: 600, color: BL, marginBottom: 4 }}>{item.title}</p>{item.why && <p style={{ fontSize: 13, color: '#92400E', marginBottom: 6 }}><strong>Why it matters:</strong> {item.why}</p>}{item.howToFix && <p style={{ fontSize: 13, color: '#374151' }}><strong>How to fix it:</strong> {item.howToFix}</p>}</div>)}</div>}
-              {aiReport.recommendation && <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8, padding: '12px 14px' }}><p style={{ fontSize: 11, fontWeight: 700, color: BLUE, marginBottom: 6 }}>TOP RECOMMENDATION</p><p style={{ fontSize: 13, color: '#1E40AF', lineHeight: 1.65 }}>{aiReport.recommendation}</p></div>}
+              {aiReport.strengths?.length > 0 && <div style={{ marginBottom: 16 }}><p style={{ fontSize: 11, fontWeight: 700, color: '#77716A', textTransform: 'uppercase', marginBottom: 10 }}>What is working</p>{aiReport.strengths.map((item, i) => <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 10, paddingBottom: 10, borderBottom: `1px solid ${RULE}` }}><div style={{ width: 6, height: 6, borderRadius: '50%', background: '#15803D', flexShrink: 0, marginTop: 6 }} /><div><p style={{ fontSize: 13, fontWeight: 600, color: BL, marginBottom: 2 }}>{item.title}</p>{item.detail && <p style={{ fontSize: 13, color: '#45413B' }}>{item.detail}</p>}</div></div>)}</div>}
+              {aiReport.gaps?.length > 0 && <div style={{ marginBottom: 16 }}><p style={{ fontSize: 11, fontWeight: 700, color: '#77716A', textTransform: 'uppercase', marginBottom: 10 }}>What needs attention</p>{aiReport.gaps.map((item, i) => <div key={i} style={{ marginBottom: 10, padding: '12px 14px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10 }}><p style={{ fontSize: 13, fontWeight: 600, color: BL, marginBottom: 4 }}>{item.title}</p>{item.why && <p style={{ fontSize: 13, color: '#92400E', marginBottom: 6 }}><strong>Why it matters:</strong> {item.why}</p>}{item.howToFix && <p style={{ fontSize: 13, color: '#45413B' }}><strong>How to fix it:</strong> {item.howToFix}</p>}</div>)}</div>}
+              {aiReport.recommendation && <div style={{ background: '#E8F1F6', border: '1px solid #BCD6E5', borderRadius: 10, padding: '12px 14px' }}><p style={{ fontSize: 11, fontWeight: 700, color: BLUE, marginBottom: 6 }}>TOP RECOMMENDATION</p><p style={{ fontSize: 13, color: '#1E40AF', lineHeight: 1.65 }}>{aiReport.recommendation}</p></div>}
             </div>
           )}
         </div>
@@ -1115,16 +1115,16 @@ function DocumentsTab({ data, history, onSave, project }) {
 
       {section === 'pm_plan' && (
         <div>
-          <p style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.7, marginBottom: 16 }}>Full project management plan generated from your live project data.</p>
-          <button style={{ padding: '12px 24px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: docGenerating === 'pm' ? 0.6 : 1, marginBottom: 16 }} onClick={() => { setDocError(''); generateDoc('pm'); }} disabled={!!docGenerating}>{docGenerating === 'pm' ? 'Writing your plan...' : 'Generate PM Plan'}</button>
-          {docError && <div style={{ padding: '12px 14px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, marginBottom: 16 }}><p style={{ fontSize: 13, color: '#DC2626' }}>{docError}</p></div>}
+          <p style={{ fontSize: 14, color: '#6B665F', lineHeight: 1.7, marginBottom: 16 }}>Full project management plan generated from your live project data.</p>
+          <button style={{ padding: '12px 24px', background: BLUE, color: WH, border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: docGenerating === 'pm' ? 0.6 : 1, marginBottom: 16 }} onClick={() => { setDocError(''); generateDoc('pm'); }} disabled={!!docGenerating}>{docGenerating === 'pm' ? 'Writing your plan...' : 'Generate PM Plan'}</button>
+          {docError && <div style={{ padding: '12px 14px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, marginBottom: 16 }}><p style={{ fontSize: 13, color: '#DC2626' }}>{docError}</p></div>}
           {docPreview && docPreviewType === 'pm' && (
             <div>
               <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-                <button style={{ padding: '8px 16px', background: WH, color: BLUE, border: `1.5px solid ${BLUE}`, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadWord(docPreview, `${data.name} PM Plan`)}>⬇ Word</button>
-                <button style={{ padding: '8px 16px', background: BL, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadPDF(docPreview, `${data.name} PM Plan`)}>⬇ PDF</button>
+                <button style={{ padding: '8px 16px', background: WH, color: BLUE, border: `1.5px solid ${BLUE}`, borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadWord(docPreview, `${data.name} PM Plan`)}>⬇ Word</button>
+                <button style={{ padding: '8px 16px', background: 'var(--color-primary)', color: WH, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadPDF(docPreview, `${data.name} PM Plan`)}>⬇ PDF</button>
               </div>
-              <div style={{ background: WH, border: `1px solid ${RULE}`, borderRadius: 12, padding: '28px 32px', fontSize: 14, lineHeight: 1.8, color: '#374151', fontFamily: 'Georgia, serif', maxHeight: '55vh', overflowY: 'auto' }} dangerouslySetInnerHTML={{ __html: docPreview }} />
+              <div style={{ background: WH, border: `1px solid ${RULE}`, borderRadius: 16, padding: '28px 32px', fontSize: 14, lineHeight: 1.8, color: '#45413B', fontFamily: 'Georgia, serif', maxHeight: '55vh', overflowY: 'auto' }} dangerouslySetInnerHTML={{ __html: docPreview }} />
             </div>
           )}
         </div>
@@ -1132,30 +1132,30 @@ function DocumentsTab({ data, history, onSave, project }) {
 
       {section === 'history' && (
         <div>
-          <div style={{ background: BL, borderRadius: 12, padding: '16px 20px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-            <div><p style={{ fontSize: 14, fontWeight: 700, color: WH, marginBottom: 2 }}>Progress Map</p><p style={{ fontSize: 13, color: '#6B7280' }}>PM Buddy reads your history and tells you where things stand.</p></div>
-            <button style={{ padding: '9px 18px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: generatingMap ? 0.6 : 1 }} onClick={generateProgressMap} disabled={generatingMap}>{generatingMap ? 'Generating...' : '✦ Generate'}</button>
+          <div style={{ background: 'var(--color-primary-tint)', border: '1px solid var(--color-primary-border)', borderRadius: 16, padding: '16px 20px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+            <div><p style={{ fontSize: 14, fontWeight: 700, color: BL, marginBottom: 2 }}>Progress Map</p><p style={{ fontSize: 13, color: '#6B665F' }}>PM Buddy reads your history and tells you where things stand.</p></div>
+            <button style={{ padding: '9px 18px', background: BLUE, color: WH, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: generatingMap ? 0.6 : 1 }} onClick={generateProgressMap} disabled={generatingMap}>{generatingMap ? 'Generating...' : '✦ Generate'}</button>
           </div>
           {generatingMap && <div style={{ marginBottom: 20 }}><AiLoading compact kind="think" /></div>}
           {showProgressMap && progressMap && (
-            <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 12, padding: '20px', marginBottom: 20 }}>
-              <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.85, whiteSpace: 'pre-wrap' }}>{progressMap}</div>
-              <button style={{ marginTop: 12, background: 'none', border: 'none', color: '#9CA3AF', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setShowProgressMap(false)}>Close</button>
+            <div style={{ background: '#E8F1F6', border: '1px solid #BCD6E5', borderRadius: 16, padding: '20px', marginBottom: 20 }}>
+              <div style={{ fontSize: 14, color: '#45413B', lineHeight: 1.85, whiteSpace: 'pre-wrap' }}>{progressMap}</div>
+              <button style={{ marginTop: 12, background: 'none', border: 'none', color: '#77716A', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setShowProgressMap(false)}>Close</button>
             </div>
           )}
-          <p style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>Activity Log</p>
+          <p style={{ fontSize: 11, fontWeight: 700, color: '#77716A', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>Activity Log</p>
           {(history || []).length === 0 && <p style={s.emptyText}>No recorded history yet.</p>}
           {(history || []).slice().reverse().map((entry, i) => (
             <div key={i} style={{ display: 'flex', gap: 12, padding: '12px 0', borderBottom: `1px solid ${RULE}`, alignItems: 'flex-start' }}>
-              <div style={{ width: 28, height: 28, borderRadius: 6, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: BLUE, flexShrink: 0, fontWeight: 700 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 8, background: '#E8F1F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: BLUE, flexShrink: 0, fontWeight: 700 }}>
                 {entry.type === 'goal_updated' ? '◈' : entry.type === 'milestone_done' ? '✓' : entry.type === 'risk_added' ? '⚠' : '·'}
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                   <p style={{ fontSize: 13, fontWeight: 600, color: BL }}>{entry.label}</p>
-                  <p style={{ fontSize: 11, color: '#9CA3AF', flexShrink: 0 }}>{entry.timestamp ? new Date(entry.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}</p>
+                  <p style={{ fontSize: 11, color: '#77716A', flexShrink: 0 }}>{entry.timestamp ? new Date(entry.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}</p>
                 </div>
-                {entry.detail && <p style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{entry.detail}</p>}
+                {entry.detail && <p style={{ fontSize: 12, color: '#6B665F', marginTop: 2 }}>{entry.detail}</p>}
               </div>
             </div>
           ))}
@@ -1165,18 +1165,18 @@ function DocumentsTab({ data, history, onSave, project }) {
       {section === 'saved' && (
         <div>
           {loadingDocs && <p style={s.emptyText}>Loading...</p>}
-          {!loadingDocs && savedDocs.length === 0 && <div style={{ textAlign: 'center', padding: '40px 0' }}><p style={{ fontSize: 15, fontWeight: 600, color: BL, marginBottom: 6 }}>No saved documents yet</p><p style={{ fontSize: 13, color: '#9CA3AF' }}>Generate a report or PM Plan and it will appear here.</p></div>}
+          {!loadingDocs && savedDocs.length === 0 && <div style={{ textAlign: 'center', padding: '40px 0' }}><p style={{ fontSize: 15, fontWeight: 600, color: BL, marginBottom: 6 }}>No saved documents yet</p><p style={{ fontSize: 13, color: '#77716A' }}>Generate a report or PM Plan and it will appear here.</p></div>}
           {!loadingDocs && savedDocs.map(doc => (
             <div key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: `1px solid ${RULE}`, flexWrap: 'wrap', gap: 10 }}>
               <div style={{ flex: 1 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 100, background: '#EFF6FF', color: BLUE, display: 'inline-block', marginBottom: 3 }}>{doc.type === 'report' ? 'Report' : doc.type === 'pm' ? 'PM Plan' : 'Doc'}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 100, background: '#E8F1F6', color: BLUE, display: 'inline-block', marginBottom: 3 }}>{doc.type === 'report' ? 'Report' : doc.type === 'pm' ? 'PM Plan' : 'Doc'}</span>
                 <p style={{ fontSize: 14, fontWeight: 600, color: BL, marginBottom: 1 }}>{doc.title}</p>
-                <p style={{ fontSize: 11, color: '#9CA3AF' }}>{new Date(doc.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                <p style={{ fontSize: 11, color: '#77716A' }}>{new Date(doc.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
                 <button style={s.smallBtn} onClick={() => setViewingDoc(doc)}>Open</button>
                 <button style={s.smallBtn} onClick={() => downloadWord(doc.content, doc.title)}>Word</button>
-                <button style={{ ...s.smallBtn, background: BL, color: WH, borderColor: BL }} onClick={() => downloadPDF(doc.content, doc.title)}>PDF</button>
+                <button style={{ ...s.smallBtn, background: 'var(--color-primary)', color: WH, borderColor: 'var(--color-primary)' }} onClick={() => downloadPDF(doc.content, doc.title)}>PDF</button>
                 <button style={{ ...s.smallBtn, color: '#DC2626', borderColor: '#FECACA' }} onClick={() => deleteDoc(doc.id)}>Delete</button>
               </div>
             </div>
@@ -1190,12 +1190,12 @@ function DocumentsTab({ data, history, onSave, project }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: `1px solid ${RULE}` }}>
               <p style={{ fontSize: 15, fontWeight: 700, color: BL }}>{viewingDoc.title}</p>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button style={{ padding: '7px 14px', background: WH, color: BLUE, border: `1px solid ${BLUE}`, borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadWord(viewingDoc.content, viewingDoc.title)}>⬇ Word</button>
-                <button style={{ padding: '7px 14px', background: BL, color: WH, border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadPDF(viewingDoc.content, viewingDoc.title)}>⬇ PDF</button>
-                <button style={{ padding: '7px 14px', background: WH, color: '#6B7280', border: `1px solid ${RULE}`, borderRadius: 6, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setViewingDoc(null)}>Close</button>
+                <button style={{ padding: '7px 14px', background: WH, color: BLUE, border: `1px solid ${BLUE}`, borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadWord(viewingDoc.content, viewingDoc.title)}>⬇ Word</button>
+                <button style={{ padding: '7px 14px', background: 'var(--color-primary)', color: WH, border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadPDF(viewingDoc.content, viewingDoc.title)}>⬇ PDF</button>
+                <button style={{ padding: '7px 14px', background: WH, color: '#6B665F', border: `1px solid ${RULE}`, borderRadius: 8, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setViewingDoc(null)}>Close</button>
               </div>
             </div>
-            <div style={{ padding: '28px 36px', fontSize: 14, lineHeight: 1.8, color: '#374151', fontFamily: 'Georgia, serif', maxHeight: '70vh', overflowY: 'auto' }} dangerouslySetInnerHTML={{ __html: viewingDoc.content }} />
+            <div style={{ padding: '28px 36px', fontSize: 14, lineHeight: 1.8, color: '#45413B', fontFamily: 'Georgia, serif', maxHeight: '70vh', overflowY: 'auto' }} dangerouslySetInnerHTML={{ __html: viewingDoc.content }} />
           </div>
         </div>
       )}
@@ -1207,25 +1207,25 @@ const s = {
   page: { minHeight: '100vh', background: GREY, padding: '32px 24px 80px', fontFamily: "'DM Sans', system-ui, sans-serif" },
   wrap: { maxWidth: 900, margin: '0 auto' },
   header: { marginBottom: 20 },
-  backBtn: { background: 'none', border: 'none', color: '#6B7280', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', padding: 0, marginBottom: 12, display: 'block' },
+  backBtn: { background: 'none', border: 'none', color: '#6B665F', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', padding: 0, marginBottom: 12, display: 'block' },
   title: { fontSize: 'clamp(20px, 3vw, 28px)', fontWeight: 900, color: BL, letterSpacing: '-0.8px', marginBottom: 8 },
   metaRow: { display: 'flex', gap: 8, flexWrap: 'wrap' },
-  industryBadge: { fontSize: 11, fontWeight: 700, background: '#EFF6FF', color: BLUE, padding: '3px 10px', borderRadius: 100 },
+  industryBadge: { fontSize: 11, fontWeight: 700, background: '#E8F1F6', color: BLUE, padding: '3px 10px', borderRadius: 100 },
   statusBadge: { fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 100 },
   tabBar: { display: 'flex', borderBottom: `1.5px solid ${RULE}`, marginBottom: 20, overflowX: 'auto' },
   tabBtn: { padding: '10px 18px', background: 'none', border: 'none', borderBottom: '2px solid transparent', marginBottom: -1.5, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit' },
-  content: { background: WH, borderRadius: 20, padding: '28px', border: `1px solid ${RULE}` },
+  content: { padding: '4px 0' },
   statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 16 },
-  statCard: { background: GREY, borderRadius: 12, padding: '14px', border: `1px solid ${RULE}`, textAlign: 'center' },
-  statLabel: { fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 },
+  statCard: { background: GREY, borderRadius: 16, padding: '14px', border: `1px solid ${RULE}`, textAlign: 'center' },
+  statLabel: { fontSize: 10, fontWeight: 700, color: '#77716A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 },
   statNum: { fontSize: 22, fontWeight: 900, letterSpacing: '-0.5px', marginBottom: 2 },
-  statSub: { fontSize: 11, color: '#9CA3AF' },
-  card: { background: GREY, borderRadius: 12, padding: '16px', border: `1px solid ${RULE}` },
-  cardLabel: { fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 },
-  input: { width: '100%', border: `1.5px solid ${RULE}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', marginBottom: 10, boxSizing: 'border-box', color: BL, outline: 'none', background: WH },
-  textarea: { width: '100%', border: `1.5px solid ${RULE}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', marginBottom: 0, boxSizing: 'border-box', color: BL, outline: 'none', resize: 'vertical', lineHeight: 1.65, background: WH },
-  smallBtn: { padding: '5px 12px', background: WH, color: '#374151', border: `1px solid ${RULE}`, borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
-  miniBtn: { padding: '3px 8px', background: WH, color: '#6B7280', border: `1px solid ${RULE}`, borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
-  removeBtn: { background: 'none', border: 'none', color: '#D1D5DB', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit', flexShrink: 0 },
-  emptyText: { fontSize: 14, color: '#9CA3AF', textAlign: 'center', padding: '24px 0' },
+  statSub: { fontSize: 11, color: '#77716A' },
+  card: { boxShadow: 'var(--shadow-sm)', background: WH, borderRadius: 16, padding: '16px', border: `1px solid ${RULE}` },
+  cardLabel: { fontSize: 11, fontWeight: 700, color: '#77716A', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 },
+  input: { width: '100%', border: `1.5px solid ${RULE}`, borderRadius: 10, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', marginBottom: 10, boxSizing: 'border-box', color: BL, outline: 'none', background: WH },
+  textarea: { width: '100%', border: `1.5px solid ${RULE}`, borderRadius: 10, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', marginBottom: 0, boxSizing: 'border-box', color: BL, outline: 'none', resize: 'vertical', lineHeight: 1.65, background: WH },
+  smallBtn: { padding: '5px 12px', background: WH, color: '#45413B', border: `1px solid ${RULE}`, borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  miniBtn: { padding: '3px 8px', background: WH, color: '#6B665F', border: `1px solid ${RULE}`, borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  removeBtn: { background: 'none', border: 'none', color: '#D8D2C8', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit', flexShrink: 0 },
+  emptyText: { fontSize: 14, color: '#77716A', textAlign: 'center', padding: '24px 0' },
 };

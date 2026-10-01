@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Analytics } from '../lib/analytics';
 
-const BLUE = '#0284C7';
-const BL = '#0A0A0A';
+const BLUE = '#35709A';
+const BL = '#2B2A28';
 const WH = '#FFFFFF';
-const MUTED = '#6B7280';
-const RULE = '#E5E7EB';
+const MUTED = '#6B665F';
+const RULE = '#E7E2DA';
 
 function useInView(threshold = 0.1) {
   const ref = useRef(null);
@@ -118,16 +118,16 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
             </div>
             <p style={s.pcMilestonesLbl}>Milestones</p>
             {milestones.map((m, i) => (
-              <div key={i} style={{ ...s.pcMile, background: active === i ? '#EFF6FF' : 'transparent', transition: 'background 0.4s' }}>
-                <div style={{ ...s.pcCheck, background: i < active ? BLUE : WH, borderColor: i < active ? BLUE : '#D1D5DB', transition: 'all 0.4s' }}>
+              <div key={i} style={{ ...s.pcMile, background: active === i ? '#E8F1F6' : 'transparent', transition: 'background 0.4s' }}>
+                <div style={{ ...s.pcCheck, background: i < active ? BLUE : WH, borderColor: i < active ? BLUE : '#D8D2C8', transition: 'all 0.4s' }}>
                   {i < active && <span style={{ color: WH, fontSize: 9, fontWeight: 700 }}>✓</span>}
                   {active === i && <span style={{ width: 5, height: 5, borderRadius: '50%', background: BLUE, display: 'block' }} />}
                 </div>
-                <span style={{ ...s.pcMileName, color: i < active ? '#9CA3AF' : BL, textDecoration: i < active ? 'line-through' : 'none', transition: 'all 0.4s' }}>{m}</span>
+                <span style={{ ...s.pcMileName, color: i < active ? '#77716A' : BL, textDecoration: i < active ? 'line-through' : 'none', transition: 'all 0.4s' }}>{m}</span>
               </div>
             ))}
             <div style={s.pcRisk}>
-              <span style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 600 }}>Risks tracked</span>
+              <span style={{ fontSize: 10, color: '#77716A', fontWeight: 600 }}>Risks tracked</span>
               <span style={{ fontSize: 11, color: '#DC2626', fontWeight: 700 }}>3 medium · 1 high</span>
             </div>
           </div>
@@ -171,16 +171,16 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
       <div style={s.rule} />
 
       {/* SOLUTION */}
-      <div style={{ ...s.section, background: BL }}>
+      <div style={{ ...s.section, background: 'var(--color-primary)' }}>
         <div style={s.sectionInner}>
           <Reveal>
             <div style={s.twoCol}>
               <div style={s.twoColLeft}>
-                <p style={{ ...s.eyebrow, color: BLUE }}>The Solution</p>
+                <p style={{ ...s.eyebrow, color: 'var(--color-primary-border)' }}>The Solution</p>
                 <h2 style={{ ...s.h2, color: WH }}>PM Buddy Thinks Like a PM So You Do Not Have To.</h2>
               </div>
               <div style={s.twoColRight}>
-                <p style={{ ...s.bodyText, color: '#9CA3AF' }}>You focus on building. PM Buddy handles the structure, the risks, the documentation and the communication that keeps your project on track from start to finish.</p>
+                <p style={{ ...s.bodyText, color: 'rgba(255,255,255,0.88)' }}>You focus on building. PM Buddy handles the structure, the risks, the documentation and the communication that keeps your project on track from start to finish.</p>
                 <div style={s.solutionGrid}>
                   {[
                     { title: 'Structure from day one', body: 'Clear goal, realistic timeline and defined roles.' },
@@ -293,7 +293,7 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
         <div style={s.sectionInner}>
           <Reveal>
             <h2 style={s.finalH2}>Start Running Your Project Like a Professional.</h2>
-            <p style={{ ...s.bodyText, color: 'rgba(255,255,255,0.65)', maxWidth: 480, marginBottom: 36 }}>
+            <p style={{ ...s.bodyText, color: 'rgba(255,255,255,0.88)', maxWidth: 480, marginBottom: 36 }}>
               The thinking, structure and tools of a project manager without the cost of hiring one.
             </p>
             <button style={s.ctaWhite} onClick={user ? onDashboard : onSignup}>
@@ -315,7 +315,7 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
               <a href="/about.html" style={s.footerLink}>About</a>
               <a href="/privacy.html" style={s.footerLink}>Privacy</a>
               <a href="/terms.html" style={s.footerLink}>Terms</a>
-              <p style={s.footerCredit}>Built by <strong style={{ color: '#E5E7EB' }}>Deborah Akpokighe</strong></p>
+              <p style={s.footerCredit}>Built by <strong style={{ color: '#E7E2DA' }}>Deborah Akpokighe</strong></p>
             </div>
           </div>
         </div>
@@ -326,7 +326,7 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
 }
 
 const s = {
-  page: { background: WH, fontFamily: "'DM Sans', 'Outfit', system-ui, sans-serif", color: BL },
+  page: { background: WH, fontFamily: 'var(--font)', color: BL },
 
   hero: { maxWidth: 1100, margin: '0 auto', padding: '80px 48px 72px', display: 'flex', alignItems: 'center', gap: 72, flexWrap: 'wrap' },
   heroLeft: { flex: 1, minWidth: 300, maxWidth: 520 },
@@ -334,29 +334,29 @@ const s = {
   heroH1: { fontSize: 'clamp(30px, 4vw, 48px)', fontWeight: 500, color: BL, lineHeight: 1.15, letterSpacing: '-0.5px', marginBottom: 22 },
   heroSub: { fontSize: 16, color: MUTED, lineHeight: 1.8, marginBottom: 32, maxWidth: 440 },
   heroCtas: { display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 14 },
-  heroNote: { fontSize: 13, color: '#9CA3AF' },
+  heroNote: { fontSize: 13, color: '#77716A' },
   inlineLink: { background: 'none', border: 'none', color: BLUE, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', padding: 0, textDecoration: 'underline', textUnderlineOffset: 3 },
 
-  ctaPrimary: { padding: '11px 24px', background: BL, color: WH, border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
-  ctaGhost: { padding: '11px 24px', background: 'transparent', color: BL, border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
-  ctaOutline: { padding: '11px 24px', background: 'transparent', color: BLUE, border: `1px solid ${BLUE}`, borderRadius: 6, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
-  ctaWhite: { padding: '12px 28px', background: WH, color: BL, border: 'none', borderRadius: 6, fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  ctaPrimary: { padding: '11px 24px', background: 'var(--color-primary)', color: WH, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
+  ctaGhost: { padding: '11px 24px', background: 'transparent', color: BL, border: '1px solid #D8D2C8', borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
+  ctaOutline: { padding: '11px 24px', background: 'transparent', color: BLUE, border: `1px solid ${BLUE}`, borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
+  ctaWhite: { padding: '12px 28px', background: WH, color: BL, border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
 
-  projectCard: { background: WH, borderRadius: 12, padding: 22, width: 288, border: '1px solid #E5E7EB', boxShadow: '0 8px 32px rgba(0,0,0,0.08)' },
+  projectCard: { background: WH, borderRadius: 16, padding: 22, width: 288, border: '1px solid #E7E2DA', boxShadow: '0 8px 32px rgba(43,42,40,0.08)' },
   pcTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
-  pcLabel: { fontSize: 9, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 },
+  pcLabel: { fontSize: 9, fontWeight: 600, color: '#77716A', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 },
   pcName: { fontSize: 14, fontWeight: 600, color: BL, letterSpacing: '-0.2px' },
   pcStatus: { fontSize: 10, fontWeight: 600, background: '#F0FDF4', color: '#15803D', padding: '3px 9px', borderRadius: 100 },
   pcProg: { marginBottom: 16 },
   pcProgRow: { display: 'flex', justifyContent: 'space-between', marginBottom: 7 },
-  pcProgLbl: { fontSize: 10, color: '#9CA3AF', fontWeight: 500 },
+  pcProgLbl: { fontSize: 10, color: '#77716A', fontWeight: 500 },
   pcProgPct: { fontSize: 10, color: BLUE, fontWeight: 700 },
-  pcProgTrack: { height: 3, background: '#F3F4F6', borderRadius: 2, overflow: 'hidden' },
-  pcMilestonesLbl: { fontSize: 9, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 },
-  pcMile: { display: 'flex', alignItems: 'center', gap: 9, padding: '5px 7px', marginBottom: 3, borderRadius: 6 },
+  pcProgTrack: { height: 3, background: '#F3EFE9', borderRadius: 2, overflow: 'hidden' },
+  pcMilestonesLbl: { fontSize: 9, fontWeight: 600, color: '#77716A', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 },
+  pcMile: { display: 'flex', alignItems: 'center', gap: 9, padding: '5px 7px', marginBottom: 3, borderRadius: 8 },
   pcCheck: { width: 15, height: 15, borderRadius: '50%', border: '1.5px solid', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   pcMileName: { fontSize: 12, fontWeight: 500, flex: 1 },
-  pcRisk: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FEF2F2', borderRadius: 6, padding: '6px 10px', marginTop: 12 },
+  pcRisk: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FEF2F2', borderRadius: 8, padding: '6px 10px', marginTop: 12 },
 
   rule: { borderTop: `1px solid ${RULE}`, margin: '0 48px' },
 
@@ -377,9 +377,9 @@ const s = {
   problemBody: { fontSize: 14, color: MUTED, lineHeight: 1.65 },
 
   solutionGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 32 },
-  solutionItem: { borderTop: '1px solid #2A2A2A', paddingTop: 16 },
+  solutionItem: { borderTop: '1px solid rgba(255,255,255,0.28)', paddingTop: 16 },
   solutionTitle: { fontSize: 14, fontWeight: 600, color: WH, marginBottom: 6 },
-  solutionBody: { fontSize: 13, color: '#6B7280', lineHeight: 1.65 },
+  solutionBody: { fontSize: 13, color: 'rgba(255,255,255,0.88)', lineHeight: 1.65 },
 
   whoLayout: { display: 'flex', gap: 48, flexWrap: 'wrap' },
   whoTabs: { display: 'flex', flexDirection: 'column', gap: 0, flex: '0 0 220px' },
@@ -398,18 +398,18 @@ const s = {
   validLeft: { flex: 1, minWidth: 280 },
   validH3: { fontSize: 'clamp(20px, 3vw, 30px)', fontWeight: 500, color: BL, marginBottom: 14, letterSpacing: '-0.3px', lineHeight: 1.2 },
   validBtns: { display: 'flex', gap: 12, flexWrap: 'wrap' },
-  validBadge: { flex: '0 0 auto', background: '#EFF6FF', borderRadius: 12, padding: '28px 36px', textAlign: 'center', border: `1px solid ${BLUE}20` },
-  validBadgeWord: { display: 'block', fontSize: 10, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 4 },
+  validBadge: { flex: '0 0 auto', background: '#E8F1F6', borderRadius: 16, padding: '28px 36px', textAlign: 'center', border: `1px solid ${BLUE}20` },
+  validBadgeWord: { display: 'block', fontSize: 10, fontWeight: 600, color: '#77716A', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 4 },
   validBadgeFree: { display: 'block', fontSize: 48, fontWeight: 300, color: BLUE, letterSpacing: '-3px', lineHeight: 1, marginBottom: 4 },
-  validBadgeSub: { display: 'block', fontSize: 11, color: '#9CA3AF' },
+  validBadgeSub: { display: 'block', fontSize: 11, color: '#77716A' },
 
-  finalCta: { background: BL, padding: '96px 48px' },
+  finalCta: { background: 'var(--color-primary)', padding: '96px 48px' },
   finalH2: { fontSize: 'clamp(26px, 4vw, 44px)', fontWeight: 500, color: WH, marginBottom: 14, letterSpacing: '-0.5px', lineHeight: 1.1 },
 
-  footer: { background: '#0A0A0A', padding: '40px 48px', borderTop: '1px solid #1A1A1A' },
+  footer: { background: 'var(--color-primary)', padding: '40px 48px', borderTop: '1px solid rgba(255,255,255,0.2)' },
   footerInner: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 16 },
   footerLogo: { fontSize: 16, fontWeight: 600, color: WH, letterSpacing: '-0.3px', marginBottom: 6 },
-  footerTagline: { fontSize: 13, color: '#4B5563', maxWidth: 360, lineHeight: 1.6 },
-  footerLink: { fontSize: 12, color: '#4B5563', textDecoration: 'none' },
-  footerCredit: { fontSize: 12, color: '#4B5563' },
+  footerTagline: { fontSize: 13, color: 'rgba(255,255,255,0.88)', maxWidth: 360, lineHeight: 1.6 },
+  footerLink: { fontSize: 12, color: 'rgba(255,255,255,0.88)', textDecoration: 'none' },
+  footerCredit: { fontSize: 12, color: 'rgba(255,255,255,0.88)' },
 };

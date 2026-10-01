@@ -37,50 +37,50 @@ function ValidationModeModal({ onSelect, onClose }) {
         boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
         fontFamily: "'DM Sans', system-ui, sans-serif",
       }}>
-        <p style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>New Validation</p>
-        <h2 style={{ fontSize: 22, fontWeight: 800, color: '#0A0A0A', marginBottom: 6, letterSpacing: '-0.4px' }}>What are you validating?</h2>
-        <p style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.7, marginBottom: 28 }}>Choose the type that best describes what you are building or pitching.</p>
+        <p style={{ fontSize: 11, fontWeight: 700, color: '#77716A', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>New Validation</p>
+        <h2 style={{ fontSize: 22, fontWeight: 800, color: '#2B2A28', marginBottom: 6, letterSpacing: '-0.4px' }}>What are you validating?</h2>
+        <p style={{ fontSize: 14, color: '#6B665F', lineHeight: 1.7, marginBottom: 28 }}>Choose the type that best describes what you are building or pitching.</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <button
             onClick={() => onSelect('startup')}
             style={{
               display: 'flex', alignItems: 'flex-start', gap: 16,
-              padding: '18px 20px', background: '#F8FAFC',
-              border: '1.5px solid #E5E7EB', borderRadius: 12,
+              padding: '18px 20px', background: '#FAF8F5',
+              border: '1.5px solid #E7E2DA', borderRadius: 16,
               cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
               transition: 'all 0.15s',
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#0284C7'; e.currentTarget.style.background = '#EFF6FF'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#E5E7EB'; e.currentTarget.style.background = '#F8FAFC'; }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#35709A'; e.currentTarget.style.background = '#E8F1F6'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#E7E2DA'; e.currentTarget.style.background = '#FAF8F5'; }}
           >
-            <div style={{ width: 40, height: 40, borderRadius: 10, background: '#0A0A0A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🚀</div>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🚀</div>
             <div>
-              <p style={{ fontSize: 15, fontWeight: 700, color: '#0A0A0A', marginBottom: 4 }}>Startup Idea</p>
-              <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>Validate a business idea, product, or venture you are building or planning to build.</p>
+              <p style={{ fontSize: 15, fontWeight: 700, color: '#2B2A28', marginBottom: 4 }}>Startup Idea</p>
+              <p style={{ fontSize: 13, color: '#6B665F', lineHeight: 1.6 }}>Validate a business idea, product, or venture you are building or planning to build.</p>
             </div>
           </button>
           <button
             onClick={() => onSelect('hackathon')}
             style={{
               display: 'flex', alignItems: 'flex-start', gap: 16,
-              padding: '18px 20px', background: '#F8FAFC',
-              border: '1.5px solid #E5E7EB', borderRadius: 12,
+              padding: '18px 20px', background: '#FAF8F5',
+              border: '1.5px solid #E7E2DA', borderRadius: 16,
               cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
               transition: 'all 0.15s',
             }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = '#15803D'; e.currentTarget.style.background = '#F0FDF4'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#E5E7EB'; e.currentTarget.style.background = '#F8FAFC'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#E7E2DA'; e.currentTarget.style.background = '#FAF8F5'; }}
           >
             <div style={{ width: 40, height: 40, borderRadius: 10, background: '#15803D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>⚡</div>
             <div>
-              <p style={{ fontSize: 15, fontWeight: 700, color: '#0A0A0A', marginBottom: 4 }}>Hackathon Project</p>
-              <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>Validate an idea you are pitching at a hackathon, competition, or accelerator programme.</p>
+              <p style={{ fontSize: 15, fontWeight: 700, color: '#2B2A28', marginBottom: 4 }}>Hackathon Project</p>
+              <p style={{ fontSize: 13, color: '#6B665F', lineHeight: 1.6 }}>Validate an idea you are pitching at a hackathon, competition, or accelerator programme.</p>
             </div>
           </button>
         </div>
         <button
           onClick={onClose}
-          style={{ width: '100%', marginTop: 16, padding: '10px', background: 'none', border: 'none', color: '#9CA3AF', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+          style={{ width: '100%', marginTop: 16, padding: '10px', background: 'none', border: 'none', color: '#77716A', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
         >
           Cancel
         </button>
@@ -286,22 +286,22 @@ export default function App() {
   // Invite screen
   if (screen === S.INVITE) {
     return (
-      <div style={{ minHeight: '100vh', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-        <div style={{ background: '#FFFFFF', borderRadius: 16, padding: 40, maxWidth: 480, width: '100%', border: '1px solid #E5E7EB', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
-          <p style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>PM Buddy</p>
+      <div style={{ minHeight: '100vh', background: '#FAF8F5', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div style={{ background: '#FFFFFF', borderRadius: 16, padding: 40, maxWidth: 480, width: '100%', border: '1px solid #E7E2DA', boxShadow: '0 4px 20px rgba(43,42,40,0.06)' }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: '#35709A', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>PM Buddy</p>
           {inviteError ? (
             <>
-              <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0A0A0A', marginBottom: 12 }}>Invalid Invite</h2>
-              <p style={{ fontSize: 15, color: '#6B7280', lineHeight: 1.7, marginBottom: 24 }}>{inviteError}</p>
-              <button style={{ padding: '12px 24px', background: '#0A0A0A', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setScreen(S.DASHBOARD)}>Go to Dashboard</button>
+              <h2 style={{ fontSize: 22, fontWeight: 700, color: '#2B2A28', marginBottom: 12 }}>Invalid Invite</h2>
+              <p style={{ fontSize: 15, color: '#6B665F', lineHeight: 1.7, marginBottom: 24 }}>{inviteError}</p>
+              <button style={{ padding: '12px 24px', background: 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setScreen(S.DASHBOARD)}>Go to Dashboard</button>
             </>
           ) : inviteData ? (
             <>
-              <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0A0A0A', marginBottom: 12 }}>You have been invited</h2>
-              <p style={{ fontSize: 15, color: '#6B7280', lineHeight: 1.7, marginBottom: 8 }}>
-                You have been invited to join <strong style={{ color: '#0A0A0A' }}>{inviteData.pm_projects?.name}</strong> as a <strong style={{ color: '#0A0A0A' }}>{inviteData.role}</strong>.
+              <h2 style={{ fontSize: 22, fontWeight: 700, color: '#2B2A28', marginBottom: 12 }}>You have been invited</h2>
+              <p style={{ fontSize: 15, color: '#6B665F', lineHeight: 1.7, marginBottom: 8 }}>
+                You have been invited to join <strong style={{ color: '#2B2A28' }}>{inviteData.pm_projects?.name}</strong> as a <strong style={{ color: '#2B2A28' }}>{inviteData.role}</strong>.
               </p>
-              <p style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 28 }}>{inviteData.pm_projects?.description}</p>
+              <p style={{ fontSize: 13, color: '#77716A', marginBottom: 28 }}>{inviteData.pm_projects?.description}</p>
               {!user && (
                 <p style={{ fontSize: 13, color: '#DC2626', marginBottom: 16, fontWeight: 600 }}>
                   You need to log in or sign up to accept this invitation.
@@ -309,7 +309,7 @@ export default function App() {
               )}
               {!user && (
                 <button
-                  style={{ width: '100%', padding: '12px', background: '#0A0A0A', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 12 }}
+                  style={{ width: '100%', padding: '12px', background: 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 12 }}
                   onClick={() => setScreen(S.AUTH)}
                 >
                   Log in or Sign up to Accept
@@ -318,14 +318,14 @@ export default function App() {
               {user && (
                 <div style={{ display: 'flex', gap: 12 }}>
                   <button
-                    style={{ flex: 1, padding: '12px', background: '#0284C7', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: inviteAccepting ? 0.6 : 1 }}
+                    style={{ flex: 1, padding: '12px', background: '#35709A', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: inviteAccepting ? 0.6 : 1 }}
                     onClick={acceptInvite}
                     disabled={inviteAccepting}
                   >
                     {inviteAccepting ? 'Accepting...' : 'Accept Invitation'}
                   </button>
                   <button
-                    style={{ padding: '12px 20px', background: 'none', color: '#6B7280', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
+                    style={{ padding: '12px 20px', background: 'none', color: '#6B665F', border: '1px solid #E7E2DA', borderRadius: 10, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
                     onClick={declineInvite}
                   >
                     Decline
@@ -334,7 +334,7 @@ export default function App() {
               )}
             </>
           ) : (
-            <p style={{ color: '#9CA3AF' }}>Loading invite...</p>
+            <p style={{ color: '#77716A' }}>Loading invite...</p>
           )}
         </div>
       </div>
@@ -369,11 +369,11 @@ export default function App() {
 }
 
 const nav = {
-  bar: { position: 'sticky', top: 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 48px', height: 52, background: '#FFFFFF', borderBottom: '1px solid #E5E7EB' },
+  bar: { position: 'sticky', top: 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 48px', height: 52, background: '#FFFFFF', borderBottom: '1px solid #E7E2DA' },
   logo: { display: 'flex', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: 0 },
-  logoText: { fontSize: 15, fontWeight: 600, color: '#0A0A0A', letterSpacing: '-0.2px' },
+  logoText: { fontSize: 15, fontWeight: 600, color: '#2B2A28', letterSpacing: '-0.2px' },
   right: { display: 'flex', gap: 8, alignItems: 'center' },
-  dashBtn: { padding: '6px 14px', background: 'none', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 13, fontWeight: 500, color: '#0A0A0A', cursor: 'pointer', fontFamily: 'inherit' },
-  loginBtn: { padding: '6px 14px', background: 'none', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 500, color: '#6B7280', cursor: 'pointer', fontFamily: 'inherit' },
-  signupBtn: { padding: '6px 14px', background: '#0A0A0A', color: '#FFFFFF', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
+  dashBtn: { padding: '6px 14px', background: 'none', border: '1px solid #E7E2DA', borderRadius: 8, fontSize: 13, fontWeight: 500, color: '#2B2A28', cursor: 'pointer', fontFamily: 'inherit' },
+  loginBtn: { padding: '6px 14px', background: 'none', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 500, color: '#6B665F', cursor: 'pointer', fontFamily: 'inherit' },
+  signupBtn: { padding: '6px 14px', background: 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
 };

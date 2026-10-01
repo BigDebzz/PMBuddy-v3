@@ -206,7 +206,7 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
                     value={answers[q.id] || ''}
                     onChange={e => { baseTextRef.current = e.target.value; change(e.target.value); }}
                     onFocus={e => { e.target.style.borderColor = accent; e.target.style.boxShadow = `0 0 0 3px ${accent}14`; }}
-                    onBlur={e => { e.target.style.borderColor = '#E5E7EB'; e.target.style.boxShadow = 'none'; }}
+                    onBlur={e => { e.target.style.borderColor = '#E7E2DA'; e.target.style.boxShadow = 'none'; }}
                     onKeyDown={e => e.key === 'Enter' && next()}
                   />
                   <button
@@ -236,7 +236,7 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
                     value={answers[q.id] || ''}
                     onChange={e => { baseTextRef.current = e.target.value; change(e.target.value); }}
                     onFocus={e => { e.target.style.borderColor = accent; e.target.style.boxShadow = `0 0 0 3px ${accent}14`; }}
-                    onBlur={e => { e.target.style.borderColor = '#E5E7EB'; e.target.style.boxShadow = 'none'; }}
+                    onBlur={e => { e.target.style.borderColor = '#E7E2DA'; e.target.style.boxShadow = 'none'; }}
                   />
                   <button
                     style={{ ...s.micBtn, background: listening ? '#DC2626' : accent, alignSelf: 'flex-end' }}
@@ -264,23 +264,23 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
                       key={opt.value}
                       style={{
                         ...s.option,
-                        borderColor: selected ? accent : '#E5E7EB',
+                        borderColor: selected ? accent : '#E7E2DA',
                         background: selected ? accent + '05' : '#FFFFFF',
                         boxShadow: selected ? `0 0 0 1.5px ${accent}` : 'none',
                       }}
                       onClick={() => selectAndAdvance(opt.value)}
-                      onMouseEnter={e => { if (!selected) { e.currentTarget.style.borderColor = accent + '60'; e.currentTarget.style.background = '#F9FAFB'; }}}
-                      onMouseLeave={e => { if (!selected) { e.currentTarget.style.borderColor = '#E5E7EB'; e.currentTarget.style.background = '#FFFFFF'; }}}
+                      onMouseEnter={e => { if (!selected) { e.currentTarget.style.borderColor = accent + '60'; e.currentTarget.style.background = '#FAF8F5'; }}}
+                      onMouseLeave={e => { if (!selected) { e.currentTarget.style.borderColor = '#E7E2DA'; e.currentTarget.style.background = '#FFFFFF'; }}}
                     >
                       <div style={s.optLeft}>
-                        <span style={{ ...s.optLabel, color: selected ? accent : '#111827', fontWeight: selected ? 700 : 500 }}>
+                        <span style={{ ...s.optLabel, color: selected ? accent : '#2B2A28', fontWeight: selected ? 700 : 500 }}>
                           {opt.label}
                         </span>
                         {opt.desc && <span style={s.optDesc}>{opt.desc}</span>}
                       </div>
                       <div style={{
                         ...s.radio,
-                        borderColor: selected ? accent : '#D1D5DB',
+                        borderColor: selected ? accent : '#D8D2C8',
                         background: selected ? accent : 'transparent',
                       }}>
                         {selected && <CheckIcon size={10} color="#fff" />}
@@ -321,7 +321,7 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
             <div key={i} style={{
               height: 5, borderRadius: 3,
               width: i === idx ? 18 : 5,
-              background: i < idx ? accent + '60' : i === idx ? accent : '#E5E7EB',
+              background: i < idx ? accent + '60' : i === idx ? accent : '#E7E2DA',
               transition: 'all 0.25s ease',
             }} />
           ))}
@@ -355,24 +355,24 @@ const s = {
   page: { minHeight: '100vh', background: '#FAFAFA', padding: '28px 20px 48px' },
   wrap: { maxWidth: 580, margin: '0 auto' },
   nav: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
-  backBtn: { display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: '#6B7280', fontSize: 14, fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'inherit' },
-  modePill: { display: 'flex', alignItems: 'center', gap: 6, background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: 100, padding: '5px 12px', fontSize: 12, fontWeight: 700, color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' },
+  backBtn: { display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: '#6B665F', fontSize: 14, fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'inherit' },
+  modePill: { display: 'flex', alignItems: 'center', gap: 6, background: '#FFFFFF', border: '1px solid #E7E2DA', borderRadius: 100, padding: '5px 12px', fontSize: 12, fontWeight: 700, color: '#45413B', boxShadow: '0 1px 3px rgba(43,42,40,0.05)' },
   modeDot: { width: 6, height: 6, borderRadius: '50%' },
-  counter: { fontSize: 12, color: '#9CA3AF', fontWeight: 600 },
-  progressTrack: { height: 3, background: '#F3F4F6', borderRadius: 2, marginBottom: 24, overflow: 'hidden' },
+  counter: { fontSize: 12, color: '#77716A', fontWeight: 600 },
+  progressTrack: { height: 3, background: '#F3EFE9', borderRadius: 2, marginBottom: 24, overflow: 'hidden' },
   progressBar: { height: '100%', borderRadius: 2, transition: 'width 0.4s cubic-bezier(0.4,0,0.2,1)' },
   card: {
-    background: '#FFFFFF', border: '1px solid #E5E7EB',
+    background: '#FFFFFF', border: '1px solid #E7E2DA',
     borderRadius: 18, padding: 'clamp(22px, 5vw, 32px)',
-    boxShadow: '0 4px 16px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04)',
+    boxShadow: '0 4px 16px rgba(43,42,40,0.06), 0 1px 4px rgba(43,42,40,0.04)',
   },
   cardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   stagePill: { fontSize: 11, fontWeight: 800, padding: '4px 10px', borderRadius: 100, letterSpacing: '0.05em', textTransform: 'uppercase' },
-  helpBtn: { display: 'flex', alignItems: 'center', gap: 5, background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 100, padding: '5px 12px', fontSize: 12, fontWeight: 600, color: '#6B7280', cursor: 'pointer', fontFamily: 'inherit' },
+  helpBtn: { display: 'flex', alignItems: 'center', gap: 5, background: '#FAF8F5', border: '1px solid #E7E2DA', borderRadius: 100, padding: '5px 12px', fontSize: 12, fontWeight: 600, color: '#6B665F', cursor: 'pointer', fontFamily: 'inherit' },
   tooltipBox: { border: '1px solid', borderRadius: 10, padding: '12px 14px', marginBottom: 16 },
   tooltipText: { fontSize: 14, lineHeight: 1.65, fontWeight: 500 },
-  question: { fontSize: 'clamp(18px, 3.5vw, 22px)', fontWeight: 800, color: '#0A0A0A', lineHeight: 1.25, marginBottom: 8, letterSpacing: '-0.3px' },
-  subtext: { fontSize: 14, color: '#6B7280', lineHeight: 1.7, marginBottom: 20 },
+  question: { fontSize: 'clamp(18px, 3.5vw, 22px)', fontWeight: 800, color: '#2B2A28', lineHeight: 1.25, marginBottom: 8, letterSpacing: '-0.3px' },
+  subtext: { fontSize: 14, color: '#6B665F', lineHeight: 1.7, marginBottom: 20 },
   bpBox: { background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '12px 14px', marginBottom: 16 },
   bpLabel: { display: 'block', fontSize: 10, fontWeight: 800, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 },
   bpText: { fontSize: 13, color: '#92400E', lineHeight: 1.65 },
@@ -382,8 +382,8 @@ const s = {
   voiceInputWrap: { display: 'flex', gap: 10, alignItems: 'flex-start' },
   textInput: {
     flex: 1, padding: '12px 14px',
-    border: '1.5px solid #E5E7EB', borderRadius: 10,
-    fontSize: 15, color: '#111827', background: '#FFFFFF',
+    border: '1.5px solid #E7E2DA', borderRadius: 10,
+    fontSize: 15, color: '#2B2A28', background: '#FFFFFF',
     transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
     fontFamily: 'inherit',
   },
@@ -397,7 +397,7 @@ const s = {
     display: 'flex', alignItems: 'center', gap: 8,
     fontSize: 12, color: '#DC2626', fontWeight: 600,
     marginTop: 8, padding: '6px 10px',
-    background: '#FEF2F2', borderRadius: 8,
+    background: '#FEF2F2', borderRadius: 10,
     border: '1px solid #FECACA',
   },
   listeningDot: {
@@ -414,7 +414,7 @@ const s = {
   },
   optLeft: { flex: 1, display: 'flex', flexDirection: 'column', gap: 2 },
   optLabel: { fontSize: 14, lineHeight: 1.4, transition: 'color 0.14s' },
-  optDesc: { fontSize: 12, color: '#9CA3AF', fontWeight: 400 },
+  optDesc: { fontSize: 12, color: '#77716A', fontWeight: 400 },
   radio: {
     width: 20, height: 20, borderRadius: '50%',
     border: '2px solid', flexShrink: 0,
@@ -433,7 +433,7 @@ const s = {
   skipBtn: {
     display: 'block', width: '100%', textAlign: 'center',
     marginTop: 10, background: 'none', border: 'none',
-    fontSize: 13, color: '#9CA3AF', cursor: 'pointer', fontFamily: 'inherit',
+    fontSize: 13, color: '#77716A', cursor: 'pointer', fontFamily: 'inherit',
   },
   dots: { display: 'flex', gap: 5, justifyContent: 'center', marginTop: 20, alignItems: 'center' },
 };

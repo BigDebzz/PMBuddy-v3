@@ -156,3 +156,11 @@ Example prompts:
 
 ## Drift log
 Append a new rule here every time the agent gets something wrong, so it cannot happen again.
+
+- **Text on River Blue panels** is white or `rgba(255,255,255,0.88)`. Never grey, and never the same blue as the panel.
+- **Prefer light panels** (`--color-primary-tint` with a `--color-primary-border` border and dark text) over solid blue panels. Solid blue is for buttons, the landing page bands and the assistant header.
+- **Cards are white** (`--color-surface`) on the warm canvas. Never give a card the canvas colour.
+- **No card inside a card.** Tab content sits directly on the canvas, and each section is its own card.
+- **Shadows use the warm ink colour** `rgba(43,42,40, ...)`, never pure black.
+- **The font must be loaded** in `public/index.html`. A font name in CSS alone does nothing.
+- **Build with `CI=true npm.cmd run build`** before pushing. Warnings fail the Vercel build.

@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { LogoIcon } from '../lib/icons';
 
-const B = '#0284C7';
-const BL = '#0A0A0A';
+const B = '#35709A';
+const BL = '#2B2A28';
 const WH = '#FFFFFF';
 
 export default function AuthScreen({ onAuth, onBack }) {
@@ -166,7 +166,7 @@ export default function AuthScreen({ onAuth, onBack }) {
               {showNewPassword ? <EyeOffIcon /> : <EyeIcon />}
             </button>
           </div>
-          {mode === 'signup' && password && (() => { const st = getPasswordStrength(password); return st ? React.createElement('div', { style: { marginTop: 8, marginBottom: 8 } }, React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', marginBottom: 4 } }, React.createElement('span', { style: { fontSize: 11, color: '#9CA3AF' } }, 'Password strength'), React.createElement('span', { style: { fontSize: 11, fontWeight: 700, color: st.color } }, st.label)), React.createElement('div', { style: { height: 4, background: '#E5E7EB', borderRadius: 2, overflow: 'hidden' } }, React.createElement('div', { style: { height: '100%', width: st.width, background: st.color, borderRadius: 2, transition: 'width 0.3s' } }))) : null; })()}
+          {mode === 'signup' && password && (() => { const st = getPasswordStrength(password); return st ? React.createElement('div', { style: { marginTop: 8, marginBottom: 8 } }, React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', marginBottom: 4 } }, React.createElement('span', { style: { fontSize: 11, color: '#77716A' } }, 'Password strength'), React.createElement('span', { style: { fontSize: 11, fontWeight: 700, color: st.color } }, st.label)), React.createElement('div', { style: { height: 4, background: '#E7E2DA', borderRadius: 2, overflow: 'hidden' } }, React.createElement('div', { style: { height: '100%', width: st.width, background: st.color, borderRadius: 2, transition: 'width 0.3s' } }))) : null; })()}
         <div style={{ marginBottom: 8 }} />
           <button style={s.btn} onClick={handleResetPassword} disabled={loading}>
             {loading ? 'Updating...' : 'Update password'}
@@ -251,7 +251,7 @@ export default function AuthScreen({ onAuth, onBack }) {
             <label style={s.label}>What describes you best?</label>
             <div style={s.roleGrid}>
               {roles.map(r => (
-                <button key={r} style={{ ...s.roleBtn, background: role === r ? B : WH, color: role === r ? WH : BL, borderColor: role === r ? B : '#E5E7EB' }} onClick={() => setRole(r)}>
+                <button key={r} style={{ ...s.roleBtn, background: role === r ? B : WH, color: role === r ? WH : BL, borderColor: role === r ? B : '#E7E2DA' }} onClick={() => setRole(r)}>
                   {r}
                 </button>
               ))}
@@ -283,7 +283,7 @@ export default function AuthScreen({ onAuth, onBack }) {
             {showPassword ? <EyeOffIcon /> : <EyeIcon />}
           </button>
         </div>
-        {mode === 'signup' && password && (() => { const st = getPasswordStrength(password); return st ? React.createElement('div', { style: { marginTop: 8, marginBottom: 8 } }, React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', marginBottom: 4 } }, React.createElement('span', { style: { fontSize: 11, color: '#9CA3AF' } }, 'Password strength'), React.createElement('span', { style: { fontSize: 11, fontWeight: 700, color: st.color } }, st.label)), React.createElement('div', { style: { height: 4, background: '#E5E7EB', borderRadius: 2, overflow: 'hidden' } }, React.createElement('div', { style: { height: '100%', width: st.width, background: st.color, borderRadius: 2, transition: 'width 0.3s' } }))) : null; })()}
+        {mode === 'signup' && password && (() => { const st = getPasswordStrength(password); return st ? React.createElement('div', { style: { marginTop: 8, marginBottom: 8 } }, React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', marginBottom: 4 } }, React.createElement('span', { style: { fontSize: 11, color: '#77716A' } }, 'Password strength'), React.createElement('span', { style: { fontSize: 11, fontWeight: 700, color: st.color } }, st.label)), React.createElement('div', { style: { height: 4, background: '#E7E2DA', borderRadius: 2, overflow: 'hidden' } }, React.createElement('div', { style: { height: '100%', width: st.width, background: st.color, borderRadius: 2, transition: 'width 0.3s' } }))) : null; })()}
         <div style={{ marginBottom: 8 }} />
 
         <button style={s.btn} onClick={handle} disabled={loading}>
@@ -342,33 +342,33 @@ function GoogleIcon() {
 }
 
 const s = {
-  page: { minHeight: '100vh', background: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' },
-  card: { background: WH, border: '1px solid #E5E7EB', borderRadius: 20, padding: '40px 36px', maxWidth: 480, width: '100%', boxShadow: '0 4px 24px rgba(0,0,0,0.06)' },
+  page: { minHeight: '100vh', background: '#FAF8F5', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' },
+  card: { background: WH, border: '1px solid #E7E2DA', borderRadius: 20, padding: '40px 36px', maxWidth: 480, width: '100%', boxShadow: '0 4px 24px rgba(43,42,40,0.06)' },
   logoRow: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28 },
   logoText: { fontSize: 18, fontWeight: 800, color: BL, letterSpacing: '-0.3px' },
   title: { fontSize: 24, fontWeight: 800, color: BL, marginBottom: 6, letterSpacing: '-0.4px' },
-  sub: { fontSize: 14, color: '#6B7280', marginBottom: 24, lineHeight: 1.6 },
-  error: { background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#DC2626', marginBottom: 16 },
-  success: { background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#15803D', marginBottom: 16 },
-  googleBtn: { width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: WH, border: '1.5px solid #E5E7EB', borderRadius: 8, padding: '11px', fontSize: 14, fontWeight: 600, color: BL, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 16 },
+  sub: { fontSize: 14, color: '#6B665F', marginBottom: 24, lineHeight: 1.6 },
+  error: { background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#DC2626', marginBottom: 16 },
+  success: { background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#15803D', marginBottom: 16 },
+  googleBtn: { width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: WH, border: '1.5px solid #E7E2DA', borderRadius: 10, padding: '11px', fontSize: 14, fontWeight: 600, color: BL, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 16 },
   divider: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 },
-  dividerLine: { flex: 1, height: 1, background: '#E5E7EB' },
-  dividerText: { fontSize: 12, color: '#9CA3AF', fontWeight: 500, whiteSpace: 'nowrap' },
+  dividerLine: { flex: 1, height: 1, background: '#E7E2DA' },
+  dividerText: { fontSize: 12, color: '#77716A', fontWeight: 500, whiteSpace: 'nowrap' },
   nameRow: { display: 'flex', gap: 12, marginBottom: 4 },
   nameField: { flex: 1 },
-  label: { display: 'block', fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6, letterSpacing: '0.02em' },
-  input: { width: '100%', border: '1px solid #E5E7EB', borderRadius: 8, padding: '11px 14px', fontSize: 14, fontFamily: 'inherit', marginBottom: 16, boxSizing: 'border-box', color: BL, outline: 'none' },
+  label: { display: 'block', fontSize: 12, fontWeight: 700, color: '#45413B', marginBottom: 6, letterSpacing: '0.02em' },
+  input: { width: '100%', border: '1px solid #E7E2DA', borderRadius: 10, padding: '11px 14px', fontSize: 14, fontFamily: 'inherit', marginBottom: 16, boxSizing: 'border-box', color: BL, outline: 'none' },
   pwWrap: { position: 'relative', width: '100%' },
-  eyeBtn: { position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 },
+  eyeBtn: { position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#77716A', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 },
   roleGrid: { display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
-  roleBtn: { padding: '8px 14px', border: '1.5px solid', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' },
+  roleBtn: { padding: '8px 14px', border: '1.5px solid', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' },
   passwordRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   forgotLink: { background: 'none', border: 'none', color: B, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', padding: 0 },
-  btn: { width: '100%', background: B, color: WH, border: 'none', borderRadius: 8, padding: '13px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 12, marginTop: 4 },
-  termsNote: { fontSize: 12, color: '#9CA3AF', textAlign: 'center', marginBottom: 16, lineHeight: 1.6 },
-  termsLink: { color: '#6B7280', textDecoration: 'underline', textUnderlineOffset: 2 },
-  toggle: { fontSize: 13, color: '#6B7280', textAlign: 'center', marginBottom: 12 },
+  btn: { width: '100%', background: B, color: WH, border: 'none', borderRadius: 10, padding: '13px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 12, marginTop: 4 },
+  termsNote: { fontSize: 12, color: '#77716A', textAlign: 'center', marginBottom: 16, lineHeight: 1.6 },
+  termsLink: { color: '#6B665F', textDecoration: 'underline', textUnderlineOffset: 2 },
+  toggle: { fontSize: 13, color: '#6B665F', textAlign: 'center', marginBottom: 12 },
   toggleBtn: { background: 'none', border: 'none', color: B, fontWeight: 700, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' },
-  backBtn: { width: '100%', background: 'none', border: '1px solid #E5E7EB', borderRadius: 8, padding: '11px', fontSize: 13, color: '#6B7280', cursor: 'pointer', fontFamily: 'inherit' },
-  backLink: { width: '100%', background: 'none', border: 'none', color: '#6B7280', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', marginTop: 8, textAlign: 'center' },
+  backBtn: { width: '100%', background: 'none', border: '1px solid #E7E2DA', borderRadius: 10, padding: '11px', fontSize: 13, color: '#6B665F', cursor: 'pointer', fontFamily: 'inherit' },
+  backLink: { width: '100%', background: 'none', border: 'none', color: '#6B665F', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', marginTop: 8, textAlign: 'center' },
 };

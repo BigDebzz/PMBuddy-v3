@@ -4,8 +4,8 @@ import { deepAnalyze } from '../lib/claude';
 import { modeConfig } from '../data/questions';
 import { Analytics } from '../lib/analytics';
 
-const B = '#0284C7';
-const BL = '#0A0A0A';
+const B = '#35709A';
+const BL = '#2B2A28';
 const WH = '#FFFFFF';
 
 const TABS = {
@@ -119,7 +119,7 @@ export default function ResultsDashboard({ mode, answers, analysis, onReset, onE
 
         <div style={s.tabBar}>
           {tabs.map(t => (
-            <button key={t} style={{ ...s.tabBtn, color: tab === t ? B : '#6B7280', borderBottomColor: tab === t ? B : 'transparent', fontWeight: tab === t ? 700 : 500 }} onClick={() => handleTab(t)}>
+            <button key={t} style={{ ...s.tabBtn, color: tab === t ? B : '#6B665F', borderBottomColor: tab === t ? B : 'transparent', fontWeight: tab === t ? 700 : 500 }} onClick={() => handleTab(t)}>
               {t === 'AI Analysis' ? '✦ AI Analysis' : t}
             </button>
           ))}
@@ -155,8 +155,8 @@ function AIAnalysisTab({ deepAnalysis, deepLoading, onRetry }) {
   if (!deepAnalysis) {
     return (
       <div style={{ textAlign: 'center', padding: '48px 20px' }}>
-        <p style={{ fontSize: 15, color: '#374151', marginBottom: 16 }}>Something went wrong generating the AI analysis.</p>
-        <button style={{ padding: '11px 24px', background: B, color: WH, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }} onClick={onRetry}>
+        <p style={{ fontSize: 15, color: '#45413B', marginBottom: 16 }}>Something went wrong generating the AI analysis.</p>
+        <button style={{ padding: '11px 24px', background: B, color: WH, border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }} onClick={onRetry}>
           Try again
         </button>
       </div>
@@ -200,7 +200,7 @@ function AIAnalysisTab({ deepAnalysis, deepLoading, onRetry }) {
           <p style={s.colLabel}>Challenges specific to your situation</p>
           {deepAnalysis.deepChallenges.map((item, i) => (
             <div key={i} style={{ ...s.challengeCard, borderLeftColor: item.level === 'high' ? '#DC2626' : B }}>
-              <span style={{ ...s.badge, background: item.level === 'high' ? '#FEF2F2' : '#EFF6FF', color: item.level === 'high' ? '#DC2626' : B }}>
+              <span style={{ ...s.badge, background: item.level === 'high' ? '#FEF2F2' : '#E8F1F6', color: item.level === 'high' ? '#DC2626' : B }}>
                 {item.level === 'high' ? 'Fix this now' : item.level === 'medium' ? 'Address soon' : 'Keep in mind'}
               </span>
               <p style={s.challengeTitle}>{item.text}</p>
@@ -225,7 +225,7 @@ function ReportTab({ analysis }) {
           <p style={s.colLabel}>What is working in your thinking</p>
           {analysis.insights.map((item, i) => (
             <div key={i} style={{ ...s.insightCard, borderLeftColor: item.type === 'strength' ? '#15803D' : item.type === 'neutral' ? B : '#D97706' }}>
-              <span style={{ ...s.badge, background: item.type === 'strength' ? '#F0FDF4' : item.type === 'neutral' ? '#EFF6FF' : '#FFFBEB', color: item.type === 'strength' ? '#15803D' : item.type === 'neutral' ? B : '#D97706' }}>
+              <span style={{ ...s.badge, background: item.type === 'strength' ? '#F0FDF4' : item.type === 'neutral' ? '#E8F1F6' : '#FFFBEB', color: item.type === 'strength' ? '#15803D' : item.type === 'neutral' ? B : '#D97706' }}>
                 {item.type === 'strength' ? 'Strength' : item.type === 'neutral' ? 'Note' : 'Watch'}
               </span>
               <p style={s.insightText}>{item.text}</p>
@@ -238,8 +238,8 @@ function ReportTab({ analysis }) {
         <div style={s.section}>
           <p style={s.colLabel}>What needs to change</p>
           {analysis.challenges.map((item, i) => (
-            <div key={i} style={{ ...s.challengeCard, borderLeftColor: item.level === 'high' ? '#DC2626' : item.level === 'medium' ? '#D97706' : '#9CA3AF' }}>
-              <span style={{ ...s.badge, background: item.level === 'high' ? '#FEF2F2' : item.level === 'medium' ? '#FFFBEB' : '#F9FAFB', color: item.level === 'high' ? '#DC2626' : item.level === 'medium' ? '#D97706' : '#6B7280' }}>
+            <div key={i} style={{ ...s.challengeCard, borderLeftColor: item.level === 'high' ? '#DC2626' : item.level === 'medium' ? '#D97706' : '#77716A' }}>
+              <span style={{ ...s.badge, background: item.level === 'high' ? '#FEF2F2' : item.level === 'medium' ? '#FFFBEB' : '#FAF8F5', color: item.level === 'high' ? '#DC2626' : item.level === 'medium' ? '#D97706' : '#6B665F' }}>
                 {item.level === 'high' ? 'Fix this now' : item.level === 'medium' ? 'Address soon' : 'Keep in mind'}
               </span>
               <p style={s.challengeTitle}>{item.text}</p>
@@ -276,7 +276,7 @@ function PitchTab({ analysis }) {
       {analysis.pitchStructure.map((step, i) => (
         <div key={i} style={{ ...s.phaseCard, borderLeftColor: B }}>
           <div style={s.phaseTop}>
-            <span style={{ ...s.phaseBadge, background: '#EFF6FF', color: B }}>{step.step}</span>
+            <span style={{ ...s.phaseBadge, background: '#E8F1F6', color: B }}>{step.step}</span>
             <span style={s.duration}>{step.duration}</span>
           </div>
           <p style={s.pitchContent}>{step.content}</p>
@@ -302,7 +302,7 @@ function RoadmapTab({ analysis }) {
       {analysis.roadmap.map((phase, i) => (
         <div key={i} style={{ ...s.phaseCard, borderLeftColor: B }}>
           <div style={s.phaseTop}>
-            <span style={{ ...s.phaseBadge, background: '#EFF6FF', color: B }}>{phase.phase}</span>
+            <span style={{ ...s.phaseBadge, background: '#E8F1F6', color: B }}>{phase.phase}</span>
             <h4 style={s.phaseTitle}>{phase.title}</h4>
             <span style={s.duration}>{phase.duration}</span>
           </div>
@@ -430,7 +430,7 @@ function FeedbackForm({ mode }) {
       <p style={s.feedbackSub}>Takes 60 seconds. Helps us improve for every founder after you.</p>
       <div style={s.starRow}>
         {[1, 2, 3, 4, 5].map(n => (
-          <button key={n} onClick={() => setRating(n)} style={{ ...s.star, color: n <= rating ? B : '#D1D5DB' }}>★</button>
+          <button key={n} onClick={() => setRating(n)} style={{ ...s.star, color: n <= rating ? B : '#D8D2C8' }}>★</button>
         ))}
         <span style={s.starLabel}>{rating > 0 ? ratingLabels[rating] : 'How useful was this report?'}</span>
       </div>
@@ -445,98 +445,98 @@ function FeedbackForm({ mode }) {
 }
 
 const s = {
-  page: { minHeight: '100vh', background: '#F9FAFB', padding: '28px 20px 64px' },
+  page: { minHeight: '100vh', background: '#FAF8F5', padding: '28px 20px 64px' },
   wrap: { maxWidth: 780, margin: '0 auto' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 12 },
   breadcrumb: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, marginBottom: 4 },
-  sep: { color: '#D1D5DB' },
+  sep: { color: '#D8D2C8' },
   title: { fontSize: 26, fontWeight: 800, color: BL, letterSpacing: '-0.4px' },
   headerBtns: { display: 'flex', gap: 8, flexWrap: 'wrap' },
-  btn: { padding: '8px 16px', background: WH, border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 13, fontWeight: 600, color: BL, cursor: 'pointer', fontFamily: 'inherit' },
-  saveBtn: { padding: '8px 16px', background: B, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
-  savedBtn: { padding: '8px 16px', background: '#EFF6FF', color: B, border: '1px solid #BFDBFE', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'default', fontFamily: 'inherit' },
+  btn: { padding: '8px 16px', background: WH, border: '1px solid #E7E2DA', borderRadius: 10, fontSize: 13, fontWeight: 600, color: BL, cursor: 'pointer', fontFamily: 'inherit' },
+  saveBtn: { padding: '8px 16px', background: B, color: WH, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
+  savedBtn: { padding: '8px 16px', background: '#E8F1F6', color: B, border: '1px solid #BCD6E5', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'default', fontFamily: 'inherit' },
   titleInputRow: { display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' },
-  titleInput: { flex: 1, border: '1px solid #E5E7EB', borderRadius: 8, padding: '9px 14px', fontSize: 14, fontFamily: 'inherit', color: BL, outline: 'none', minWidth: 200 },
-  scoreBanner: { background: WH, border: '1px solid #E5E7EB', borderRadius: 16, padding: '20px 22px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' },
+  titleInput: { flex: 1, border: '1px solid #E7E2DA', borderRadius: 10, padding: '9px 14px', fontSize: 14, fontFamily: 'inherit', color: BL, outline: 'none', minWidth: 200 },
+  scoreBanner: { background: WH, border: '1px solid #E7E2DA', borderRadius: 16, padding: '20px 22px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(43,42,40,0.05)' },
   scoreLeft: { display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 70 },
   scoreNum: { fontSize: 42, fontWeight: 800, lineHeight: 1, letterSpacing: '-1px' },
-  scoreTag: { fontSize: 11, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 2 },
+  scoreTag: { fontSize: 11, color: '#77716A', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 2 },
   scoreMid: { flex: 1, minWidth: 140 },
   scoreVerdict: { fontSize: 17, fontWeight: 700, marginBottom: 8, display: 'block', letterSpacing: '-0.2px' },
-  barTrack: { height: 6, background: '#F3F4F6', borderRadius: 3, overflow: 'hidden' },
+  barTrack: { height: 6, background: '#F3EFE9', borderRadius: 3, overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: 3, transition: 'width 0.8s ease' },
   scoreRight: { display: 'flex', flexDirection: 'column', gap: 4 },
   countStrength: { fontSize: 13, color: '#15803D', fontWeight: 600 },
   countRisk: { fontSize: 13, color: '#DC2626', fontWeight: 600 },
-  tabBar: { display: 'flex', borderBottom: '1.5px solid #F3F4F6', marginBottom: 24, overflowX: 'auto' },
+  tabBar: { display: 'flex', borderBottom: '1.5px solid #F3EFE9', marginBottom: 24, overflowX: 'auto' },
   tabBtn: { padding: '10px 16px', background: 'none', border: 'none', borderBottom: '2px solid transparent', marginBottom: -1.5, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s', fontFamily: 'inherit' },
   section: { marginBottom: 28 },
-  sectionHead: { marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid #F3F4F6' },
+  sectionHead: { marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid #F3EFE9' },
   sectionTitle: { fontSize: 19, fontWeight: 800, color: BL, marginBottom: 4, letterSpacing: '-0.3px' },
-  sectionSub: { fontSize: 14, color: '#6B7280' },
-  colLabel: { fontSize: 12, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 },
-  badge: { display: 'inline-block', fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 6, marginBottom: 8 },
-  insightCard: { background: WH, border: '1px solid #F3F4F6', borderLeft: '3px solid', borderRadius: '0 12px 12px 0', padding: '14px 16px', marginBottom: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.04)' },
+  sectionSub: { fontSize: 14, color: '#6B665F' },
+  colLabel: { fontSize: 12, fontWeight: 700, color: '#77716A', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 },
+  badge: { display: 'inline-block', fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 8, marginBottom: 8 },
+  insightCard: { background: WH, border: '1px solid #F3EFE9', borderLeft: '3px solid', borderRadius: '0 12px 12px 0', padding: '14px 16px', marginBottom: 10, boxShadow: '0 1px 4px rgba(43,42,40,0.04)' },
   insightText: { fontSize: 14, color: BL, lineHeight: 1.7 },
-  challengeCard: { background: WH, border: '1px solid #F3F4F6', borderLeft: '3px solid', borderRadius: '0 12px 12px 0', padding: '14px 16px', marginBottom: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.04)' },
+  challengeCard: { background: WH, border: '1px solid #F3EFE9', borderLeft: '3px solid', borderRadius: '0 12px 12px 0', padding: '14px 16px', marginBottom: 12, boxShadow: '0 1px 4px rgba(43,42,40,0.04)' },
   challengeTitle: { fontSize: 15, fontWeight: 700, color: BL, marginBottom: 10, letterSpacing: '-0.1px' },
-  responseBox: { background: '#F9FAFB', border: '1px solid #F3F4F6', borderRadius: 8, padding: '12px 14px' },
-  responseText: { fontSize: 14, color: '#374151', lineHeight: 1.7 },
-  stepsCard: { background: WH, border: '1px solid #E5E7EB', borderRadius: 14, padding: '20px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' },
+  responseBox: { background: '#FAF8F5', border: '1px solid #F3EFE9', borderRadius: 10, padding: '12px 14px' },
+  responseText: { fontSize: 14, color: '#45413B', lineHeight: 1.7 },
+  stepsCard: { background: WH, border: '1px solid #E7E2DA', borderRadius: 16, padding: '20px', boxShadow: '0 1px 4px rgba(43,42,40,0.04)' },
   stepRow: { display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 16 },
   stepNum: { width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: WH, fontSize: 12, fontWeight: 800, flexShrink: 0, background: B },
   stepText: { fontSize: 14, color: BL, lineHeight: 1.65, paddingTop: 3 },
-  empty: { color: '#9CA3AF', fontSize: 14, padding: '24px 0' },
-  phaseCard: { background: WH, border: '1px solid #F3F4F6', borderLeft: '3px solid', borderRadius: '0 12px 12px 0', padding: '16px 18px', marginBottom: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.04)' },
+  empty: { color: '#77716A', fontSize: 14, padding: '24px 0' },
+  phaseCard: { background: WH, border: '1px solid #F3EFE9', borderLeft: '3px solid', borderRadius: '0 12px 12px 0', padding: '16px 18px', marginBottom: 10, boxShadow: '0 1px 4px rgba(43,42,40,0.04)' },
   phaseTop: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap' },
   phaseBadge: { fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 100 },
   phaseTitle: { fontSize: 15, fontWeight: 700, color: BL, letterSpacing: '-0.1px' },
-  duration: { fontSize: 12, color: '#9CA3AF', fontWeight: 600, marginLeft: 'auto' },
+  duration: { fontSize: 12, color: '#77716A', fontWeight: 600, marginLeft: 'auto' },
   taskList: { listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 },
-  taskItem: { display: 'flex', gap: 10, fontSize: 14, color: '#374151', lineHeight: 1.6, alignItems: 'flex-start' },
+  taskItem: { display: 'flex', gap: 10, fontSize: 14, color: '#45413B', lineHeight: 1.6, alignItems: 'flex-start' },
   taskDot: { width: 6, height: 6, borderRadius: '50%', flexShrink: 0, marginTop: 7, background: B },
-  pitchContent: { fontSize: 14, color: '#374151', lineHeight: 1.7, marginBottom: 10 },
-  tipBox: { background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8, padding: '10px 12px' },
+  pitchContent: { fontSize: 14, color: '#45413B', lineHeight: 1.7, marginBottom: 10 },
+  tipBox: { background: '#E8F1F6', border: '1px solid #BCD6E5', borderRadius: 10, padding: '10px 12px' },
   tipText: { fontSize: 13, color: B, lineHeight: 1.6 },
-  practiceBox: { background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 12, padding: '14px 16px', marginTop: 16 },
-  practiceText: { fontSize: 14, color: '#374151', lineHeight: 1.7 },
-  toolCard: { background: WH, border: '1px solid #E5E7EB', borderRadius: 12, padding: '16px', marginBottom: 10, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' },
+  practiceBox: { background: '#FAF8F5', border: '1px solid #E7E2DA', borderRadius: 16, padding: '14px 16px', marginTop: 16 },
+  practiceText: { fontSize: 14, color: '#45413B', lineHeight: 1.7 },
+  toolCard: { background: WH, border: '1px solid #E7E2DA', borderRadius: 16, padding: '16px', marginBottom: 10, boxShadow: '0 1px 3px rgba(43,42,40,0.04)' },
   toolTop: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 },
   toolName: { fontSize: 15, fontWeight: 700, color: BL },
-  freeBadge: { fontSize: 11, fontWeight: 700, background: '#EFF6FF', color: B, padding: '2px 8px', borderRadius: 100 },
-  toolUse: { fontSize: 14, color: '#374151', lineHeight: 1.65, marginBottom: 4 },
+  freeBadge: { fontSize: 11, fontWeight: 700, background: '#E8F1F6', color: B, padding: '2px 8px', borderRadius: 100 },
+  toolUse: { fontSize: 14, color: '#45413B', lineHeight: 1.65, marginBottom: 4 },
   toolLink: { fontSize: 12, color: B, fontWeight: 600 },
-  methodCard: { background: WH, border: '1px solid #E5E7EB', borderRadius: 14, padding: '22px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' },
+  methodCard: { background: WH, border: '1px solid #E7E2DA', borderRadius: 16, padding: '22px', boxShadow: '0 2px 8px rgba(43,42,40,0.05)' },
   methodName: { fontSize: 22, fontWeight: 800, marginBottom: 14, letterSpacing: '-0.3px' },
-  methodText: { fontSize: 14, color: '#374151', lineHeight: 1.7, marginBottom: 10 },
+  methodText: { fontSize: 14, color: '#45413B', lineHeight: 1.7, marginBottom: 10 },
   chipRow: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 14 },
-  chipLabel: { fontSize: 12, color: '#9CA3AF', fontWeight: 600 },
-  chip: { padding: '4px 12px', borderRadius: 100, border: '1.5px solid #BFDBFE', fontSize: 12, fontWeight: 600, color: B },
-  proofCard: { background: WH, border: '1px solid #E5E7EB', borderRadius: 12, padding: '18px', marginBottom: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.04)' },
+  chipLabel: { fontSize: 12, color: '#77716A', fontWeight: 600 },
+  chip: { padding: '4px 12px', borderRadius: 100, border: '1.5px solid #BCD6E5', fontSize: 12, fontWeight: 600, color: B },
+  proofCard: { background: WH, border: '1px solid #E7E2DA', borderRadius: 16, padding: '18px', marginBottom: 10, boxShadow: '0 1px 4px rgba(43,42,40,0.04)' },
   proofTop: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' },
   proofName: { fontSize: 17, fontWeight: 800, color: BL, letterSpacing: '-0.3px' },
-  proofCountry: { fontSize: 13, color: '#9CA3AF' },
-  proofResult: { fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 8 },
-  lessonBox: { background: '#F9FAFB', border: '1px solid #F3F4F6', borderRadius: 8, padding: '10px 12px' },
-  lessonText: { fontSize: 13, color: '#374151', lineHeight: 1.65 },
-  feedbackCard: { background: WH, border: '1px solid #E5E7EB', borderRadius: 16, padding: '28px', marginTop: 48, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' },
+  proofCountry: { fontSize: 13, color: '#77716A' },
+  proofResult: { fontSize: 14, fontWeight: 600, color: '#45413B', marginBottom: 8 },
+  lessonBox: { background: '#FAF8F5', border: '1px solid #F3EFE9', borderRadius: 10, padding: '10px 12px' },
+  lessonText: { fontSize: 13, color: '#45413B', lineHeight: 1.65 },
+  feedbackCard: { background: WH, border: '1px solid #E7E2DA', borderRadius: 16, padding: '28px', marginTop: 48, boxShadow: '0 2px 8px rgba(43,42,40,0.05)' },
   feedbackTitle: { fontSize: 18, fontWeight: 800, color: BL, marginBottom: 4, letterSpacing: '-0.3px' },
-  feedbackSub: { fontSize: 14, color: '#6B7280', marginBottom: 20 },
+  feedbackSub: { fontSize: 14, color: '#6B665F', marginBottom: 20 },
   feedbackThanks: { fontSize: 16, fontWeight: 600, color: B, textAlign: 'center', padding: '16px 0' },
   starRow: { display: 'flex', alignItems: 'center', gap: 4, marginBottom: 20, flexWrap: 'wrap' },
   star: { fontSize: 32, background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', lineHeight: 1 },
-  starLabel: { fontSize: 13, color: '#6B7280', fontWeight: 600, marginLeft: 8 },
-  feedbackInput: { width: '100%', border: '1px solid #E5E7EB', borderRadius: 8, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', marginBottom: 12, resize: 'vertical', boxSizing: 'border-box', color: BL, outline: 'none' },
-  feedbackInputSingle: { width: '100%', border: '1px solid #E5E7EB', borderRadius: 8, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', marginBottom: 20, boxSizing: 'border-box', color: BL, outline: 'none' },
-  feedbackBtn: { background: B, color: WH, border: 'none', borderRadius: 8, padding: '12px 28px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
+  starLabel: { fontSize: 13, color: '#6B665F', fontWeight: 600, marginLeft: 8 },
+  feedbackInput: { width: '100%', border: '1px solid #E7E2DA', borderRadius: 10, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', marginBottom: 12, resize: 'vertical', boxSizing: 'border-box', color: BL, outline: 'none' },
+  feedbackInputSingle: { width: '100%', border: '1px solid #E7E2DA', borderRadius: 10, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', marginBottom: 20, boxSizing: 'border-box', color: BL, outline: 'none' },
+  feedbackBtn: { background: B, color: WH, border: 'none', borderRadius: 10, padding: '12px 28px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
   aiLoading: { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '64px 20px', gap: 16 },
-  aiSpinner: { width: 36, height: 36, border: '3px solid #F3F4F6', borderTop: `3px solid ${B}`, borderRadius: '50%', animation: 'spin 0.8s linear infinite' },
-  aiLoadingText: { fontSize: 15, fontWeight: 600, color: '#374151', textAlign: 'center' },
-  aiLoadingSubtext: { fontSize: 13, color: '#9CA3AF', textAlign: 'center' },
-  founderMsg: { background: BL, borderRadius: 14, padding: '20px 22px', marginBottom: 20 },
-  founderMsgLabel: { fontSize: 11, fontWeight: 700, color: B, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 },
+  aiSpinner: { width: 36, height: 36, border: '3px solid #F3EFE9', borderTop: `3px solid ${B}`, borderRadius: '50%', animation: 'spin 0.8s linear infinite' },
+  aiLoadingText: { fontSize: 15, fontWeight: 600, color: '#45413B', textAlign: 'center' },
+  aiLoadingSubtext: { fontSize: 13, color: '#77716A', textAlign: 'center' },
+  founderMsg: { background: 'var(--color-primary)', borderRadius: 16, padding: '20px 22px', marginBottom: 20 },
+  founderMsgLabel: { fontSize: 11, fontWeight: 700, color: 'var(--color-primary-border)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 },
   founderMsgText: { fontSize: 15, color: WH, lineHeight: 1.75 },
-  topPriority: { background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 14, padding: '20px 22px', marginBottom: 24 },
+  topPriority: { background: '#E8F1F6', border: '1px solid #BCD6E5', borderRadius: 16, padding: '20px 22px', marginBottom: 24 },
   topPriorityLabel: { fontSize: 11, fontWeight: 700, color: B, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 },
   topPriorityText: { fontSize: 15, fontWeight: 700, color: BL, lineHeight: 1.65 },
 };

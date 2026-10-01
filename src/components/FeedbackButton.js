@@ -1,6 +1,5 @@
 import React from 'react';
 
-const BL = '#0A0A0A';
 const WH = '#FFFFFF';
 
 export default function FeedbackButton() {
@@ -19,7 +18,7 @@ export default function FeedbackButton() {
         alignItems: 'center',
         gap: 8,
         padding: '10px 16px',
-        background: BL,
+        background: 'var(--color-primary)',
         color: WH,
         border: 'none',
         borderRadius: 100,

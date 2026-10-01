@@ -74,8 +74,8 @@ html { scroll-behavior: smooth; }
 
 body {
   font-family: var(--font);
-  background: var(--white);
-  color: var(--gray-1);
+  background: var(--color-canvas);
+  color: var(--color-text);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -84,7 +84,7 @@ body {
 h1, h2, h3, h4 {
   font-family: var(--font);
   line-height: 1.2;
-  color: var(--black);
+  color: var(--color-text);
   letter-spacing: -0.3px;
 }
 

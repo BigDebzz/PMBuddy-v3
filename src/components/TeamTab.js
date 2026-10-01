@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
-const BLUE = '#0284C7';
-const BL = '#0A0A0A';
+const BLUE = '#35709A';
+const BL = '#2B2A28';
 const WH = '#FFFFFF';
-const GREY = '#F8FAFC';
+const GREY = '#FAF8F5';
 
 const ROLES = ['viewer', 'editor', 'owner'];
 const ROLE_LABELS = { viewer: 'Viewer', editor: 'Editor', owner: 'Owner' };
@@ -153,7 +153,7 @@ export default function TeamTab({ project, currentUser, onSave }) {
           <p style={s.memberEmail}>{ownerEmail || 'Project Owner'}</p>
           <p style={s.memberStatus}>Project owner</p>
         </div>
-        <span style={{ ...s.roleBadge, background: '#EFF6FF', color: BLUE }}>Owner</span>
+        <span style={{ ...s.roleBadge, background: '#E8F1F6', color: BLUE }}>Owner</span>
       </div>
 
       {!loading && members.length > 0 && (
@@ -187,7 +187,7 @@ export default function TeamTab({ project, currentUser, onSave }) {
           <label style={s.label}>Role</label>
           <div style={s.roleGrid}>
             {ROLES.map(r => (
-              <button key={r} style={{ ...s.roleBtn, borderColor: role === r ? BLUE : '#E5E7EB', background: role === r ? '#EFF6FF' : WH }} onClick={() => setRole(r)}>
+              <button key={r} style={{ ...s.roleBtn, borderColor: role === r ? BLUE : '#E7E2DA', background: role === r ? '#E8F1F6' : WH }} onClick={() => setRole(r)}>
                 <p style={{ ...s.roleName, color: role === r ? BLUE : BL }}>{ROLE_LABELS[r]}</p>
                 <p style={s.roleDesc}>{ROLE_DESC[r]}</p>
               </button>
@@ -210,33 +210,33 @@ export default function TeamTab({ project, currentUser, onSave }) {
 }
 
 const s = {
-  head: { marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid #F3F4F6' },
+  head: { marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid #F3EFE9' },
   title: { fontSize: 18, fontWeight: 700, color: BL, marginBottom: 4 },
-  sub: { fontSize: 14, color: '#6B7280', lineHeight: 1.65 },
-  ownerRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: '1px solid #F3F4F6' },
+  sub: { fontSize: 14, color: '#6B665F', lineHeight: 1.65 },
+  ownerRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: '1px solid #F3EFE9' },
   membersList: { marginBottom: 24 },
-  memberRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: '1px solid #F3F4F6', flexWrap: 'wrap' },
-  avatar: { width: 36, height: 36, borderRadius: '50%', background: '#EFF6FF', color: BLUE, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, flexShrink: 0 },
+  memberRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: '1px solid #F3EFE9', flexWrap: 'wrap' },
+  avatar: { width: 36, height: 36, borderRadius: '50%', background: '#E8F1F6', color: BLUE, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, flexShrink: 0 },
   memberInfo: { flex: 1, minWidth: 140 },
   memberEmail: { fontSize: 14, fontWeight: 500, color: BL, marginBottom: 2 },
-  memberStatus: { fontSize: 12, color: '#9CA3AF' },
+  memberStatus: { fontSize: 12, color: '#77716A' },
   memberActions: { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
-  roleBadge: { fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 100, background: GREY, color: '#6B7280' },
-  roleSelect: { border: '1px solid #E5E7EB', borderRadius: 6, padding: '5px 10px', fontSize: 12, fontFamily: 'inherit', color: BL, background: WH, cursor: 'pointer' },
-  smBtn: { padding: '5px 12px', background: WH, color: '#6B7280', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
-  inviteCard: { background: GREY, borderRadius: 12, padding: '20px', border: '1px solid #E5E7EB', marginTop: 24 },
+  roleBadge: { fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 100, background: GREY, color: '#6B665F' },
+  roleSelect: { border: '1px solid #E7E2DA', borderRadius: 8, padding: '5px 10px', fontSize: 12, fontFamily: 'inherit', color: BL, background: WH, cursor: 'pointer' },
+  smBtn: { padding: '5px 12px', background: WH, color: '#6B665F', border: '1px solid #E7E2DA', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
+  inviteCard: { background: GREY, borderRadius: 16, padding: '20px', border: '1px solid #E7E2DA', marginTop: 24 },
   inviteTitle: { fontSize: 14, fontWeight: 600, color: BL, marginBottom: 16 },
-  label: { display: 'block', fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6, letterSpacing: '0.02em' },
-  input: { width: '100%', border: '1.5px solid #E5E7EB', borderRadius: 8, padding: '10px 14px', fontSize: 14, fontFamily: 'inherit', marginBottom: 16, boxSizing: 'border-box', color: BL, outline: 'none', background: WH },
+  label: { display: 'block', fontSize: 12, fontWeight: 700, color: '#45413B', marginBottom: 6, letterSpacing: '0.02em' },
+  input: { width: '100%', border: '1.5px solid #E7E2DA', borderRadius: 10, padding: '10px 14px', fontSize: 14, fontFamily: 'inherit', marginBottom: 16, boxSizing: 'border-box', color: BL, outline: 'none', background: WH },
   roleGrid: { display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 },
   roleBtn: { flex: 1, minWidth: 120, padding: '12px 14px', border: '1.5px solid', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' },
   roleName: { fontSize: 13, fontWeight: 700, marginBottom: 4 },
-  roleDesc: { fontSize: 11, color: '#9CA3AF', lineHeight: 1.5 },
-  successMsg: { fontSize: 13, color: '#15803D', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 6, padding: '8px 12px', marginBottom: 12 },
-  errorMsg: { fontSize: 13, color: '#DC2626', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 6, padding: '8px 12px', marginBottom: 12 },
-  sendBtn: { padding: '10px 24px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
-  viewerNote: { marginTop: 24, padding: '14px', background: GREY, borderRadius: 8 },
-  viewerNoteText: { fontSize: 13, color: '#9CA3AF' },
+  roleDesc: { fontSize: 11, color: '#77716A', lineHeight: 1.5 },
+  successMsg: { fontSize: 13, color: '#15803D', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8, padding: '8px 12px', marginBottom: 12 },
+  errorMsg: { fontSize: 13, color: '#DC2626', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '8px 12px', marginBottom: 12 },
+  sendBtn: { padding: '10px 24px', background: BLUE, color: WH, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  viewerNote: { marginTop: 24, padding: '14px', background: GREY, borderRadius: 10 },
+  viewerNoteText: { fontSize: 13, color: '#77716A' },
 };
 
 export function WhoDoesWhat({ project, onSave }) {
@@ -255,7 +255,7 @@ export function WhoDoesWhat({ project, onSave }) {
   const remove = (i) => onSave({ who_does_what: tasks.filter((_, idx) => idx !== i) });
 
   return (
-    <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid #F3F4F6' }}>
+    <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid #F3EFE9' }}>
       <p style={wStyle.label}>Who Does What</p>
       <p style={wStyle.sub}>For each key task, say who handles it and who just needs to be kept in the loop.</p>
       <div style={wStyle.formCard}>
@@ -297,7 +297,7 @@ export function CommunicationPlan({ project, onSave }) {
   const remove = (i) => onSave({ comms_plan: comms.filter((_, idx) => idx !== i) });
 
   return (
-    <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid #F3F4F6' }}>
+    <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid #F3EFE9' }}>
       <p style={wStyle.label}>Who Needs to Know What</p>
       <p style={wStyle.sub}>Keep everyone in the loop without overwhelming anyone. Add one row per person or group.</p>
       <div style={wStyle.formCard}>
@@ -325,15 +325,15 @@ export function CommunicationPlan({ project, onSave }) {
 }
 
 const wStyle = {
-  label: { fontSize: 14, fontWeight: 700, color: '#0A0A0A', marginBottom: 4 },
-  sub: { fontSize: 13, color: '#6B7280', lineHeight: 1.6, marginBottom: 14 },
-  formCard: { background: '#F8FAFC', borderRadius: 10, padding: '14px', border: '1px solid #E5E7EB', marginBottom: 14 },
-  input: { border: '1.5px solid #E5E7EB', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', color: '#0A0A0A', outline: 'none', background: '#FFFFFF', marginBottom: 10 },
-  addBtn: { padding: '8px 20px', background: '#0284C7', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
-  row: { display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 0', borderBottom: '1px solid #F3F4F6', flexWrap: 'wrap' },
-  taskName: { fontSize: 14, fontWeight: 600, color: '#0A0A0A' },
-  metaLabel: { fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 },
-  metaVal: { fontSize: 13, color: '#374151' },
-  removeBtn: { background: 'none', border: 'none', color: '#D1D5DB', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit', flexShrink: 0, alignSelf: 'center' },
-  empty: { fontSize: 13, color: '#9CA3AF', padding: '16px 0' },
+  label: { fontSize: 14, fontWeight: 700, color: '#2B2A28', marginBottom: 4 },
+  sub: { fontSize: 13, color: '#6B665F', lineHeight: 1.6, marginBottom: 14 },
+  formCard: { background: '#FAF8F5', borderRadius: 10, padding: '14px', border: '1px solid #E7E2DA', marginBottom: 14 },
+  input: { border: '1.5px solid #E7E2DA', borderRadius: 10, padding: '9px 12px', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', color: '#2B2A28', outline: 'none', background: '#FFFFFF', marginBottom: 10 },
+  addBtn: { padding: '8px 20px', background: '#35709A', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  row: { display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 0', borderBottom: '1px solid #F3EFE9', flexWrap: 'wrap' },
+  taskName: { fontSize: 14, fontWeight: 600, color: '#2B2A28' },
+  metaLabel: { fontSize: 10, fontWeight: 700, color: '#77716A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 },
+  metaVal: { fontSize: 13, color: '#45413B' },
+  removeBtn: { background: 'none', border: 'none', color: '#D8D2C8', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit', flexShrink: 0, alignSelf: 'center' },
+  empty: { fontSize: 13, color: '#77716A', padding: '16px 0' },
 };

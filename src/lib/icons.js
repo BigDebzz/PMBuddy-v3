@@ -71,8 +71,8 @@ export const UsersIcon = icon(<>
 
 export const LogoIcon = ({ size = 36 }) => (
   <svg width={size} height={size} viewBox="0 0 36 36" fill="none">
-    <rect width="36" height="36" rx="10" fill="#0A0A0A"/>
+    <rect width="36" height="36" rx="10" fill="#35709A"/>
     <path d="M10 12h16M10 18h11M10 24h13" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
-    <circle cx="25" cy="24" r="3.5" fill="#2563EB"/>
+    <circle cx="25" cy="24" r="3.5" fill="#BCD6E5"/>
   </svg>
 );
