@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase';
 import RemindersPanel from './RemindersPanel';
 import TeamTab from './TeamTab';
 import PMBuddyAssistant from './PMBuddyAssistant';
+import AiLoading from './AiLoading';
+import ProgressOverview from './ProgressOverview';
 
 const BLUE = '#0284C7';
 const BL = '#0A0A0A';
@@ -123,18 +125,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
 // ─── OVERVIEW TAB ─────────────────────────────────────────────
 
 function OverviewTab({ data, onSave, acceptedMembers }) {
-  const end = data.timeline?.end ? new Date(data.timeline.end) : null;
-  const start = data.timeline?.start ? new Date(data.timeline.start) : null;
-  const today = new Date();
-  const totalDays = start && end ? Math.ceil((end - start) / 86400000) : 0;
-  const daysLeft = end ? Math.ceil((end - today) / 86400000) : null;
-  const progress = totalDays > 0 ? Math.max(0, Math.min(100, Math.round(((totalDays - (daysLeft || 0)) / totalDays) * 100))) : 0;
   const milestones = data.milestones || [];
-  const doneMilestones = milestones.filter(m => m.status === 'done').length;
-  const openRisks = (data.risks || []).filter(r => r.status === 'open').length;
-  const tasks = data.tasks || [];
-  const doneTasks = tasks.filter(t => t.status === 'done').length;
-  const totalTeam = 1 + acceptedMembers.length;
 
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalDraft, setGoalDraft] = useState(data.scope?.goal || '');
@@ -159,35 +150,7 @@ function OverviewTab({ data, onSave, acceptedMembers }) {
 
   return (
     <div>
-      {/* Stats */}
-      <div style={s.statsGrid}>
-        {[
-          { label: 'Time used', value: `${progress}%`, sub: daysLeft !== null ? (daysLeft > 0 ? `${daysLeft} days left` : daysLeft === 0 ? 'Due today' : 'Overdue') : 'No end date', color: daysLeft !== null && daysLeft < 7 ? '#DC2626' : BLUE },
-          { label: 'Milestones', value: `${doneMilestones}/${milestones.length}`, sub: 'completed', color: BLUE },
-          { label: 'Tasks', value: `${doneTasks}/${tasks.length}`, sub: 'done', color: '#15803D' },
-          { label: 'Open risks', value: openRisks, sub: 'need attention', color: openRisks > 0 ? '#DC2626' : '#15803D' },
-          { label: 'Team', value: totalTeam, sub: 'people', color: BLUE },
-        ].map((stat, i) => (
-          <div key={i} style={s.statCard}>
-            <p style={s.statLabel}>{stat.label}</p>
-            <p style={{ ...s.statNum, color: stat.color }}>{stat.value}</p>
-            <p style={s.statSub}>{stat.sub}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Timeline bar */}
-      {totalDays > 0 && (
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ height: 6, background: RULE, borderRadius: 3, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${progress}%`, background: daysLeft !== null && daysLeft < 7 ? '#DC2626' : BLUE, borderRadius: 3, transition: 'width 0.4s' }} />
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-            <span style={{ fontSize: 11, color: '#9CA3AF' }}>{data.timeline?.start ? formatDate(data.timeline.start) : 'Start'}</span>
-            <span style={{ fontSize: 11, color: '#9CA3AF' }}>{data.timeline?.end ? formatDate(data.timeline.end) : 'End'}</span>
-          </div>
-        </div>
-      )}
+      <ProgressOverview data={data} acceptedMembers={acceptedMembers} />
 
       {/* Goal */}
       <div style={{ ...s.card, marginBottom: 16 }}>
@@ -285,6 +248,7 @@ function CurrentStatus({ data, onSave }) {
           {editing && <button style={s.smallBtn} onClick={() => setEditing(false)}>Cancel</button>}
         </div>
       </div>
+      {reviewing && <AiLoading compact kind="think" />}
       {!editing && !hasContent && <p style={{ fontSize: 13, color: '#6B7280' }}>No status yet. Click Edit to add where things stand.</p>}
       {!editing && hasContent && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -367,7 +331,7 @@ function InsightCard({ title, icon, savedValue, savedEdited, onSave, generatePro
         </div>
       </div>
       {!content && !generating && <p style={{ fontSize: 13, color: '#9CA3AF' }}>Click Generate and PM Buddy will fill this in from your project details.</p>}
-      {generating && <p style={{ fontSize: 13, color: '#6B7280' }}>PM Buddy is working on this...</p>}
+      {generating && <AiLoading compact kind="write" />}
       {content && !editing && <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>{content}</div>}
       {editing && <textarea style={{ ...s.textarea, marginTop: 8, minHeight: 100 }} value={draft} onChange={e => setDraft(e.target.value)} rows={4} />}
     </div>
@@ -1116,6 +1080,7 @@ function DocumentsTab({ data, history, onSave, project }) {
             <textarea style={{ ...s.textarea, minHeight: 60 }} rows={2} placeholder="e.g. Reporting period April to June." value={additionalContext} onChange={e => setAdditionalContext(e.target.value)} />
           </div>
           <button style={{ padding: '12px 24px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: generating ? 0.6 : 1 }} onClick={generateReport} disabled={generating}>{generating ? 'Generating...' : '✦ Generate Report'}</button>
+          {generating && <div style={{ marginTop: 20 }}><AiLoading kind="write" title="Writing your document" /></div>}
           {reportContent && !generating && (
             <div style={{ marginTop: 20 }}>
               <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
@@ -1133,6 +1098,7 @@ function DocumentsTab({ data, history, onSave, project }) {
           <p style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.6, marginBottom: 16 }}>PM Buddy reads your project data and gives you an honest score.</p>
           <button style={{ padding: '10px 20px', background: BL, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 20 }} onClick={runHealthCheck} disabled={aiReportLoading}>{aiReportLoading ? 'Checking...' : aiReport ? 'Run Again' : 'Run Health Check'}</button>
           {aiReportError && <div style={{ padding: '12px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, marginBottom: 16 }}><p style={{ fontSize: 13, color: '#DC2626' }}>{aiReportError}</p></div>}
+          {aiReportLoading && <AiLoading kind="think" title="Running your health check" />}
           {aiReport && !aiReportLoading && (
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
@@ -1170,6 +1136,7 @@ function DocumentsTab({ data, history, onSave, project }) {
             <div><p style={{ fontSize: 14, fontWeight: 700, color: WH, marginBottom: 2 }}>Progress Map</p><p style={{ fontSize: 13, color: '#6B7280' }}>PM Buddy reads your history and tells you where things stand.</p></div>
             <button style={{ padding: '9px 18px', background: BLUE, color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: generatingMap ? 0.6 : 1 }} onClick={generateProgressMap} disabled={generatingMap}>{generatingMap ? 'Generating...' : '✦ Generate'}</button>
           </div>
+          {generatingMap && <div style={{ marginBottom: 20 }}><AiLoading compact kind="think" /></div>}
           {showProgressMap && progressMap && (
             <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 12, padding: '20px', marginBottom: 20 }}>
               <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.85, whiteSpace: 'pre-wrap' }}>{progressMap}</div>

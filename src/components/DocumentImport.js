@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import mammoth from 'mammoth';
 import { supabase } from '../lib/supabase';
+import AiLoading from './AiLoading';
 
 const EXTRACTION_PROMPT = `You are PM Buddy, a project management assistant. Read the attached document and extract the following project information. Return ONLY a valid JSON object with this exact structure:
 
@@ -463,7 +464,9 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
         </div>
       )}
 
-      {mode === 'paste' && (
+      {loading && <AiLoading kind="read" title="PM Buddy is reading your document" />}
+
+      {mode === 'paste' && !loading && (
         <div>
           <textarea
             value={pastedText}
@@ -481,7 +484,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
         </div>
       )}
 
-      {mode === 'upload' && (
+      {mode === 'upload' && !loading && (
         <div>
           <div
             onClick={() => fileInputRef.current?.click()}

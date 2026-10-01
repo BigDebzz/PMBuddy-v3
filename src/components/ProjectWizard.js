@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import AiLoading from './AiLoading';
 
 const BLUE = '#0284C7';
 const BL = '#0A0A0A';
@@ -612,6 +613,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
           )}
 
           <div style={s.footer}>
+            {generating && <div style={{ marginBottom: 12 }}><AiLoading compact kind="write" title="Creating your project summary" /></div>}
             {saveMsg && <p style={{ fontSize: 13, color: '#DC2626', marginBottom: 12, textAlign: 'center' }}>{saveMsg}</p>}
             <div style={{ display: 'flex', gap: 12 }}>
               <button style={s.backFooterBtn} onClick={back}>← Back</button>
