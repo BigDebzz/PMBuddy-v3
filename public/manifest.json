@@ -24,7 +24,7 @@
   "start_url": ".",
   "display": "standalone",
   "orientation": "portrait",
-  "theme_color": "#35709A",
+  "theme_color": "#1F57F0",
   "background_color": "#FAF8F5",
   "categories": ["productivity", "business"],
   "screenshots": []

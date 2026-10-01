@@ -2,19 +2,20 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import DocumentImport from './DocumentImport';
 import BroadcastEmail from './BroadcastEmail';
+import Icon from './Icon';
 
-const BLUE = '#35709A';
-const BL = '#2B2A28';
-const WH = '#FFFFFF';
-const GREY = '#FAF8F5';
-const RULE = '#E7E2DA';
+const BLUE = 'var(--accent)';
+const BL = 'var(--text)';
+const WH = 'var(--surface)';
+const GREY = 'var(--surface-2)';
+const RULE = 'var(--border)';
 const SIDEBAR_W = 240;
 
 const NAV = [
-  { id: 'home', icon: '⌂', label: 'Home' },
-  { id: 'projects', icon: '◈', label: 'Projects' },
-  { id: 'docs', icon: '✎', label: 'Documents' },
-  { id: 'settings', icon: '⚙', label: 'Settings' },
+  { id: 'home', icon: 'home', label: 'Home' },
+  { id: 'projects', icon: 'board', label: 'Projects' },
+  { id: 'docs', icon: 'edit', label: 'Documents' },
+  { id: 'settings', icon: 'settings', label: 'Settings' },
 ];
 
 const CHECKLIST = [
@@ -178,8 +179,8 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
 
         <nav style={s.nav}>
           {NAV.map(item => (
-            <button key={item.id} style={{ ...s.navItem, background: activeNav === item.id ? '#E8F1F6' : 'none', color: activeNav === item.id ? BLUE : '#45413B', fontWeight: activeNav === item.id ? 700 : 500 }} onClick={() => setNav(item.id)}>
-              <span style={{ ...s.navIcon, color: activeNav === item.id ? BLUE : '#77716A' }}>{item.icon}</span>
+            <button key={item.id} style={{ ...s.navItem, background: activeNav === item.id ? 'var(--accent-tint)' : 'none', color: activeNav === item.id ? 'var(--accent-text)' : 'var(--text-2)', fontWeight: activeNav === item.id ? 700 : 500 }} onClick={() => setNav(item.id)}>
+              <span style={{ ...s.navIcon, color: activeNav === item.id ? 'var(--accent-text)' : 'var(--muted)' }}><Icon name={item.icon} size={18} /></span>
               {item.label}
               {item.id === 'projects' && projects.length > 0 && <span style={s.navBadge}>{projects.length}</span>}
               {item.id === 'docs' && documents.length > 0 && <span style={s.navBadge}>{documents.length}</span>}
@@ -191,8 +192,8 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
           {!onboardingComplete && (
             <div style={s.progressMini}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#6B665F' }}>Getting started</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: BLUE }}>{checklistDoneCount}/{checklistTotal}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)' }}>Getting started</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-text)' }}>{checklistDoneCount}/{checklistTotal}</span>
               </div>
               <div style={s.miniBar}><div style={{ ...s.miniBarFill, width: `${(checklistDoneCount / checklistTotal) * 100}%` }} /></div>
             </div>
@@ -205,15 +206,15 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
       <main style={{ ...s.main, marginLeft: isMobile ? 0 : SIDEBAR_W }}>
         {/* Top bar */}
         <div style={s.topBar}>
-          <button style={s.menuBtn} onClick={() => setSidebarOpen(p => !p)}>☰</button>
+          <button style={s.menuBtn} onClick={() => setSidebarOpen(p => !p)}><Icon name="menu" size={20} /></button>
           <div style={s.topActions}>
             {showInstallBanner && (
               <div style={s.installChip}>
-                <button style={s.installChipBtn} onClick={handleInstall}>⬇ Install App</button>
-                <button style={s.installDismiss} onClick={() => { setShowInstallBanner(false); localStorage.setItem('pmbuddy_install_dismissed', '1'); }}>✕</button>
+                <button style={s.installChipBtn} onClick={handleInstall}><Icon name="download" size={15} style={{ marginRight: 6 }} />Install App</button>
+                <button style={s.installDismiss} onClick={() => { setShowInstallBanner(false); localStorage.setItem('pmbuddy_install_dismissed', '1'); }}><Icon name="x" size={14} /></button>
               </div>
             )}
-            <button style={{ ...s.newBtn, background: WH, color: BL, border: `1.5px solid ${RULE}`, marginRight: 8 }} onClick={() => setShowImport(true)}>⬆ Import Doc</button>
+            <button style={{ ...s.newBtn, background: WH, color: BL, border: `1.5px solid ${RULE}`, marginRight: 8 }} onClick={() => setShowImport(true)}><Icon name="upload" size={15} style={{ marginRight: 6 }} />Import Doc</button>
             <button style={s.newBtn} onClick={onNewProject}>+ New Project</button>
           </div>
         </div>
@@ -235,7 +236,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                       <p style={s.checklistSub}>Complete these steps to get the most out of the platform.</p>
                     </div>
                     <div style={s.checklistProgress}>
-                      <span style={s.checklistCount}>{checklistDoneCount}<span style={{ fontSize: 14, color: '#77716A' }}>/{checklistTotal}</span></span>
+                      <span style={s.checklistCount}>{checklistDoneCount}<span style={{ fontSize: 14, color: 'var(--muted)' }}>/{checklistTotal}</span></span>
                     </div>
                   </div>
                   <div style={s.checklistBar}><div style={{ ...s.checklistBarFill, width: `${(checklistDoneCount / checklistTotal) * 100}%` }} /></div>
@@ -245,14 +246,14 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                       return (
                         <div key={item.id} style={{ ...s.checklistItem, opacity: done ? 0.6 : 1 }}>
                           <div style={{ ...s.checkBox, background: done ? BLUE : WH, borderColor: done ? BLUE : RULE }}>
-                            {done && <span style={{ color: WH, fontSize: 11, fontWeight: 900 }}>✓</span>}
+                            {done && <Icon name="check" size={14} strokeWidth={3.4} style={{ color: '#FFFFFF' }} />}
                           </div>
                           <div style={{ flex: 1 }}>
-                            <p style={{ ...s.checkLabel, textDecoration: done ? 'line-through' : 'none', color: done ? '#77716A' : BL }}>{item.label}</p>
+                            <p style={{ ...s.checkLabel, textDecoration: done ? 'line-through' : 'none', color: done ? 'var(--muted)' : BL }}>{item.label}</p>
                             {item.hint && !done && <p style={s.checkHint}>{item.hint}</p>}
                           </div>
                           {item.action && !done && (
-                            <button style={s.checkAction} onClick={() => handleChecklistAction(item.action)}>Start →</button>
+                            <button style={s.checkAction} onClick={() => handleChecklistAction(item.action)}>Start<Icon name="arrow-right" size={14} style={{ marginLeft: 6 }} /></button>
                           )}
                         </div>
                       );
@@ -263,8 +264,8 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
 
               <div style={s.statsRow}>
                 {[
-                  { label: 'Projects', value: projects.length, color: BLUE, action: () => setNav('projects') },
-                  { label: 'Documents', value: documents.length, color: '#C2410C', action: () => setNav('docs') },
+                  { label: 'Projects', value: projects.length, color: 'var(--accent-text)', action: () => setNav('projects') },
+                  { label: 'Documents', value: documents.length, color: 'var(--warn-text)', action: () => setNav('docs') },
                 ].map((stat, i) => (
                   <button key={i} style={s.statCard} onClick={stat.action}>
                     <p style={{ ...s.statNum, color: stat.color }}>{stat.value}</p>
@@ -276,11 +277,11 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
               <p style={s.sectionLabel}>Quick actions</p>
               <div style={s.quickGrid}>
                 {[
-                  { icon: '◈', label: 'New Project', sub: 'Start a structured project', action: onNewProject, bg: BL, color: WH },
-                  { icon: '⬆', label: 'Import Document', sub: 'Paste or upload an existing plan', action: () => setShowImport(true), bg: '#E8F1F6', color: BLUE },
+                  { icon: 'board', label: 'New Project', sub: 'Start a structured project', action: onNewProject, bg: BL, color: '#FFFFFF' },
+                  { icon: 'upload', label: 'Import Document', sub: 'Paste or upload an existing plan', action: () => setShowImport(true), bg: 'var(--accent-tint)', color: 'var(--accent-text)' },
                 ].map((item, i) => (
                   <button key={i} style={s.quickCard} onClick={item.action}>
-                    <div style={{ ...s.quickIcon, background: item.bg, color: item.color }}>{item.icon}</div>
+                    <div style={{ ...s.quickIcon, background: item.bg, color: item.color }}><Icon name={item.icon} size={20} /></div>
                     <div>
                       <p style={s.quickLabel}>{item.label}</p>
                       <p style={s.quickSub}>{item.sub}</p>
@@ -312,7 +313,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                   <p style={s.pageSub}>{projects.length} project{projects.length !== 1 ? 's' : ''}</p>
                 </div>
                 <div style={{ display: 'flex', gap: 10 }}>
-                  <button style={{ ...s.primaryBtn, background: WH, color: BL, border: `1.5px solid ${RULE}` }} onClick={() => setShowImport(true)}>⬆ Import Doc</button>
+                  <button style={{ ...s.primaryBtn, background: WH, color: BL, border: `1.5px solid ${RULE}` }} onClick={() => setShowImport(true)}><Icon name="upload" size={15} style={{ marginRight: 6 }} />Import Doc</button>
                   <button style={s.primaryBtn} onClick={onNewProject}>+ New project</button>
                 </div>
               </div>
@@ -321,12 +322,12 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
 
               {!loading && projects.length === 0 && (
                 <div style={s.emptyState}>
-                  <div style={s.emptyIcon}>◈</div>
+                  <div style={s.emptyIcon}><Icon name="board" size={36} /></div>
                   <p style={s.emptyTitle}>No projects yet</p>
                   <p style={s.emptyBody}>Create your first project or import an existing document.</p>
                   <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                     <button style={s.primaryBtn} onClick={onNewProject}>Create your first project</button>
-                    <button style={{ ...s.primaryBtn, background: WH, color: BL, border: `1.5px solid ${RULE}` }} onClick={() => setShowImport(true)}>⬆ Import from document</button>
+                    <button style={{ ...s.primaryBtn, background: WH, color: BL, border: `1.5px solid ${RULE}` }} onClick={() => setShowImport(true)}><Icon name="upload" size={15} style={{ marginRight: 6 }} />Import from document</button>
                   </div>
                 </div>
               )}
@@ -342,10 +343,10 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                   <p style={{ ...s.sectionLabel, marginTop: 32, marginBottom: 16 }}>Projects I was invited to</p>
                   <div style={s.projectsGrid}>
                     {invitedProjects.map(p => (
-                      <div key={p.id} style={{ ...s.projectCard, borderColor: BLUE + '40' }}>
+                      <div key={p.id} style={{ ...s.projectCard, borderColor: 'var(--accent-border)' }}>
                         <div style={s.projectBadges}>
                           <span style={s.industryBadge}>{p.industry}</span>
-                          <span style={{ ...s.methodBadge, background: '#E8F1F6', color: BLUE }}>{p._inviteRole}</span>
+                          <span style={{ ...s.methodBadge, background: 'var(--accent-tint)', color: 'var(--accent-text)' }}>{p._inviteRole}</span>
                         </div>
                         <p style={s.projectName}>{p.name}</p>
                         <p style={s.projectDesc}>{p.description}</p>
@@ -373,7 +374,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
 
               {!loading && documents.length === 0 && (
                 <div style={s.emptyState}>
-                  <div style={s.emptyIcon}>✎</div>
+                  <div style={s.emptyIcon}><Icon name="edit" size={36} /></div>
                   <p style={s.emptyTitle}>No documents yet</p>
                   <p style={s.emptyBody}>Use Quick Doc to create concept notes, session plans, proposals and more in minutes.</p>
                   <button style={s.primaryBtn} onClick={onNewQuickDoc}>Create a document</button>
@@ -383,7 +384,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
               {!loading && quickDocs.length > 0 && (
                 <>
                   <p style={{ ...s.sectionLabel, marginBottom: 12 }}>Quick Docs</p>
-                  {quickDocs.map(doc => <DocRow key={doc.id} doc={doc} type="Quick Doc" typeBg="#FFF7ED" typeColor="#C2410C" onOpen={() => setViewingDoc(doc)} onDownload={() => downloadDoc(doc)} />)}
+                  {quickDocs.map(doc => <DocRow key={doc.id} doc={doc} type="Quick Doc" typeBg="var(--warn-tint)" typeColor="var(--warn-text)" onOpen={() => setViewingDoc(doc)} onDownload={() => downloadDoc(doc)} />)}
                 </>
               )}
 
@@ -391,7 +392,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                 <>
                   <p style={{ ...s.sectionLabel, marginTop: 24, marginBottom: 12 }}>Project Documents</p>
                   {projectDocs.map(doc => (
-                    <DocRow key={doc.id} doc={doc} type="Internal" typeBg="#E8F1F6" typeColor={BLUE}
+                    <DocRow key={doc.id} doc={doc} type="Internal" typeBg="var(--accent-tint)" typeColor="var(--accent-text)"
                       onOpen={() => {
                         const project = projects.find(p => p.id === doc.project_id);
                         if (project) onOpenProject({ ...project, _openDoc: doc });
@@ -451,7 +452,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                       <div style={{ ...s.settingsRow, borderBottom: 'none' }}>
                         <div>
                           <p style={s.settingsLabel}>Email newsletter</p>
-                          <p style={{ fontSize: 13, color: '#77716A' }}>Send a feature update to all PM Buddy users.</p>
+                          <p style={{ fontSize: 13, color: 'var(--muted)' }}>Send a feature update to all PM Buddy users.</p>
                         </div>
                         <button style={{ ...s.openBtn }} onClick={() => setShowBroadcast(true)}>Compose</button>
                       </div>
@@ -463,7 +464,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                     <div style={{ ...s.settingsRow, borderBottom: 'none' }}>
                       <div>
                         <p style={s.settingsLabel}>Send newsletter</p>
-                        <p style={{ fontSize: 13, color: '#77716A' }}>Send a feature update to all PM Buddy users.</p>
+                        <p style={{ fontSize: 13, color: 'var(--muted)' }}>Send a feature update to all PM Buddy users.</p>
                       </div>
                       <button style={s.openBtn} onClick={() => setShowBroadcast(true)}>Compose</button>
                     </div>
@@ -474,9 +475,9 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                     <div style={{ ...s.settingsRow, borderBottom: 'none' }}>
                       <div>
                         <p style={s.settingsLabel}>Sign out</p>
-                        <p style={{ fontSize: 13, color: '#77716A' }}>You will be signed out of this device.</p>
+                        <p style={{ fontSize: 13, color: 'var(--muted)' }}>You will be signed out of this device.</p>
                       </div>
-                      <button style={{ ...s.openBtn, background: 'none', color: '#DC2626', border: '1px solid #FECACA' }} onClick={onLogout}>Log out</button>
+                      <button style={{ ...s.openBtn, background: 'none', color: 'var(--bad-text)', border: '1px solid var(--bad-border)' }} onClick={onLogout}>Log out</button>
                     </div>
                   </div>
 
@@ -489,9 +490,9 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 16, padding: '0 20px 16px' }}>
-                      <a href="/privacy.html" style={{ fontSize: 13, color: BLUE }}>Privacy Policy</a>
-                      <a href="/terms.html" style={{ fontSize: 13, color: BLUE }}>Terms of Service</a>
-                      <a href="/about.html" style={{ fontSize: 13, color: BLUE }}>About</a>
+                      <a href="/privacy.html" style={{ fontSize: 13, color: 'var(--accent-text)' }}>Privacy Policy</a>
+                      <a href="/terms.html" style={{ fontSize: 13, color: 'var(--accent-text)' }}>Terms of Service</a>
+                      <a href="/about.html" style={{ fontSize: 13, color: 'var(--accent-text)' }}>About</a>
                     </div>
                   </div>
                 </>
@@ -504,15 +505,15 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
       {confirmDelete && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
           <div style={{ background: WH, borderRadius: 16, padding: '32px', maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-            <div style={{ width: 44, height: 44, borderRadius: 16, background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, marginBottom: 16 }}>🗑</div>
+            <div style={{ width: 44, height: 44, borderRadius: 16, background: 'var(--bad-tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--bad-text)', marginBottom: 16 }}><Icon name="trash" size={22} /></div>
             <h3 style={{ fontSize: 18, fontWeight: 700, color: BL, marginBottom: 8 }}>Delete this {confirmDelete.type}?</h3>
-            <p style={{ fontSize: 14, color: '#6B665F', lineHeight: 1.7, marginBottom: 8 }}>
+            <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.7, marginBottom: 8 }}>
               <strong style={{ color: BL }}>{confirmDelete.name}</strong> will be permanently deleted.
             </p>
-            <p style={{ fontSize: 13, color: '#DC2626', fontWeight: 600, marginBottom: 24 }}>This cannot be undone.</p>
+            <p style={{ fontSize: 13, color: 'var(--bad-text)', fontWeight: 600, marginBottom: 24 }}>This cannot be undone.</p>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button style={{ flex: 1, padding: '11px', background: '#DC2626', color: WH, border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={executeDelete}>Yes, delete it</button>
-              <button style={{ flex: 1, padding: '11px', background: 'none', color: '#6B665F', border: `1px solid ${RULE}`, borderRadius: 10, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setConfirmDelete(null)}>Cancel</button>
+              <button style={{ flex: 1, padding: '11px', background: 'var(--bad)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={executeDelete}>Yes, delete it</button>
+              <button style={{ flex: 1, padding: '11px', background: 'none', color: 'var(--muted)', border: `1px solid ${RULE}`, borderRadius: 10, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setConfirmDelete(null)}>Cancel</button>
             </div>
           </div>
         </div>
@@ -535,7 +536,7 @@ function DocRow({ doc, type, typeBg, typeColor, onOpen, onDownload }) {
       </div>
       <div style={s.docRowActions}>
         <button style={s.openBtn} onClick={onOpen}>Open</button>
-        <button style={{ ...s.openBtn, background: WH, color: BLUE, border: `1px solid ${BLUE}` }} onClick={onDownload}>Download</button>
+        <button style={{ ...s.openBtn, background: WH, color: 'var(--accent-text)', border: `1px solid ${BLUE}` }} onClick={onDownload}>Download</button>
       </div>
     </div>
   );
@@ -561,23 +562,23 @@ function ProjectCard({ p, onOpen, onDelete, isCampaign }) {
   const blockers = (p.tasks || []).filter(t => t.isBlocker && t.status !== 'done').length;
 
   return (
-    <div style={{ ...s.projectCard, borderColor: blockers > 0 ? '#FED7AA' : RULE }}>
+    <div style={{ ...s.projectCard, borderColor: blockers > 0 ? 'var(--warn-border)' : RULE }}>
       <div style={s.projectBadges}>
-        <span style={{ ...s.industryBadge, background: isCampaign ? '#FFF7ED' : '#E8F1F6', color: isCampaign ? '#C2410C' : BLUE }}>
+        <span style={{ ...s.industryBadge, background: isCampaign ? 'var(--warn-tint)' : 'var(--accent-tint)', color: isCampaign ? 'var(--warn-text)' : 'var(--accent-text)' }}>
           {isCampaign ? 'Campaign' : p.industry}
         </span>
-        {blockers > 0 && <span style={{ fontSize: 10, fontWeight: 700, background: '#FFF7ED', color: '#EA580C', padding: '2px 8px', borderRadius: 100 }}>🚧 {blockers} blocker{blockers > 1 ? 's' : ''}</span>}
+        {blockers > 0 && <span style={{ fontSize: 10, fontWeight: 700, background: 'var(--warn-tint)', color: 'var(--warn-text)', padding: '2px 8px', borderRadius: 100 }}><Icon name="blocked" size={12} style={{ marginRight: 4 }} />{blockers} blocker{blockers > 1 ? 's' : ''}</span>}
       </div>
       <p style={s.projectName}>{p.name}</p>
       <p style={s.projectDesc}>{p.description}</p>
       <div style={s.projectStats}>
         <div style={s.stat}><span style={s.statNum2}>{doneMilestones}/{totalMilestones}</span><span style={s.statLabel2}>Milestones</span></div>
         <div style={s.statDivider} />
-        <div style={s.stat}><span style={{ ...s.statNum2, color: openTasks > 0 ? BL : '#15803D' }}>{openTasks}</span><span style={s.statLabel2}>Open tasks</span></div>
+        <div style={s.stat}><span style={{ ...s.statNum2, color: openTasks > 0 ? BL : 'var(--ok-text)' }}>{openTasks}</span><span style={s.statLabel2}>Open tasks</span></div>
         <div style={s.statDivider} />
-        <div style={s.stat}><span style={{ ...s.statNum2, color: openRisks > 0 ? '#DC2626' : '#15803D' }}>{openRisks}</span><span style={s.statLabel2}>Risks</span></div>
+        <div style={s.stat}><span style={{ ...s.statNum2, color: openRisks > 0 ? 'var(--bad-text)' : 'var(--ok-text)' }}>{openRisks}</span><span style={s.statLabel2}>Risks</span></div>
         <div style={s.statDivider} />
-        <div style={s.stat}><span style={{ ...s.statNum2, color: daysLeft !== null && daysLeft < 7 ? '#DC2626' : BL }}>{daysLeft !== null ? `${daysLeft}d` : 'N/A'}</span><span style={s.statLabel2}>Left</span></div>
+        <div style={s.stat}><span style={{ ...s.statNum2, color: daysLeft !== null && daysLeft < 7 ? 'var(--bad-text)' : BL }}>{daysLeft !== null ? `${daysLeft}d` : 'N/A'}</span><span style={s.statLabel2}>Left</span></div>
       </div>
       <div style={s.cardActions}>
         <button style={s.openBtn} onClick={onOpen}>Open</button>
@@ -620,25 +621,25 @@ function DocViewerModal({ doc, onClose, onUpdate }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 28px', borderBottom: `1px solid ${RULE}` }}>
           <p style={{ fontSize: 16, fontWeight: 700, color: BL }}>{doc.title}</p>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button style={{ padding: '7px 16px', background: WH, color: BLUE, border: `1px solid ${BLUE}`, borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => { const blob = new Blob([content], { type: 'text/html' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${doc.title.replace(/\s+/g, '_')}.html`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); }}>Download</button>
-            <button style={{ padding: '7px 16px', background: 'var(--color-primary)', color: WH, border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={onClose}>Close</button>
+            <button style={{ padding: '7px 16px', background: WH, color: 'var(--accent-text)', border: `1px solid ${BLUE}`, borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => { const blob = new Blob([content], { type: 'text/html' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${doc.title.replace(/\s+/g, '_')}.html`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); }}>Download</button>
+            <button style={{ padding: '7px 16px', background: 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={onClose}>Close</button>
           </div>
         </div>
         <div style={{ padding: '14px 28px', borderBottom: `1px solid ${RULE}`, background: GREY }}>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <input style={{ flex: 1, border: `1.5px solid ${RULE}`, borderRadius: 10, padding: '10px 14px', fontSize: 13, fontFamily: 'inherit', outline: 'none', background: WH }} placeholder="Want to change something? e.g. Add a budget section..." value={updateInput} onChange={e => setUpdateInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && updateDoc()} />
-            <button style={{ padding: '10px 20px', background: BLUE, color: WH, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: !updateInput.trim() || updating ? 0.5 : 1 }} onClick={updateDoc} disabled={!updateInput.trim() || updating}>{updating ? 'Updating...' : 'Update'}</button>
+            <button style={{ padding: '10px 20px', background: BLUE, color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: !updateInput.trim() || updating ? 0.5 : 1 }} onClick={updateDoc} disabled={!updateInput.trim() || updating}>{updating ? 'Updating...' : 'Update'}</button>
           </div>
-          {updateMsg && <p style={{ fontSize: 12, color: '#15803D', marginTop: 6 }}>{updateMsg}</p>}
+          {updateMsg && <p style={{ fontSize: 12, color: 'var(--ok-text)', marginTop: 6 }}>{updateMsg}</p>}
         </div>
-        <div style={{ padding: '32px 40px', fontSize: 15, lineHeight: 1.8, color: '#45413B', fontFamily: 'Georgia, serif', maxHeight: '65vh', overflowY: 'auto' }} dangerouslySetInnerHTML={{ __html: content }} />
+        <div style={{ padding: '32px 40px', fontSize: 15, lineHeight: 1.8, color: 'var(--text-2)', fontFamily: 'Georgia, serif', maxHeight: '65vh', overflowY: 'auto' }} dangerouslySetInnerHTML={{ __html: content }} />
       </div>
     </div>
   );
 }
 
 const s = {
-  shell: { display: 'flex', minHeight: '100vh', background: GREY, fontFamily: "'DM Sans', system-ui, sans-serif" },
+  shell: { display: 'flex', minHeight: '100vh', background: 'var(--bg)', fontFamily: "'DM Sans', system-ui, sans-serif" },
   overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 40 },
   sidebar: { width: SIDEBAR_W, flexShrink: 0, background: WH, borderRight: `1px solid ${RULE}`, display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, height: '100vh', zIndex: 50, transition: 'transform 0.25s ease' },
   sidebarTop: { padding: '20px 16px 16px' },
@@ -646,86 +647,86 @@ const s = {
   brandDot: { width: 8, height: 8, borderRadius: '50%', background: BLUE },
   brandName: { fontSize: 15, fontWeight: 800, color: BL, letterSpacing: '-0.3px' },
   userCard: { display: 'flex', alignItems: 'center', gap: 10, padding: '12px', background: GREY, borderRadius: 10, marginBottom: 8 },
-  avatar: { width: 32, height: 32, borderRadius: '50%', background: BLUE, color: WH, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, flexShrink: 0 },
+  avatar: { width: 32, height: 32, borderRadius: '50%', background: BLUE, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, flexShrink: 0 },
   userName: { fontSize: 13, fontWeight: 700, color: BL, marginBottom: 1 },
-  userEmail: { fontSize: 11, color: '#77716A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 },
+  userEmail: { fontSize: 11, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 },
   nav: { flex: 1, padding: '8px 8px', overflowY: 'auto' },
   navItem: { width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: 'none', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, textAlign: 'left', marginBottom: 2, transition: 'all 0.15s' },
   navIcon: { fontSize: 16, width: 20, textAlign: 'center', flexShrink: 0 },
-  navBadge: { marginLeft: 'auto', fontSize: 11, fontWeight: 700, background: '#E8F1F6', color: BLUE, padding: '1px 7px', borderRadius: 100 },
+  navBadge: { marginLeft: 'auto', fontSize: 11, fontWeight: 700, background: 'var(--accent-tint)', color: 'var(--accent-text)', padding: '1px 7px', borderRadius: 100 },
   sidebarBottom: { padding: '12px 16px 20px' },
   progressMini: { background: GREY, borderRadius: 10, padding: '10px 12px', marginBottom: 10 },
   miniBar: { height: 4, background: RULE, borderRadius: 2, overflow: 'hidden' },
   miniBarFill: { height: '100%', background: BLUE, borderRadius: 2, transition: 'width 0.4s' },
-  logoutBtn: { width: '100%', padding: '9px', background: 'none', border: `1px solid ${RULE}`, borderRadius: 10, fontSize: 13, color: '#6B665F', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center' },
+  logoutBtn: { width: '100%', padding: '9px', background: 'none', border: `1px solid ${RULE}`, borderRadius: 10, fontSize: 13, color: 'var(--muted)', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center' },
   main: { flex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column', transition: 'margin-left 0.25s' },
   topBar: { position: 'sticky', top: 0, background: WH, borderBottom: `1px solid ${RULE}`, padding: '0 28px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 30 },
-  menuBtn: { background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6B665F', fontFamily: 'inherit' },
+  menuBtn: { background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--muted)', fontFamily: 'inherit' },
   topActions: { display: 'flex', alignItems: 'center', gap: 10 },
   installChip: { display: 'flex', alignItems: 'center', gap: 4, background: 'var(--color-primary)', borderRadius: 10, padding: '4px 4px 4px 12px' },
-  installChipBtn: { background: 'none', border: 'none', color: WH, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  installChipBtn: { background: 'none', border: 'none', color: '#FFFFFF', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
   installDismiss: { background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', fontSize: 14, cursor: 'pointer', padding: '0 6px', fontFamily: 'inherit' },
-  newBtn: { padding: '8px 16px', background: BLUE, color: WH, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  newBtn: { padding: '8px 16px', background: BLUE, color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
   content: { padding: '32px 28px 80px', maxWidth: 1000, width: '100%' },
   pageHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28, flexWrap: 'wrap', gap: 12 },
   pageTitle: { fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 800, color: BL, letterSpacing: '-0.5px', marginBottom: 4 },
-  pageSub: { fontSize: 14, color: '#77716A' },
-  primaryBtn: { padding: '9px 18px', background: BLUE, color: WH, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  pageSub: { fontSize: 14, color: 'var(--muted)' },
+  primaryBtn: { padding: '9px 18px', background: BLUE, color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
   checklistCard: { background: WH, border: `1px solid ${RULE}`, borderRadius: 16, padding: '24px', marginBottom: 28 },
   checklistHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
   checklistTitle: { fontSize: 16, fontWeight: 700, color: BL, marginBottom: 4 },
-  checklistSub: { fontSize: 13, color: '#6B665F' },
+  checklistSub: { fontSize: 13, color: 'var(--muted)' },
   checklistProgress: { flexShrink: 0 },
-  checklistCount: { fontSize: 24, fontWeight: 800, color: BLUE, letterSpacing: '-0.5px' },
+  checklistCount: { fontSize: 24, fontWeight: 800, color: 'var(--accent-text)', letterSpacing: '-0.5px' },
   checklistBar: { height: 4, background: RULE, borderRadius: 2, overflow: 'hidden', marginBottom: 20 },
   checklistBarFill: { height: '100%', background: BLUE, borderRadius: 2, transition: 'width 0.4s' },
   checklistItems: { display: 'flex', flexDirection: 'column', gap: 0 },
   checklistItem: { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: `1px solid ${GREY}` },
   checkBox: { width: 20, height: 20, borderRadius: 8, border: '2px solid', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' },
   checkLabel: { fontSize: 14, fontWeight: 500 },
-  checkHint: { fontSize: 12, color: '#77716A', marginTop: 2 },
-  checkAction: { padding: '5px 12px', background: '#E8F1F6', color: BLUE, border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 },
+  checkHint: { fontSize: 12, color: 'var(--muted)', marginTop: 2 },
+  checkAction: { padding: '5px 12px', background: 'var(--accent-tint)', color: 'var(--accent-text)', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 },
   statsRow: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 28 },
   statCard: { background: WH, border: `1px solid ${RULE}`, borderRadius: 16, padding: '16px', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' },
   statNum: { fontSize: 28, fontWeight: 800, letterSpacing: '-0.5px', marginBottom: 4 },
-  statLabel: { fontSize: 12, color: '#77716A', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' },
-  sectionLabel: { fontSize: 11, fontWeight: 700, color: '#77716A', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 },
+  statLabel: { fontSize: 12, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' },
+  sectionLabel: { fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 },
   sectionHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, marginTop: 28 },
-  seeAll: { background: 'none', border: 'none', color: BLUE, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  seeAll: { background: 'none', border: 'none', color: 'var(--accent-text)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
   quickGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, marginBottom: 8 },
   quickCard: { display: 'flex', alignItems: 'center', gap: 12, background: WH, border: `1px solid ${RULE}`, borderRadius: 16, padding: '14px 16px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' },
   quickIcon: { width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 },
   quickLabel: { fontSize: 13, fontWeight: 700, color: BL, marginBottom: 2 },
-  quickSub: { fontSize: 12, color: '#77716A' },
+  quickSub: { fontSize: 12, color: 'var(--muted)' },
   projectsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 },
   projectCard: { background: WH, border: `1px solid ${RULE}`, borderRadius: 16, padding: '20px' },
   projectBadges: { display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' },
-  industryBadge: { fontSize: 10, fontWeight: 700, background: '#E8F1F6', color: BLUE, padding: '3px 9px', borderRadius: 100 },
-  methodBadge: { fontSize: 10, fontWeight: 700, background: GREY, color: '#6B665F', padding: '3px 9px', borderRadius: 100 },
+  industryBadge: { fontSize: 10, fontWeight: 700, background: 'var(--accent-tint)', color: 'var(--accent-text)', padding: '3px 9px', borderRadius: 100 },
+  methodBadge: { fontSize: 10, fontWeight: 700, background: GREY, color: 'var(--muted)', padding: '3px 9px', borderRadius: 100 },
   projectName: { fontSize: 15, fontWeight: 700, color: BL, marginBottom: 4 },
-  projectDesc: { fontSize: 13, color: '#77716A', lineHeight: 1.6, marginBottom: 16, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' },
+  projectDesc: { fontSize: 13, color: 'var(--muted)', lineHeight: 1.6, marginBottom: 16, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' },
   projectStats: { display: 'flex', marginBottom: 16, border: `1px solid ${RULE}`, borderRadius: 10, overflow: 'hidden' },
   stat: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 8px', gap: 3 },
   statNum2: { fontSize: 16, fontWeight: 700, color: BL },
-  statLabel2: { fontSize: 10, color: '#77716A', textTransform: 'uppercase', letterSpacing: '0.06em' },
+  statLabel2: { fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' },
   statDivider: { width: 1, background: RULE, flexShrink: 0 },
   cardActions: { display: 'flex', gap: 8 },
-  openBtn: { padding: '7px 16px', background: 'var(--color-primary)', color: WH, border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
-  deleteBtn: { padding: '7px 14px', background: 'none', color: '#77716A', border: `1px solid ${RULE}`, borderRadius: 8, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' },
+  openBtn: { padding: '7px 16px', background: 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  deleteBtn: { padding: '7px 14px', background: 'none', color: 'var(--muted)', border: `1px solid ${RULE}`, borderRadius: 8, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' },
   emptyState: { padding: '60px 0', textAlign: 'center', maxWidth: 400 },
-  emptyIcon: { fontSize: 32, marginBottom: 16, color: '#D8D2C8' },
+  emptyIcon: { fontSize: 32, marginBottom: 16, color: 'var(--border-strong)' },
   emptyTitle: { fontSize: 18, fontWeight: 700, color: BL, marginBottom: 8 },
-  emptyBody: { fontSize: 14, color: '#77716A', lineHeight: 1.7, marginBottom: 24 },
-  emptyText: { color: '#77716A', fontSize: 14, padding: '24px 0' },
+  emptyBody: { fontSize: 14, color: 'var(--muted)', lineHeight: 1.7, marginBottom: 24 },
+  emptyText: { color: 'var(--muted)', fontSize: 14, padding: '24px 0' },
   docRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: `1px solid ${RULE}`, flexWrap: 'wrap', gap: 16 },
   docRowLeft: { flex: 1 },
   docTypeBadge: { fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 100, display: 'inline-block', marginBottom: 4 },
   docRowTitle: { fontSize: 14, fontWeight: 600, color: BL, marginBottom: 2 },
-  docRowDate: { fontSize: 12, color: '#77716A' },
+  docRowDate: { fontSize: 12, color: 'var(--muted)' },
   docRowActions: { display: 'flex', gap: 8 },
   settingsCard: { background: WH, border: `1px solid ${RULE}`, borderRadius: 16, overflow: 'hidden' },
-  settingsSection: { fontSize: 11, fontWeight: 700, color: '#77716A', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '14px 20px', borderBottom: `1px solid ${RULE}`, background: GREY },
+  settingsSection: { fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '14px 20px', borderBottom: `1px solid ${RULE}`, background: GREY },
   settingsRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: `1px solid ${RULE}` },
-  settingsLabel: { fontSize: 12, fontWeight: 700, color: '#6B665F', marginBottom: 4 },
+  settingsLabel: { fontSize: 12, fontWeight: 700, color: 'var(--muted)', marginBottom: 4 },
   settingsValue: { fontSize: 14, color: BL, fontWeight: 500 },
 };

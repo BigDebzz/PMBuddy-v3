@@ -1,26 +1,26 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 
-const BLUE = '#35709A';
-const BL = '#2B2A28';
-const WH = '#FFFFFF';
-const RULE = '#E7E2DA';
+const BLUE = 'var(--accent)';
+const BL = 'var(--text)';
+const WH = 'var(--surface)';
+const RULE = 'var(--border)';
 
 const DEFAULT_SUBJECT = 'We have been building something for you';
 
-const DEFAULT_BODY = `<p style="font-size:15px;color:#45413B;line-height:1.9;margin:0 0 16px;">
+const DEFAULT_BODY = `<p style="font-size:15px;color:var(--text-2);line-height:1.9;margin:0 0 16px;">
   It has been a while! While you were away, we have been building some things that I think will genuinely make managing your projects a lot easier.
 </p>
 
-<p style="font-size:15px;color:#45413B;line-height:1.9;margin:0 0 24px;">
+<p style="font-size:15px;color:var(--text-2);line-height:1.9;margin:0 0 24px;">
   Here is what is new on PM Buddy:
 </p>
 
 <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
   <tr>
-    <td style="background:#E8F1F6;border-radius:10px;padding:18px 20px;">
-      <p style="font-size:14px;font-weight:800;color:#35709A;margin:0 0 8px;">You no longer have to type everything in</p>
-      <p style="font-size:14px;color:#45413B;line-height:1.8;margin:0;">
+    <td style="background:var(--accent-tint);border-radius:10px;padding:18px 20px;">
+      <p style="font-size:14px;font-weight:800;color:var(--accent-text);margin:0 0 8px;">You no longer have to type everything in</p>
+      <p style="font-size:14px;color:var(--text-2);line-height:1.8;margin:0;">
         If you already have a project document, a proposal, a brief, or even something you wrote on Google Docs, just upload it. PM Buddy reads it and puts everything in the right place for you. Your milestones, your risks, your team, your timeline. No forms to fill.
       </p>
     </td>
@@ -29,37 +29,37 @@ const DEFAULT_BODY = `<p style="font-size:15px;color:#45413B;line-height:1.9;mar
 
 <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
   <tr>
-    <td style="background:#F0FDF4;border-radius:10px;padding:18px 20px;">
-      <p style="font-size:14px;font-weight:800;color:#15803D;margin:0 0 8px;">Your project now has a proper task board</p>
-      <p style="font-size:14px;color:#45413B;line-height:1.8;margin:0;">
+    <td style="background:var(--ok-tint);border-radius:10px;padding:18px 20px;">
+      <p style="font-size:14px;font-weight:800;color:var(--ok-text);margin:0 0 8px;">Your project now has a proper task board</p>
+      <p style="font-size:14px;color:var(--text-2);line-height:1.8;margin:0;">
         You can now track your tasks on a board with To Do, In Progress, and Done. Your milestones show up on the board too so everything is in one place. You can flag blockers, add notes, and see what is overdue at a glance.
       </p>
     </td>
   </tr>
 </table>
 
-<p style="font-size:15px;color:#45413B;line-height:1.9;margin:0 0 24px;">
+<p style="font-size:15px;color:var(--text-2);line-height:1.9;margin:0 0 24px;">
   I built PM Buddy because I am a project manager myself and I kept seeing smart capable people running projects with no structure. Not because they did not care, but because the tools out there assumed you already knew how to manage projects. PM Buddy does not assume anything. You bring the project, it brings the structure.
 </p>
 
-<p style="font-size:15px;color:#45413B;line-height:1.9;margin:0 0 28px;">
+<p style="font-size:15px;color:var(--text-2);line-height:1.9;margin:0 0 28px;">
   Log in and give it a try. And if anything is confusing or broken, just reply to this email. It comes straight to me.
 </p>
 
 <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
   <tr>
     <td align="center">
-      <a href="https://pmbuddy-v3.vercel.app" style="display:inline-block;background:#2B2A28;color:#FFFFFF;font-size:14px;font-weight:700;padding:14px 32px;border-radius:8px;text-decoration:none;">
+      <a href="https://pmbuddy-v3.vercel.app" style="display:inline-block;background:var(--text);color:#FFFFFF;font-size:14px;font-weight:700;padding:14px 32px;border-radius:8px;text-decoration:none;">
         Open PM Buddy
       </a>
     </td>
   </tr>
 </table>
 
-<p style="font-size:14px;color:#45413B;line-height:1.9;margin:0 0 4px;">Talk soon,</p>
-<p style="font-size:14px;font-weight:700;color:#2B2A28;margin:0;">
+<p style="font-size:14px;color:var(--text-2);line-height:1.9;margin:0 0 4px;">Talk soon,</p>
+<p style="font-size:14px;font-weight:700;color:var(--text);margin:0;">
   Debbie<br/>
-  <span style="font-weight:400;color:#6B665F;">PM Buddy</span>
+  <span style="font-weight:400;color:var(--muted);">PM Buddy</span>
 </p>`;
 
 async function getAuthHeader() {
@@ -148,7 +148,7 @@ export default function BroadcastEmail({ user, onBack }) {
     <div style={{ maxWidth: 700, margin: '0 auto', padding: 24, fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       <button
         onClick={onBack}
-        style={{ background: 'none', border: 'none', color: '#6B665F', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', padding: 0, marginBottom: 24 }}
+        style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', padding: 0, marginBottom: 24 }}
       >
         Back to Settings
       </button>
@@ -156,12 +156,12 @@ export default function BroadcastEmail({ user, onBack }) {
       <h2 style={{ fontSize: 22, fontWeight: 900, color: BL, letterSpacing: '-0.5px', marginBottom: 6 }}>
         Send Email Update
       </h2>
-      <p style={{ fontSize: 14, color: '#6B665F', marginBottom: 28, lineHeight: 1.6 }}>
+      <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 28, lineHeight: 1.6 }}>
         Compose and send a newsletter to all PM Buddy users. Always send a preview to yourself first before sending to everyone.
       </p>
 
       <div style={{ marginBottom: 16 }}>
-        <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#45413B', marginBottom: 6 }}>
+        <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-2)', marginBottom: 6 }}>
           Subject line
         </label>
         <input
@@ -175,17 +175,17 @@ export default function BroadcastEmail({ user, onBack }) {
 
       <div style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-          <label style={{ fontSize: 12, fontWeight: 700, color: '#45413B' }}>Email body</label>
+          <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-2)' }}>Email body</label>
           <div style={{ display: 'flex', gap: 6 }}>
             <button
               onClick={function() { setPreviewMode(false); }}
-              style={{ padding: '4px 10px', background: previewMode ? WH : 'var(--color-primary)', color: previewMode ? '#45413B' : WH, border: `1px solid ${RULE}`, borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+              style={{ padding: '4px 10px', background: previewMode ? WH : 'var(--color-primary)', color: previewMode ? 'var(--text-2)' : '#FFFFFF', border: `1px solid ${RULE}`, borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
             >
               Edit HTML
             </button>
             <button
               onClick={function() { setPreviewMode(true); }}
-              style={{ padding: '4px 10px', background: previewMode ? 'var(--color-primary)' : WH, color: previewMode ? WH : '#45413B', border: `1px solid ${RULE}`, borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+              style={{ padding: '4px 10px', background: previewMode ? 'var(--color-primary)' : WH, color: previewMode ? '#FFFFFF' : 'var(--text-2)', border: `1px solid ${RULE}`, borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
             >
               Preview
             </button>
@@ -194,7 +194,7 @@ export default function BroadcastEmail({ user, onBack }) {
 
         {previewMode ? (
           <div
-            style={{ border: `1.5px solid ${RULE}`, borderRadius: 10, padding: '20px 24px', background: WH, fontSize: 14, lineHeight: 1.8, color: '#45413B', minHeight: 200 }}
+            style={{ border: `1.5px solid ${RULE}`, borderRadius: 10, padding: '20px 24px', background: WH, fontSize: 14, lineHeight: 1.8, color: 'var(--text-2)', minHeight: 200 }}
             dangerouslySetInnerHTML={{ __html: bodyHTML }}
           />
         ) : (
@@ -208,18 +208,18 @@ export default function BroadcastEmail({ user, onBack }) {
       </div>
 
       {error && (
-        <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '12px 14px', marginBottom: 16 }}>
-          <p style={{ fontSize: 13, color: '#DC2626', margin: 0 }}>{error}</p>
+        <div style={{ background: 'var(--bad-tint)', border: '1px solid var(--bad-border)', borderRadius: 10, padding: '12px 14px', marginBottom: 16 }}>
+          <p style={{ fontSize: 13, color: 'var(--bad-text)', margin: 0 }}>{error}</p>
         </div>
       )}
 
       {result && (
-        <div style={{ background: result.type === 'sent' ? '#F0FDF4' : '#E8F1F6', border: `1px solid ${result.type === 'sent' ? '#BBF7D0' : '#BCD6E5'}`, borderRadius: 10, padding: '14px 16px', marginBottom: 16 }}>
-          <p style={{ fontSize: 14, fontWeight: 700, color: result.type === 'sent' ? '#15803D' : BLUE, marginBottom: result.type === 'sent' ? 4 : 0, margin: 0 }}>
+        <div style={{ background: result.type === 'sent' ? 'var(--ok-tint)' : 'var(--accent-tint)', border: `1px solid ${result.type === 'sent' ? 'var(--ok-border)' : 'var(--accent-border)'}`, borderRadius: 10, padding: '14px 16px', marginBottom: 16 }}>
+          <p style={{ fontSize: 14, fontWeight: 700, color: result.type === 'sent' ? 'var(--ok-text)' : 'var(--accent-text)', marginBottom: result.type === 'sent' ? 4 : 0, margin: 0 }}>
             {result.type === 'sent' ? 'Broadcast sent successfully' : 'Preview sent to your email'}
           </p>
           {result.message && (
-            <p style={{ fontSize: 13, color: result.type === 'sent' ? '#166534' : BLUE, marginTop: 4, marginBottom: 0 }}>
+            <p style={{ fontSize: 13, color: result.type === 'sent' ? 'var(--ok-text)' : 'var(--accent-text)', marginTop: 4, marginBottom: 0 }}>
               {result.message}
             </p>
           )}
@@ -230,21 +230,21 @@ export default function BroadcastEmail({ user, onBack }) {
         <button
           onClick={handlePreview}
           disabled={previewing || sending}
-          style={{ padding: '11px 22px', background: WH, color: BLUE, border: `1.5px solid ${BLUE}`, borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: (previewing || sending) ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: previewing ? 0.6 : 1 }}
+          style={{ padding: '11px 22px', background: WH, color: 'var(--accent-text)', border: `1.5px solid ${BLUE}`, borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: (previewing || sending) ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: previewing ? 0.6 : 1 }}
         >
           {previewing ? 'Sending preview...' : 'Send preview to me'}
         </button>
         <button
           onClick={handleSendAll}
           disabled={sending || previewing}
-          style={{ padding: '11px 22px', background: sending ? '#6B665F' : 'var(--color-primary)', color: WH, border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: (sending || previewing) ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: sending ? 0.6 : 1 }}
+          style={{ padding: '11px 22px', background: sending ? 'var(--muted)' : 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: (sending || previewing) ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: sending ? 0.6 : 1 }}
         >
           {sending ? 'Sending to all...' : 'Send to all users'}
         </button>
       </div>
 
-      <div style={{ marginTop: 20, padding: '12px 14px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10 }}>
-        <p style={{ fontSize: 12, color: '#92400E', lineHeight: 1.65, margin: 0 }}>
+      <div style={{ marginTop: 20, padding: '12px 14px', background: 'var(--warn-tint)', border: '1px solid var(--warn-border)', borderRadius: 10 }}>
+        <p style={{ fontSize: 12, color: 'var(--warn-text)', lineHeight: 1.65, margin: 0 }}>
           Always click "Send preview to me" first and check your inbox before sending to everyone.
         </p>
       </div>

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import Icon from './Icon';
 
-const BLUE = '#35709A';
-const BL = '#2B2A28';
-const WH = '#FFFFFF';
-const GREY = '#FAF8F5';
+const BLUE = 'var(--accent)';
+const BL = 'var(--text)';
+const WH = 'var(--surface)';
+const GREY = 'var(--surface-2)';
 
 const ROLES = ['viewer', 'editor', 'owner'];
 const ROLE_LABELS = { viewer: 'Viewer', editor: 'Editor', owner: 'Owner' };
@@ -153,7 +154,7 @@ export default function TeamTab({ project, currentUser, onSave }) {
           <p style={s.memberEmail}>{ownerEmail || 'Project Owner'}</p>
           <p style={s.memberStatus}>Project owner</p>
         </div>
-        <span style={{ ...s.roleBadge, background: '#E8F1F6', color: BLUE }}>Owner</span>
+        <span style={{ ...s.roleBadge, background: 'var(--accent-tint)', color: 'var(--accent-text)' }}>Owner</span>
       </div>
 
       {!loading && members.length > 0 && (
@@ -172,7 +173,7 @@ export default function TeamTab({ project, currentUser, onSave }) {
                   </select>
                 ) : <span style={s.roleBadge}>{ROLE_LABELS[m.role]}</span>}
                 {isOwner && m.status === 'pending' && <button style={s.smBtn} onClick={() => resendInvite(m)}>Resend</button>}
-                {isOwner && <button style={{ ...s.smBtn, color: '#DC2626', borderColor: '#FECACA' }} onClick={() => removeMember(m.id)}>Remove</button>}
+                {isOwner && <button style={{ ...s.smBtn, color: 'var(--bad-text)', borderColor: 'var(--bad-border)' }} onClick={() => removeMember(m.id)}>Remove</button>}
               </div>
             </div>
           ))}
@@ -187,8 +188,8 @@ export default function TeamTab({ project, currentUser, onSave }) {
           <label style={s.label}>Role</label>
           <div style={s.roleGrid}>
             {ROLES.map(r => (
-              <button key={r} style={{ ...s.roleBtn, borderColor: role === r ? BLUE : '#E7E2DA', background: role === r ? '#E8F1F6' : WH }} onClick={() => setRole(r)}>
-                <p style={{ ...s.roleName, color: role === r ? BLUE : BL }}>{ROLE_LABELS[r]}</p>
+              <button key={r} style={{ ...s.roleBtn, borderColor: role === r ? BLUE : 'var(--border)', background: role === r ? 'var(--accent-tint)' : WH }} onClick={() => setRole(r)}>
+                <p style={{ ...s.roleName, color: role === r ? 'var(--accent-text)' : BL }}>{ROLE_LABELS[r]}</p>
                 <p style={s.roleDesc}>{ROLE_DESC[r]}</p>
               </button>
             ))}
@@ -210,33 +211,33 @@ export default function TeamTab({ project, currentUser, onSave }) {
 }
 
 const s = {
-  head: { marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid #F3EFE9' },
+  head: { marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid var(--surface-2)' },
   title: { fontSize: 18, fontWeight: 700, color: BL, marginBottom: 4 },
-  sub: { fontSize: 14, color: '#6B665F', lineHeight: 1.65 },
-  ownerRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: '1px solid #F3EFE9' },
+  sub: { fontSize: 14, color: 'var(--muted)', lineHeight: 1.65 },
+  ownerRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: '1px solid var(--surface-2)' },
   membersList: { marginBottom: 24 },
-  memberRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: '1px solid #F3EFE9', flexWrap: 'wrap' },
-  avatar: { width: 36, height: 36, borderRadius: '50%', background: '#E8F1F6', color: BLUE, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, flexShrink: 0 },
+  memberRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: '1px solid var(--surface-2)', flexWrap: 'wrap' },
+  avatar: { width: 36, height: 36, borderRadius: '50%', background: 'var(--accent-tint)', color: 'var(--accent-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, flexShrink: 0 },
   memberInfo: { flex: 1, minWidth: 140 },
   memberEmail: { fontSize: 14, fontWeight: 500, color: BL, marginBottom: 2 },
-  memberStatus: { fontSize: 12, color: '#77716A' },
+  memberStatus: { fontSize: 12, color: 'var(--muted)' },
   memberActions: { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
-  roleBadge: { fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 100, background: GREY, color: '#6B665F' },
-  roleSelect: { border: '1px solid #E7E2DA', borderRadius: 8, padding: '5px 10px', fontSize: 12, fontFamily: 'inherit', color: BL, background: WH, cursor: 'pointer' },
-  smBtn: { padding: '5px 12px', background: WH, color: '#6B665F', border: '1px solid #E7E2DA', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
-  inviteCard: { background: GREY, borderRadius: 16, padding: '20px', border: '1px solid #E7E2DA', marginTop: 24 },
+  roleBadge: { fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 100, background: GREY, color: 'var(--muted)' },
+  roleSelect: { border: '1px solid var(--border)', borderRadius: 8, padding: '5px 10px', fontSize: 12, fontFamily: 'inherit', color: BL, background: WH, cursor: 'pointer' },
+  smBtn: { padding: '5px 12px', background: WH, color: 'var(--muted)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
+  inviteCard: { background: GREY, borderRadius: 16, padding: '20px', border: '1px solid var(--border)', marginTop: 24 },
   inviteTitle: { fontSize: 14, fontWeight: 600, color: BL, marginBottom: 16 },
-  label: { display: 'block', fontSize: 12, fontWeight: 700, color: '#45413B', marginBottom: 6, letterSpacing: '0.02em' },
-  input: { width: '100%', border: '1.5px solid #E7E2DA', borderRadius: 10, padding: '10px 14px', fontSize: 14, fontFamily: 'inherit', marginBottom: 16, boxSizing: 'border-box', color: BL, outline: 'none', background: WH },
+  label: { display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-2)', marginBottom: 6, letterSpacing: '0.02em' },
+  input: { width: '100%', border: '1.5px solid var(--border)', borderRadius: 10, padding: '10px 14px', fontSize: 14, fontFamily: 'inherit', marginBottom: 16, boxSizing: 'border-box', color: BL, outline: 'none', background: WH },
   roleGrid: { display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 },
   roleBtn: { flex: 1, minWidth: 120, padding: '12px 14px', border: '1.5px solid', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' },
   roleName: { fontSize: 13, fontWeight: 700, marginBottom: 4 },
-  roleDesc: { fontSize: 11, color: '#77716A', lineHeight: 1.5 },
-  successMsg: { fontSize: 13, color: '#15803D', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8, padding: '8px 12px', marginBottom: 12 },
-  errorMsg: { fontSize: 13, color: '#DC2626', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '8px 12px', marginBottom: 12 },
-  sendBtn: { padding: '10px 24px', background: BLUE, color: WH, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  roleDesc: { fontSize: 11, color: 'var(--muted)', lineHeight: 1.5 },
+  successMsg: { fontSize: 13, color: 'var(--ok-text)', background: 'var(--ok-tint)', border: '1px solid var(--ok-border)', borderRadius: 8, padding: '8px 12px', marginBottom: 12 },
+  errorMsg: { fontSize: 13, color: 'var(--bad-text)', background: 'var(--bad-tint)', border: '1px solid var(--bad-border)', borderRadius: 8, padding: '8px 12px', marginBottom: 12 },
+  sendBtn: { padding: '10px 24px', background: BLUE, color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
   viewerNote: { marginTop: 24, padding: '14px', background: GREY, borderRadius: 10 },
-  viewerNoteText: { fontSize: 13, color: '#77716A' },
+  viewerNoteText: { fontSize: 13, color: 'var(--muted)' },
 };
 
 export function WhoDoesWhat({ project, onSave }) {
@@ -255,7 +256,7 @@ export function WhoDoesWhat({ project, onSave }) {
   const remove = (i) => onSave({ who_does_what: tasks.filter((_, idx) => idx !== i) });
 
   return (
-    <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid #F3EFE9' }}>
+    <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--surface-2)' }}>
       <p style={wStyle.label}>Who Does What</p>
       <p style={wStyle.sub}>For each key task, say who handles it and who just needs to be kept in the loop.</p>
       <div style={wStyle.formCard}>
@@ -273,7 +274,7 @@ export function WhoDoesWhat({ project, onSave }) {
           <div style={{ flex: 2 }}><p style={wStyle.taskName}>{t.task}</p></div>
           <div style={{ flex: 1 }}><p style={wStyle.metaLabel}>Does it</p><p style={wStyle.metaVal}>{t.owner || '—'}</p></div>
           <div style={{ flex: 1 }}><p style={wStyle.metaLabel}>In the loop</p><p style={wStyle.metaVal}>{t.loop || '—'}</p></div>
-          <button style={wStyle.removeBtn} onClick={() => remove(i)}>✕</button>
+          <button style={wStyle.removeBtn} onClick={() => remove(i)}><Icon name="x" size={14} /></button>
         </div>
       ))}
     </div>
@@ -297,7 +298,7 @@ export function CommunicationPlan({ project, onSave }) {
   const remove = (i) => onSave({ comms_plan: comms.filter((_, idx) => idx !== i) });
 
   return (
-    <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid #F3EFE9' }}>
+    <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--surface-2)' }}>
       <p style={wStyle.label}>Who Needs to Know What</p>
       <p style={wStyle.sub}>Keep everyone in the loop without overwhelming anyone. Add one row per person or group.</p>
       <div style={wStyle.formCard}>
@@ -317,7 +318,7 @@ export function CommunicationPlan({ project, onSave }) {
           <div style={{ flex: 2 }}><p style={wStyle.metaLabel}>What they need to know</p><p style={wStyle.metaVal}>{c.what || '—'}</p></div>
           <div style={{ flex: 1 }}><p style={wStyle.metaLabel}>How</p><p style={wStyle.metaVal}>{c.how || '—'}</p></div>
           <div style={{ flex: 1 }}><p style={wStyle.metaLabel}>How often</p><p style={wStyle.metaVal}>{c.when || '—'}</p></div>
-          <button style={wStyle.removeBtn} onClick={() => remove(i)}>✕</button>
+          <button style={wStyle.removeBtn} onClick={() => remove(i)}><Icon name="x" size={14} /></button>
         </div>
       ))}
     </div>
@@ -325,15 +326,15 @@ export function CommunicationPlan({ project, onSave }) {
 }
 
 const wStyle = {
-  label: { fontSize: 14, fontWeight: 700, color: '#2B2A28', marginBottom: 4 },
-  sub: { fontSize: 13, color: '#6B665F', lineHeight: 1.6, marginBottom: 14 },
-  formCard: { background: '#FAF8F5', borderRadius: 10, padding: '14px', border: '1px solid #E7E2DA', marginBottom: 14 },
-  input: { border: '1.5px solid #E7E2DA', borderRadius: 10, padding: '9px 12px', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', color: '#2B2A28', outline: 'none', background: '#FFFFFF', marginBottom: 10 },
-  addBtn: { padding: '8px 20px', background: '#35709A', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
-  row: { display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 0', borderBottom: '1px solid #F3EFE9', flexWrap: 'wrap' },
-  taskName: { fontSize: 14, fontWeight: 600, color: '#2B2A28' },
-  metaLabel: { fontSize: 10, fontWeight: 700, color: '#77716A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 },
-  metaVal: { fontSize: 13, color: '#45413B' },
-  removeBtn: { background: 'none', border: 'none', color: '#D8D2C8', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit', flexShrink: 0, alignSelf: 'center' },
-  empty: { fontSize: 13, color: '#77716A', padding: '16px 0' },
+  label: { fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 4 },
+  sub: { fontSize: 13, color: 'var(--muted)', lineHeight: 1.6, marginBottom: 14 },
+  formCard: { background: 'var(--surface-2)', borderRadius: 10, padding: '14px', border: '1px solid var(--border)', marginBottom: 14 },
+  input: { border: '1.5px solid var(--border)', borderRadius: 10, padding: '9px 12px', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', color: 'var(--text)', outline: 'none', background: 'var(--surface)', marginBottom: 10 },
+  addBtn: { padding: '8px 20px', background: 'var(--accent)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  row: { display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--surface-2)', flexWrap: 'wrap' },
+  taskName: { fontSize: 14, fontWeight: 600, color: 'var(--text)' },
+  metaLabel: { fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 },
+  metaVal: { fontSize: 13, color: 'var(--text-2)' },
+  removeBtn: { background: 'none', border: 'none', color: 'var(--border-strong)', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit', flexShrink: 0, alignSelf: 'center' },
+  empty: { fontSize: 13, color: 'var(--muted)', padding: '16px 0' },
 };

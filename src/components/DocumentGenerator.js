@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import Icon from './Icon';
 
-const BLUE = '#35709A';
-const BL = '#2B2A28';
-const WH = '#FFFFFF';
-const GREY = '#FAF8F5';
+const BLUE = 'var(--accent)';
+const BL = 'var(--text)';
+const WH = 'var(--surface)';
+const GREY = 'var(--surface-2)';
 
 async function getAuthHeader() {
   try {
@@ -254,9 +255,9 @@ Rules:
         )}
 
         {aiReportError && !aiReportLoading && (
-          <div style={{ marginTop: 12, padding: '10px 14px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-            <p style={{ fontSize: 13, color: '#DC2626' }}>{aiReportError}</p>
-            <button style={{ padding: '5px 12px', background: '#DC2626', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={runAiReport}>Retry</button>
+          <div style={{ marginTop: 12, padding: '10px 14px', background: 'var(--bad-tint)', border: '1px solid var(--bad-border)', borderRadius: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+            <p style={{ fontSize: 13, color: 'var(--bad-text)' }}>{aiReportError}</p>
+            <button style={{ padding: '5px 12px', background: 'var(--bad)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={runAiReport}>Retry</button>
           </div>
         )}
 
@@ -264,10 +265,10 @@ Rules:
           <div style={s.aiReportResult}>
             <div style={s.aiScoreRow}>
               <div style={s.aiScoreBlock}>
-                <span style={{ ...s.aiScore, color: aiReport.score >= 70 ? '#15803D' : aiReport.score >= 45 ? BLUE : '#DC2626' }}>{aiReport.score}</span>
+                <span style={{ ...s.aiScore, color: aiReport.score >= 70 ? 'var(--ok-text)' : aiReport.score >= 45 ? 'var(--accent-text)' : 'var(--bad-text)' }}>{aiReport.score}</span>
                 <span style={s.aiScoreLabel}>/ 100</span>
               </div>
-              <span style={{ ...s.aiVerdict, background: aiReport.readyToDocument ? '#F0FDF4' : aiReport.score >= 45 ? '#FFFBEB' : '#FEF2F2', color: aiReport.readyToDocument ? '#15803D' : aiReport.score >= 45 ? '#D97706' : '#DC2626' }}>
+              <span style={{ ...s.aiVerdict, background: aiReport.readyToDocument ? 'var(--ok-tint)' : aiReport.score >= 45 ? 'var(--warn-tint)' : 'var(--bad-tint)', color: aiReport.readyToDocument ? 'var(--ok-text)' : aiReport.score >= 45 ? 'var(--warn-text)' : 'var(--bad-text)' }}>
                 {aiReport.verdict}
               </span>
             </div>
@@ -277,7 +278,7 @@ Rules:
                 <p style={s.aiSectionLabel}>What is working</p>
                 {aiReport.strengths.map((item, i) => (
                   <div key={i} style={s.aiStrengthCard}>
-                    <div style={s.aiStrengthTop}><div style={{ ...s.aiDot, background: '#15803D', marginTop: 2 }} /><p style={s.aiItemTitle}>{typeof item === 'string' ? item : item.title}</p></div>
+                    <div style={s.aiStrengthTop}><div style={{ ...s.aiDot, background: 'var(--ok)', marginTop: 2 }} /><p style={s.aiItemTitle}>{typeof item === 'string' ? item : item.title}</p></div>
                     {item.detail && <p style={s.aiItemDetail}>{item.detail}</p>}
                   </div>
                 ))}
@@ -289,7 +290,7 @@ Rules:
                 <p style={s.aiSectionLabel}>What needs attention</p>
                 {aiReport.gaps.map((item, i) => (
                   <div key={i} style={s.aiGapCard}>
-                    <div style={s.aiGapTop}><div style={{ ...s.aiDot, background: '#D97706', marginTop: 2 }} /><p style={s.aiItemTitle}>{typeof item === 'string' ? item : item.title}</p></div>
+                    <div style={s.aiGapTop}><div style={{ ...s.aiDot, background: 'var(--warn)', marginTop: 2 }} /><p style={s.aiItemTitle}>{typeof item === 'string' ? item : item.title}</p></div>
                     {item.why && (
                       <div style={s.aiGapBody}>
                         <p style={s.aiGapWhy}><strong>Why it matters:</strong> {item.why}</p>
@@ -318,7 +319,7 @@ Rules:
           {savedDocs.map(doc => (
             <div key={doc.id} style={s.savedRow}>
               <div style={s.savedLeft}>
-                <span style={{ ...s.docAudience, background: doc.type === 'pm' ? '#E8F1F6' : '#E8F1F6', color: doc.type === 'pm' ? BLUE : '#35709A' }}>
+                <span style={{ ...s.docAudience, background: doc.type === 'pm' ? 'var(--accent-tint)' : 'var(--accent-tint)', color: doc.type === 'pm' ? 'var(--accent-text)' : 'var(--accent-text)' }}>
                   {doc.type === 'pm' ? 'Internal' : 'External'}
                 </span>
                 <p style={s.savedTitle}>{doc.title}</p>
@@ -327,8 +328,8 @@ Rules:
               <div style={s.savedActions}>
                 <button style={s.smBtn} onClick={() => openSavedDoc(doc)}>Open</button>
                 <button style={s.smBtn} onClick={() => downloadWord(doc.type, doc.content)}>Word</button>
-                <button style={{ ...s.smBtn, background: 'var(--color-primary)', color: WH, borderColor: 'var(--color-primary)' }} onClick={() => { setPreview(doc.content); setPreviewType(doc.type); setCurrentDocId(doc.id); setTimeout(() => downloadPDF(doc.content), 100); }}>PDF</button>
-                <button style={{ ...s.smBtn, color: '#DC2626', borderColor: '#FECACA' }} onClick={() => deleteDoc(doc.id)}>Delete</button>
+                <button style={{ ...s.smBtn, background: 'var(--color-primary)', color: '#FFFFFF', borderColor: 'var(--color-primary)' }} onClick={() => { setPreview(doc.content); setPreviewType(doc.type); setCurrentDocId(doc.id); setTimeout(() => downloadPDF(doc.content), 100); }}>PDF</button>
+                <button style={{ ...s.smBtn, color: 'var(--bad-text)', borderColor: 'var(--bad-border)' }} onClick={() => deleteDoc(doc.id)}>Delete</button>
               </div>
             </div>
           ))}
@@ -358,16 +359,16 @@ Rules:
 
       {/* BENEFITS DOCUMENT */}
       <div style={s.docCard}>
-        <span style={{ ...s.docAudience, background: '#E8F1F6', color: '#35709A' }}>External</span>
+        <span style={{ ...s.docAudience, background: 'var(--accent-tint)', color: 'var(--accent-text)' }}>External</span>
         <p style={s.docTitle}>Benefits Management Document</p>
         <p style={s.docDesc}>For investors, sponsors and senior stakeholders. Focused on why this project matters, what it delivers and what return to expect.</p>
         <div style={s.sectionTags}>
           {['Problem Statement', 'Expected Benefits', 'Business Case', 'Success Metrics', 'Accountability'].map((tag, i) => (
-            <span key={i} style={{ ...s.sectionTag, background: '#E8F1F6', color: '#35709A' }}>{tag}</span>
+            <span key={i} style={{ ...s.sectionTag, background: 'var(--accent-tint)', color: 'var(--accent-text)' }}>{tag}</span>
           ))}
         </div>
         <button style={s.textBtn} onClick={() => setShowBenefitsForm(p => !p)}>
-          {showBenefitsForm ? '▲ Hide additional details' : '▼ Add details for investors and sponsors'}
+          {showBenefitsForm ? <><Icon name="chevron-up" size={15} style={{ marginRight: 6 }} />Hide additional details</> : <><Icon name="chevron-down" size={15} style={{ marginRight: 6 }} />Add details for investors and sponsors</>}
         </button>
         {showBenefitsForm && (
           <div style={s.benefitsForm}>
@@ -390,7 +391,7 @@ Rules:
           </div>
         )}
         <div style={s.docBtns}>
-          <button style={{ ...s.primaryBtn, background: '#35709A', opacity: generating === 'benefits' ? 0.7 : 1 }} onClick={() => generateDocument('benefits')} disabled={!!generating}>
+          <button style={{ ...s.primaryBtn, background: 'var(--accent)', opacity: generating === 'benefits' ? 0.7 : 1 }} onClick={() => generateDocument('benefits')} disabled={!!generating}>
             {generating === 'benefits' ? 'Writing document...' : 'Generate Document'}
           </button>
         </div>
@@ -412,10 +413,10 @@ Rules:
               {!editing && (
                 <>
                   <button style={s.smBtn} onClick={() => { setEditing(true); setEditContent(preview); }}>Edit</button>
-                  <button style={s.smBtn} onClick={() => downloadWord(previewType, preview)}>⬇ Word</button>
-                  <button style={{ ...s.smBtn, background: 'var(--color-primary)', color: WH, borderColor: 'var(--color-primary)' }} onClick={() => downloadPDF(preview)}>⬇ PDF</button>
+                  <button style={s.smBtn} onClick={() => downloadWord(previewType, preview)}><Icon name="download" size={15} style={{ marginRight: 6 }} />Word</button>
+                  <button style={{ ...s.smBtn, background: 'var(--color-primary)', color: '#FFFFFF', borderColor: 'var(--color-primary)' }} onClick={() => downloadPDF(preview)}><Icon name="download" size={15} style={{ marginRight: 6 }} />PDF</button>
                   {!currentDocId && (
-                    <button style={{ ...s.smBtn, background: '#15803D', color: WH, borderColor: '#15803D' }} onClick={saveDocument} disabled={saving}>
+                    <button style={{ ...s.smBtn, background: 'var(--ok)', color: '#FFFFFF', borderColor: 'var(--ok)' }} onClick={saveDocument} disabled={saving}>
                       {saving ? 'Saving...' : 'Save'}
                     </button>
                   )}
@@ -423,7 +424,7 @@ Rules:
               )}
               {editing && (
                 <>
-                  <button style={{ ...s.smBtn, background: 'var(--color-primary)', color: WH, borderColor: 'var(--color-primary)' }} onClick={saveEdits} disabled={saving}>{saving ? 'Saving...' : 'Save changes'}</button>
+                  <button style={{ ...s.smBtn, background: 'var(--color-primary)', color: '#FFFFFF', borderColor: 'var(--color-primary)' }} onClick={saveEdits} disabled={saving}>{saving ? 'Saving...' : 'Save changes'}</button>
                   <button style={s.smBtn} onClick={() => { setEditing(false); setEditContent(preview); }}>Cancel</button>
                 </>
               )}
@@ -529,76 +530,76 @@ function buildStyledHTML(content, type, data) {
   const isPM = type === 'pm';
   const accentColor = isPM ? '#35709A' : '#35709A';
   const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${data.name} — ${isPM ? 'Project Management Plan' : 'Benefits Management Document'}</title><style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; color: #1a1a1a; background: white; line-height: 1.7; } .cover { padding: 80px 60px; min-height: 100vh; border-left: 8px solid ${accentColor}; display: flex; flex-direction: column; justify-content: center; page-break-after: always; } .cover-tag { font-size: 9pt; font-weight: 700; color: ${accentColor}; text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 20px; } .cover-title { font-size: 32pt; font-weight: 900; color: #2B2A28; line-height: 1.1; margin-bottom: 12px; } .cover-doctype { font-size: 16pt; color: ${accentColor}; font-weight: 600; margin-bottom: 40px; } .cover-desc { font-size: 12pt; color: #55504A; max-width: 500px; margin-bottom: 48px; line-height: 1.7; } .cover-meta { display: flex; gap: 40px; flex-wrap: wrap; padding-top: 32px; border-top: 1px solid #E7E2DA; } .meta-item label { display: block; font-size: 8pt; font-weight: 700; color: #77716A; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; } .meta-item span { font-size: 10pt; font-weight: 600; color: #2B2A28; } .content { padding: 60px; max-width: 800px; margin: 0 auto; } h2 { font-size: 16pt; font-weight: 800; color: ${accentColor}; margin-top: 48px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid ${accentColor}25; } h3 { font-size: 12pt; font-weight: 700; color: #45413B; margin-top: 20px; margin-bottom: 8px; } p { font-size: 11pt; line-height: 1.8; color: #45413B; margin-bottom: 14px; } ul, ol { padding-left: 24px; margin-bottom: 14px; } li { font-size: 11pt; line-height: 1.7; color: #45413B; margin-bottom: 6px; } strong { font-weight: 700; color: #2B2A28; } .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid #E7E2DA; display: flex; justify-content: space-between; font-size: 9pt; color: #77716A; } @media print { .cover { min-height: 100vh; } }</style></head><body><div class="cover"><div class="cover-tag">PM Buddy — ${isPM ? 'Internal Document' : 'External Stakeholder Document'}</div><div class="cover-title">${data.name}</div><div class="cover-doctype">${isPM ? 'Project Management Plan' : 'Benefits Management Document'}</div><div class="cover-desc">${data.description || ''}</div><div class="cover-meta"><div class="meta-item"><label>Industry</label><span>${data.industry || 'Not set'}</span></div><div class="meta-item"><label>Approach</label><span>${data.methodology || 'Not set'}</span></div><div class="meta-item"><label>Generated</label><span>${today}</span></div></div></div><div class="content">${content}<div class="footer"><span>Generated by PM Buddy</span><span>${data.name} — ${today}</span></div></div></body></html>`;
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${data.name} — ${isPM ? 'Project Management Plan' : 'Benefits Management Document'}</title><style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; color: #1a1a1a; background: white; line-height: 1.7; } .cover { padding: 80px 60px; min-height: 100vh; border-left: 8px solid ${accentColor}; display: flex; flex-direction: column; justify-content: center; page-break-after: always; } .cover-tag { font-size: 9pt; font-weight: 700; color: ${accentColor}; text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 20px; } .cover-title { font-size: 32pt; font-weight: 900; color: var(--text); line-height: 1.1; margin-bottom: 12px; } .cover-doctype { font-size: 16pt; color: ${accentColor}; font-weight: 600; margin-bottom: 40px; } .cover-desc { font-size: 12pt; color: var(--text-2); max-width: 500px; margin-bottom: 48px; line-height: 1.7; } .cover-meta { display: flex; gap: 40px; flex-wrap: wrap; padding-top: 32px; border-top: 1px solid #E7E2DA; } .meta-item label { display: block; font-size: 8pt; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; } .meta-item span { font-size: 10pt; font-weight: 600; color: var(--text); } .content { padding: 60px; max-width: 800px; margin: 0 auto; } h2 { font-size: 16pt; font-weight: 800; color: ${accentColor}; margin-top: 48px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid ${accentColor}25; } h3 { font-size: 12pt; font-weight: 700; color: var(--text-2); margin-top: 20px; margin-bottom: 8px; } p { font-size: 11pt; line-height: 1.8; color: var(--text-2); margin-bottom: 14px; } ul, ol { padding-left: 24px; margin-bottom: 14px; } li { font-size: 11pt; line-height: 1.7; color: var(--text-2); margin-bottom: 6px; } strong { font-weight: 700; color: var(--text); } .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid #E7E2DA; display: flex; justify-content: space-between; font-size: 9pt; color: var(--muted); } @media print { .cover { min-height: 100vh; } }</style></head><body><div class="cover"><div class="cover-tag">PM Buddy — ${isPM ? 'Internal Document' : 'External Stakeholder Document'}</div><div class="cover-title">${data.name}</div><div class="cover-doctype">${isPM ? 'Project Management Plan' : 'Benefits Management Document'}</div><div class="cover-desc">${data.description || ''}</div><div class="cover-meta"><div class="meta-item"><label>Industry</label><span>${data.industry || 'Not set'}</span></div><div class="meta-item"><label>Approach</label><span>${data.methodology || 'Not set'}</span></div><div class="meta-item"><label>Generated</label><span>${today}</span></div></div></div><div class="content">${content}<div class="footer"><span>Generated by PM Buddy</span><span>${data.name} — ${today}</span></div></div></body></html>`;
 }
 
 const s = {
-  sectionHeadWrap: { marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid #F3EFE9' },
-  aiReportCard: { border: '1px solid #E7E2DA', borderRadius: 16, padding: '20px', marginBottom: 20, background: WH },
+  sectionHeadWrap: { marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--surface-2)' },
+  aiReportCard: { border: '1px solid var(--border)', borderRadius: 16, padding: '20px', marginBottom: 20, background: WH },
   aiReportTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: 4 },
   aiReportTitle: { fontSize: 14, fontWeight: 600, color: BL, marginBottom: 4 },
-  aiReportSub: { fontSize: 13, color: '#6B665F' },
-  aiReportBtn: { padding: '8px 18px', background: 'var(--color-primary)', color: WH, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 },
+  aiReportSub: { fontSize: 13, color: 'var(--muted)' },
+  aiReportBtn: { padding: '8px 18px', background: 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 },
   aiReportLoading: { display: 'flex', alignItems: 'center', gap: 10, padding: '16px 0' },
-  aiSpinner: { width: 20, height: 20, border: '2px solid #F3EFE9', borderTop: `2px solid ${BLUE}`, borderRadius: '50%', animation: 'spin 0.8s linear infinite', flexShrink: 0 },
-  aiReportLoadingText: { fontSize: 13, color: '#6B665F' },
-  aiReportResult: { marginTop: 16, paddingTop: 16, borderTop: '1px solid #F3EFE9' },
+  aiSpinner: { width: 20, height: 20, border: '2px solid var(--surface-2)', borderTop: `2px solid ${BLUE}`, borderRadius: '50%', animation: 'spin 0.8s linear infinite', flexShrink: 0 },
+  aiReportLoadingText: { fontSize: 13, color: 'var(--muted)' },
+  aiReportResult: { marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--surface-2)' },
   aiScoreRow: { display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 },
   aiScoreBlock: { display: 'flex', alignItems: 'baseline', gap: 4 },
   aiScore: { fontSize: 36, fontWeight: 600, letterSpacing: '-1px', lineHeight: 1 },
-  aiScoreLabel: { fontSize: 13, color: '#77716A' },
+  aiScoreLabel: { fontSize: 13, color: 'var(--muted)' },
   aiVerdict: { fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 100 },
   aiSection: { marginBottom: 14 },
-  aiSectionLabel: { fontSize: 11, fontWeight: 600, color: '#77716A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 },
+  aiSectionLabel: { fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 },
   aiDot: { width: 6, height: 6, borderRadius: '50%', flexShrink: 0, marginTop: 6 },
-  aiRecommendation: { background: '#E8F1F6', border: '1px solid #BCD6E5', borderRadius: 10, padding: '12px 14px', marginTop: 4 },
-  aiRecLabel: { fontSize: 11, fontWeight: 600, color: BLUE, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 },
-  aiRecText: { fontSize: 13, color: '#1E40AF', lineHeight: 1.65 },
+  aiRecommendation: { background: 'var(--accent-tint)', border: '1px solid var(--accent-border)', borderRadius: 10, padding: '12px 14px', marginTop: 4 },
+  aiRecLabel: { fontSize: 11, fontWeight: 600, color: 'var(--accent-text)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 },
+  aiRecText: { fontSize: 13, color: 'var(--accent-text)', lineHeight: 1.65 },
   sectionHeadTitle: { fontSize: 18, fontWeight: 700, color: BL, marginBottom: 4 },
-  sectionHeadSub: { fontSize: 14, color: '#6B665F', lineHeight: 1.7 },
-  savedSection: { marginBottom: 24, border: '1px solid #E7E2DA', borderRadius: 16, overflow: 'hidden' },
-  savedLabel: { fontSize: 11, fontWeight: 600, color: '#77716A', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '12px 16px', background: GREY, borderBottom: '1px solid #E7E2DA' },
-  savedRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid #F3EFE9', flexWrap: 'wrap', gap: 10 },
+  sectionHeadSub: { fontSize: 14, color: 'var(--muted)', lineHeight: 1.7 },
+  savedSection: { marginBottom: 24, border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' },
+  savedLabel: { fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '12px 16px', background: GREY, borderBottom: '1px solid var(--border)' },
+  savedRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid var(--surface-2)', flexWrap: 'wrap', gap: 10 },
   savedLeft: { flex: 1 },
   savedTitle: { fontSize: 14, fontWeight: 600, color: BL, marginTop: 4, marginBottom: 2 },
-  savedDate: { fontSize: 12, color: '#77716A' },
+  savedDate: { fontSize: 12, color: 'var(--muted)' },
   savedActions: { display: 'flex', gap: 8 },
-  docCard: { background: WH, borderRadius: 16, padding: '20px', border: '1px solid #E7E2DA', marginBottom: 16 },
-  docAudience: { fontSize: 11, fontWeight: 700, background: '#E8F1F6', color: BLUE, padding: '3px 10px', borderRadius: 100, display: 'inline-block', marginBottom: 10 },
+  docCard: { background: WH, borderRadius: 16, padding: '20px', border: '1px solid var(--border)', marginBottom: 16 },
+  docAudience: { fontSize: 11, fontWeight: 700, background: 'var(--accent-tint)', color: 'var(--accent-text)', padding: '3px 10px', borderRadius: 100, display: 'inline-block', marginBottom: 10 },
   docTitle: { fontSize: 16, fontWeight: 700, color: BL, marginBottom: 6 },
-  docDesc: { fontSize: 14, color: '#6B665F', lineHeight: 1.75, marginBottom: 12 },
+  docDesc: { fontSize: 14, color: 'var(--muted)', lineHeight: 1.75, marginBottom: 12 },
   sectionTags: { display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 },
-  sectionTag: { fontSize: 11, fontWeight: 600, background: '#E8F1F6', color: BLUE, padding: '3px 10px', borderRadius: 100 },
+  sectionTag: { fontSize: 11, fontWeight: 600, background: 'var(--accent-tint)', color: 'var(--accent-text)', padding: '3px 10px', borderRadius: 100 },
   docBtns: { display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 },
-  primaryBtn: { padding: '10px 20px', background: BLUE, color: WH, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
-  smBtn: { padding: '7px 14px', background: WH, color: BL, border: '1px solid #E7E2DA', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
-  textBtn: { background: 'none', border: 'none', color: BLUE, fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', padding: 0, textDecoration: 'underline', marginBottom: 8, display: 'block' },
-  generatingNote: { fontSize: 13, color: '#6B665F', marginTop: 10 },
-  errorNote: { marginTop: 12, background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
-  errorNoteText: { fontSize: 13, color: '#DC2626', lineHeight: 1.5, flex: 1 },
-  retryBtn: { padding: '6px 14px', background: '#DC2626', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 },
-  benefitsForm: { background: WH, borderRadius: 10, padding: '16px', border: '1px solid #E7E2DA', marginBottom: 14 },
-  benefitsFormNote: { fontSize: 13, color: '#6B665F', lineHeight: 1.65, marginBottom: 16 },
-  label: { display: 'block', fontSize: 12, fontWeight: 700, color: '#45413B', marginBottom: 4 },
-  textarea: { width: '100%', border: '1.5px solid #E7E2DA', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', resize: 'vertical', lineHeight: 1.65, background: WH },
-  previewCard: { background: WH, borderRadius: 16, border: '1px solid #E7E2DA', overflow: 'hidden', marginTop: 16 },
-  previewHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid #E7E2DA', background: GREY, flexWrap: 'wrap', gap: 10 },
+  primaryBtn: { padding: '10px 20px', background: BLUE, color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  smBtn: { padding: '7px 14px', background: WH, color: BL, border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  textBtn: { background: 'none', border: 'none', color: 'var(--accent-text)', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', padding: 0, textDecoration: 'underline', marginBottom: 8, display: 'block' },
+  generatingNote: { fontSize: 13, color: 'var(--muted)', marginTop: 10 },
+  errorNote: { marginTop: 12, background: 'var(--bad-tint)', border: '1px solid var(--bad-border)', borderRadius: 10, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
+  errorNoteText: { fontSize: 13, color: 'var(--bad-text)', lineHeight: 1.5, flex: 1 },
+  retryBtn: { padding: '6px 14px', background: 'var(--bad)', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 },
+  benefitsForm: { background: WH, borderRadius: 10, padding: '16px', border: '1px solid var(--border)', marginBottom: 14 },
+  benefitsFormNote: { fontSize: 13, color: 'var(--muted)', lineHeight: 1.65, marginBottom: 16 },
+  label: { display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-2)', marginBottom: 4 },
+  textarea: { width: '100%', border: '1.5px solid var(--border)', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', resize: 'vertical', lineHeight: 1.65, background: WH },
+  previewCard: { background: WH, borderRadius: 16, border: '1px solid var(--border)', overflow: 'hidden', marginTop: 16 },
+  previewHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid var(--border)', background: GREY, flexWrap: 'wrap', gap: 10 },
   previewLabel: { fontSize: 13, fontWeight: 700, color: BL, display: 'flex', alignItems: 'center', gap: 8 },
-  unsavedBadge: { fontSize: 10, fontWeight: 600, background: '#FEF3C7', color: '#D97706', padding: '2px 8px', borderRadius: 100 },
+  unsavedBadge: { fontSize: 10, fontWeight: 600, background: 'var(--warn-tint)', color: 'var(--warn-text)', padding: '2px 8px', borderRadius: 100 },
   previewBtns: { display: 'flex', gap: 8, flexWrap: 'wrap' },
-  previewContent: { padding: '24px', maxHeight: 500, overflowY: 'auto', fontSize: 14, lineHeight: 1.75, color: '#45413B' },
-  aiStrengthCard: { marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid #F0FDF4' },
+  previewContent: { padding: '24px', maxHeight: 500, overflowY: 'auto', fontSize: 14, lineHeight: 1.75, color: 'var(--text-2)' },
+  aiStrengthCard: { marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid var(--ok-tint)' },
   aiStrengthTop: { display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 4 },
-  aiGapCard: { marginBottom: 12, padding: '12px 14px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10 },
+  aiGapCard: { marginBottom: 12, padding: '12px 14px', background: 'var(--warn-tint)', border: '1px solid var(--warn-border)', borderRadius: 10 },
   aiGapTop: { display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 6 },
   aiItemTitle: { fontSize: 13, fontWeight: 600, color: BL, lineHeight: 1.4 },
-  aiItemDetail: { fontSize: 13, color: '#45413B', lineHeight: 1.6, marginLeft: 14, marginTop: 2 },
+  aiItemDetail: { fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6, marginLeft: 14, marginTop: 2 },
   aiGapBody: { marginLeft: 14 },
-  aiGapWhy: { fontSize: 13, color: '#92400E', lineHeight: 1.6, marginBottom: 6 },
-  aiGapFix: { fontSize: 13, color: '#45413B', lineHeight: 1.6, background: WH, padding: '8px 10px', borderRadius: 8, border: '1px solid #FDE68A' },
+  aiGapWhy: { fontSize: 13, color: 'var(--warn-text)', lineHeight: 1.6, marginBottom: 6 },
+  aiGapFix: { fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6, background: WH, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--warn-border)' },
   editArea: {},
-  editNote: { fontSize: 12, color: '#77716A', padding: '10px 16px', background: '#FAF8F5', borderBottom: '1px solid #E7E2DA' },
-  editableDoc: { padding: '32px', minHeight: 400, outline: 'none', fontSize: 14, lineHeight: 1.8, color: '#45413B', fontFamily: 'Georgia, serif' },
-  noteCard: { background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '12px 14px', marginTop: 12 },
-  noteText: { fontSize: 12, color: '#92400E', lineHeight: 1.7 },
+  editNote: { fontSize: 12, color: 'var(--muted)', padding: '10px 16px', background: 'var(--surface-2)', borderBottom: '1px solid var(--border)' },
+  editableDoc: { padding: '32px', minHeight: 400, outline: 'none', fontSize: 14, lineHeight: 1.8, color: 'var(--text-2)', fontFamily: 'Georgia, serif' },
+  noteCard: { background: 'var(--warn-tint)', border: '1px solid var(--warn-border)', borderRadius: 10, padding: '12px 14px', marginTop: 12 },
+  noteText: { fontSize: 12, color: 'var(--warn-text)', lineHeight: 1.7 },
 };

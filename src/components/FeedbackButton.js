@@ -1,6 +1,6 @@
 import React from 'react';
+import Icon from './Icon';
 
-const WH = '#FFFFFF';
 
 export default function FeedbackButton() {
   return (
@@ -19,7 +19,7 @@ export default function FeedbackButton() {
         gap: 8,
         padding: '10px 16px',
         background: 'var(--color-primary)',
-        color: WH,
+        color: '#FFFFFF',
         border: 'none',
         borderRadius: 100,
         fontSize: 13,
@@ -29,7 +29,7 @@ export default function FeedbackButton() {
         boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
       }}
     >
-      <span style={{ fontSize: 15 }}>💬</span>
+      <Icon name="chat" size={17} />
       Give feedback
     </button>
   );

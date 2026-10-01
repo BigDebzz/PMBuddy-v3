@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import mammoth from 'mammoth';
 import { supabase } from '../lib/supabase';
 import AiLoading from './AiLoading';
+import Icon from './Icon';
 
 const EXTRACTION_PROMPT = `You are PM Buddy, a project management assistant. Read the attached document and extract the following project information. Return ONLY a valid JSON object with this exact structure:
 
@@ -363,7 +364,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
         </p>
 
         {error && (
-          <div style={{ background: '#fee2e2', color: '#991b1b', padding: 12, borderRadius: 10, marginBottom: 16 }}>
+          <div style={{ background: 'var(--bad-tint)', color: 'var(--bad-text)', padding: 12, borderRadius: 10, marginBottom: 16 }}>
             {error}
           </div>
         )}
@@ -444,20 +445,20 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
       </p>
 
       {error && (
-        <div style={{ background: '#fee2e2', color: '#991b1b', padding: 12, borderRadius: 10, marginBottom: 16 }}>
+        <div style={{ background: 'var(--bad-tint)', color: 'var(--bad-text)', padding: 12, borderRadius: 10, marginBottom: 16 }}>
           {error}
         </div>
       )}
 
       {!mode && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <button onClick={() => setMode('paste')} style={{ padding: 32, borderRadius: 16, border: '2px dashed #D8D2C8', background: '#FAF8F5', cursor: 'pointer', textAlign: 'center' }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>📋</div>
+          <button onClick={() => setMode('paste')} style={{ padding: 32, borderRadius: 16, border: '2px dashed var(--border-strong)', background: 'var(--surface-2)', cursor: 'pointer', textAlign: 'center' }}>
+            <div style={{ marginBottom: 10, color: 'var(--accent-text)' }}><Icon name="clipboard" size={34} /></div>
             <div style={{ fontWeight: 600 }}>Paste Text</div>
             <div style={{ color: '#666', fontSize: 14, marginTop: 4 }}>Copy and paste your document content</div>
           </button>
-          <button onClick={() => setMode('upload')} style={{ padding: 32, borderRadius: 16, border: '2px dashed #D8D2C8', background: '#FAF8F5', cursor: 'pointer', textAlign: 'center' }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>📁</div>
+          <button onClick={() => setMode('upload')} style={{ padding: 32, borderRadius: 16, border: '2px dashed var(--border-strong)', background: 'var(--surface-2)', cursor: 'pointer', textAlign: 'center' }}>
+            <div style={{ marginBottom: 10, color: 'var(--accent-text)' }}><Icon name="upload" size={34} /></div>
             <div style={{ fontWeight: 600 }}>Upload File</div>
             <div style={{ color: '#666', fontSize: 14, marginTop: 4 }}>PDF, Word, Excel, CSV, or text</div>
           </button>
@@ -473,7 +474,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
             onChange={e => setPastedText(e.target.value)}
             placeholder="Paste your project document here..."
             rows={12}
-            style={{ width: '100%', padding: 16, borderRadius: 10, border: '1px solid #D8D2C8', fontSize: 14, lineHeight: 1.6, resize: 'vertical' }}
+            style={{ width: '100%', padding: 16, borderRadius: 10, border: '1px solid var(--border-strong)', fontSize: 14, lineHeight: 1.6, resize: 'vertical' }}
           />
           <div style={{ display: 'flex', gap: 12, marginTop: 16, justifyContent: 'flex-end' }}>
             <button onClick={() => { setMode(null); setPastedText(''); setError(''); }} style={btnSecondary}>Back</button>
@@ -489,13 +490,13 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
           <div
             onClick={() => fileInputRef.current?.click()}
             style={{
-              border: '2px dashed #D8D2C8',
+              border: '2px dashed var(--border-strong)',
               borderRadius: 16,
               padding: 48,
               textAlign: 'center',
               cursor: 'pointer',
-              background: file ? '#ecfdf5' : '#FAF8F5',
-              borderColor: file ? '#10b981' : '#D8D2C8',
+              background: file ? 'var(--ok-tint)' : 'var(--surface-2)',
+              borderColor: file ? 'var(--ok)' : 'var(--border-strong)',
             }}
           >
             <input
@@ -507,13 +508,13 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
             />
             {file ? (
               <>
-                <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
-                <div style={{ fontWeight: 600, color: '#065f46' }}>{fileName}</div>
+                <div style={{ marginBottom: 10, color: 'var(--ok-text)' }}><Icon name="check-circle" size={34} /></div>
+                <div style={{ fontWeight: 600, color: 'var(--ok-text)' }}>{fileName}</div>
                 <div style={{ color: '#666', fontSize: 14, marginTop: 4 }}>Click to change file</div>
               </>
             ) : (
               <>
-                <div style={{ fontSize: 32, marginBottom: 8 }}>📁</div>
+                <div style={{ marginBottom: 10, color: 'var(--accent-text)' }}><Icon name="upload" size={34} /></div>
                 <div style={{ fontWeight: 600 }}>Click to upload a file</div>
                 <div style={{ color: '#666', fontSize: 14, marginTop: 4 }}>PDF, Word (.docx), Excel (.xlsx/.xls), CSV, TXT, or Markdown</div>
               </>
@@ -530,7 +531,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
 
       {(onBack || onCancel) && !mode && (
         <button onClick={onBack || onCancel} style={{ ...btnSecondary, marginTop: 16 }}>
-          ← Back to Dashboard
+          <Icon name="arrow-left" size={15} style={{ marginRight: 6 }} />Back to Dashboard
         </button>
       )}
     </div>
@@ -541,14 +542,14 @@ function Field({ label, value, onChange, textarea = false }) {
   const Input = textarea ? 'textarea' : 'input';
   return (
     <div>
-      <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#45413B', marginBottom: 4 }}>
+      <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 4 }}>
         {label}
       </label>
       <Input
         value={value}
         onChange={e => onChange(e.target.value)}
         rows={textarea ? 3 : undefined}
-        style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #D8D2C8', fontSize: 14, fontFamily: 'inherit', resize: textarea ? 'vertical' : undefined }}
+        style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 14, fontFamily: 'inherit', resize: textarea ? 'vertical' : undefined }}
       />
     </div>
   );
@@ -575,13 +576,13 @@ function ArrayEditor({ label, items, onChange, fields, simple = false }) {
   const removeItem = (index) => onChange(items.filter((_, i) => i !== index));
 
   return (
-    <div style={{ border: '1px solid #E7E2DA', borderRadius: 10, padding: 16 }}>
+    <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <span style={{ fontWeight: 600, fontSize: 14 }}>{label}</span>
-        <button onClick={addItem} style={{ fontSize: 20, lineHeight: 1, padding: '2px 8px', borderRadius: 4, border: '1px solid #D8D2C8', background: '#fff', cursor: 'pointer' }}>+</button>
+        <button onClick={addItem} style={{ fontSize: 20, lineHeight: 1, padding: '2px 8px', borderRadius: 4, border: '1px solid var(--border-strong)', background: '#fff', cursor: 'pointer' }}>+</button>
       </div>
       {items.length === 0 && (
-        <div style={{ color: '#77716A', fontSize: 13, fontStyle: 'italic' }}>None found. Click + to add.</div>
+        <div style={{ color: 'var(--muted)', fontSize: 13, fontStyle: 'italic' }}>None found. Click + to add.</div>
       )}
       {items.map((item, i) => (
         <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
@@ -589,23 +590,23 @@ function ArrayEditor({ label, items, onChange, fields, simple = false }) {
             <input
               value={item}
               onChange={e => updateItem(i, null, e.target.value)}
-              style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid #D8D2C8', fontSize: 14 }}
+              style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 14 }}
               placeholder="Add another..."
             />
           ) : (
             fields.map(f => (
               f.type === 'select' ? (
-                <select key={f.key} value={item[f.key] || ''} onChange={e => updateItem(i, f.key, e.target.value)} style={{ width: f.width, padding: '8px 10px', borderRadius: 8, border: '1px solid #D8D2C8', fontSize: 14 }}>
+                <select key={f.key} value={item[f.key] || ''} onChange={e => updateItem(i, f.key, e.target.value)} style={{ width: f.width, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 14 }}>
                   {f.options.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
               ) : f.textarea ? (
-                <textarea key={f.key} value={item[f.key] || ''} onChange={e => updateItem(i, f.key, e.target.value)} placeholder={f.label} rows={2} style={{ width: f.width, padding: '8px 10px', borderRadius: 8, border: '1px solid #D8D2C8', fontSize: 14, resize: 'vertical' }} />
+                <textarea key={f.key} value={item[f.key] || ''} onChange={e => updateItem(i, f.key, e.target.value)} placeholder={f.label} rows={2} style={{ width: f.width, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 14, resize: 'vertical' }} />
               ) : (
-                <input key={f.key} type={f.type || 'text'} value={item[f.key] || ''} onChange={e => updateItem(i, f.key, e.target.value)} placeholder={f.label} style={{ width: f.width, padding: '8px 10px', borderRadius: 8, border: '1px solid #D8D2C8', fontSize: 14 }} />
+                <input key={f.key} type={f.type || 'text'} value={item[f.key] || ''} onChange={e => updateItem(i, f.key, e.target.value)} placeholder={f.label} style={{ width: f.width, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 14 }} />
               )
             ))
           )}
-          <button onClick={() => removeItem(i)} style={{ color: '#ef4444', fontSize: 18, lineHeight: 1, padding: '2px 6px', border: 'none', background: 'none', cursor: 'pointer' }}>×</button>
+          <button onClick={() => removeItem(i)} style={{ color: 'var(--bad-text)', fontSize: 18, lineHeight: 1, padding: '2px 6px', border: 'none', background: 'none', cursor: 'pointer' }}><Icon name="x" size={14} /></button>
         </div>
       ))}
     </div>
@@ -616,7 +617,7 @@ const btnPrimary = (disabled) => ({
   padding: '10px 24px',
   borderRadius: 10,
   border: 'none',
-  background: disabled ? '#93c5fd' : '#35709A',
+  background: disabled ? 'var(--accent-border)' : 'var(--accent)',
   color: '#fff',
   fontWeight: 600,
   cursor: disabled ? 'not-allowed' : 'pointer',
@@ -625,7 +626,7 @@ const btnPrimary = (disabled) => ({
 const btnSecondary = {
   padding: '10px 20px',
   borderRadius: 10,
-  border: '1px solid #D8D2C8',
+  border: '1px solid var(--border-strong)',
   background: '#fff',
   cursor: 'pointer',
 };

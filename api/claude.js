@@ -27,6 +27,8 @@ async function verifyAuth(request) {
 const HEAVY_MODEL = 'claude-sonnet-5-5';
 const LIGHT_MODEL = 'claude-haiku-4-5-20251001';
 
+const SYSTEM_PROMPT = 'You write for PM Buddy, a project management tool for people who are not project managers. Use plain English. Never use emoji, emoticons or decorative symbols. Do not start lines with check marks, arrows or other symbol characters.';
+
 const DAILY_LIMIT = parseInt(process.env.AI_DAILY_LIMIT || '20', 10);
 
 function today() {
@@ -101,6 +103,7 @@ async function callClaude({ prompt, mode, documentBase64, documentMediaType }) {
       body: JSON.stringify({
         model,
         max_tokens: maxTokens,
+        system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content }],
       }),
     });

@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { icon } from './Icon';
 
-const BLUE = '#35709A';
-const BL = '#2B2A28';
-const WH = '#FFFFFF';
-const GREY = '#FAF8F5';
+const BLUE = 'var(--accent)';
+const BL = 'var(--text)';
+const WH = 'var(--surface)';
+const GREY = 'var(--surface-2)';
 
 function injectAnimation() {
   if (document.getElementById('pmbuddy-anim')) return;
@@ -337,7 +338,7 @@ export default function PMBuddyAssistant({ project, context }) {
         style: {
           position: 'fixed', bottom: 28, right: 28, zIndex: 9999,
           width: 52, height: 52, borderRadius: '50%',
-          background: BLUE, color: WH, border: 'none',
+          background: BLUE, color: '#FFFFFF', border: 'none',
           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: '0 4px 20px rgba(2,132,199,0.45)',
         }
@@ -346,7 +347,7 @@ export default function PMBuddyAssistant({ project, context }) {
         unread > 0 && React.createElement('span', {
           style: {
             position: 'absolute', top: -2, right: -2,
-            background: '#DC2626', color: WH, fontSize: 10, fontWeight: 700,
+            background: 'var(--bad)', color: '#FFFFFF', fontSize: 10, fontWeight: 700,
             borderRadius: '50%', width: 18, height: 18,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             border: '2px solid #fff',
@@ -363,7 +364,7 @@ export default function PMBuddyAssistant({ project, context }) {
         width: 360, maxHeight: 520,
         background: WH, borderRadius: 20,
         boxShadow: '0 8px 40px rgba(43,42,40,0.15)',
-        border: '1px solid #E7E2DA',
+        border: '1px solid var(--border)',
         display: 'flex', flexDirection: 'column',
         fontFamily: "'DM Sans', system-ui, sans-serif",
         overflow: 'hidden',
@@ -380,11 +381,11 @@ export default function PMBuddyAssistant({ project, context }) {
             style: {
               width: 32, height: 32, borderRadius: '50%',
               background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: WH, flexShrink: 0,
+              color: '#FFFFFF', flexShrink: 0,
             }
           }, React.createElement(BuddyIcon, { size: 16 })),
           React.createElement('div', null,
-            React.createElement('p', { style: { fontSize: 13, fontWeight: 700, color: WH, margin: 0 } }, 'PM Buddy'),
+            React.createElement('p', { style: { fontSize: 13, fontWeight: 700, color: '#FFFFFF', margin: 0 } }, 'PM Buddy'),
             React.createElement('p', { style: { fontSize: 11, color: 'rgba(255,255,255,0.88)', margin: 0 } }, 'Your personal project manager')
           )
         ),
@@ -392,12 +393,12 @@ export default function PMBuddyAssistant({ project, context }) {
           React.createElement('button', {
             onClick: handleClear,
             title: 'Clear conversation',
-            style: { background: 'none', border: 'none', color: '#6B665F', fontSize: 16, cursor: 'pointer', padding: '2px 6px', borderRadius: 8, fontFamily: 'inherit' }
-          }, '↺'),
+            style: { background: 'none', border: 'none', color: 'var(--muted)', fontSize: 16, cursor: 'pointer', padding: '2px 6px', borderRadius: 8, fontFamily: 'inherit' }
+          }, icon('refresh', 16)),
           React.createElement('button', {
             onClick: handleClose,
-            style: { background: 'none', border: 'none', color: '#77716A', fontSize: 14, cursor: 'pointer', padding: '2px 6px', borderRadius: 8, fontFamily: 'inherit' }
-          }, '✕')
+            style: { background: 'none', border: 'none', color: 'var(--muted)', fontSize: 14, cursor: 'pointer', padding: '2px 6px', borderRadius: 8, fontFamily: 'inherit' }
+          }, icon('x', 16))
         )
       ),
       React.createElement('div', {
@@ -408,7 +409,7 @@ export default function PMBuddyAssistant({ project, context }) {
         }
       },
         messages.length === 0 && React.createElement('p', {
-          style: { fontSize: 13, color: '#77716A', textAlign: 'center', lineHeight: 1.6, margin: 'auto' }
+          style: { fontSize: 13, color: 'var(--muted)', textAlign: 'center', lineHeight: 1.6, margin: 'auto' }
         }, 'Ask me anything about your project. I\'m reading your data and will give you specific guidance.'),
         messages.map(function(msg, i) {
           var isUser = msg.role === 'user';
@@ -420,16 +421,16 @@ export default function PMBuddyAssistant({ project, context }) {
               style: {
                 width: 24, height: 24, borderRadius: '50%',
                 background: BLUE, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: WH, flexShrink: 0, marginTop: 2, marginRight: 6,
+                color: '#FFFFFF', flexShrink: 0, marginTop: 2, marginRight: 6,
               }
             }, React.createElement(BuddyIcon, { size: 12 })),
             React.createElement('div', {
               style: {
                 maxWidth: '78%', padding: '10px 13px',
                 background: isUser ? BLUE : WH,
-                color: isUser ? WH : BL,
+                color: isUser ? '#FFFFFF' : BL,
                 borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                border: isUser ? 'none' : '1px solid #E7E2DA',
+                border: isUser ? 'none' : '1px solid var(--border)',
                 fontSize: 13, lineHeight: 1.65,
               }
             }, msg.text)
@@ -442,12 +443,12 @@ export default function PMBuddyAssistant({ project, context }) {
             style: {
               width: 24, height: 24, borderRadius: '50%',
               background: BLUE, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: WH, flexShrink: 0, marginRight: 6,
+              color: '#FFFFFF', flexShrink: 0, marginRight: 6,
             }
           }, React.createElement(BuddyIcon, { size: 12 })),
           React.createElement('div', {
             style: {
-              padding: '10px 13px', background: WH, border: '1px solid #E7E2DA',
+              padding: '10px 13px', background: WH, border: '1px solid var(--border)',
               borderRadius: '16px 16px 16px 4px',
               display: 'flex', gap: 4, alignItems: 'center',
             }
@@ -456,7 +457,7 @@ export default function PMBuddyAssistant({ project, context }) {
               return React.createElement('span', {
                 key: i,
                 style: {
-                  width: 6, height: 6, borderRadius: '50%', background: '#77716A',
+                  width: 6, height: 6, borderRadius: '50%', background: 'var(--faint)',
                   display: 'inline-block',
                   animation: 'pmbuddy-bounce 1.2s infinite',
                   animationDelay: (i * 0.2) + 's',
@@ -468,25 +469,25 @@ export default function PMBuddyAssistant({ project, context }) {
         React.createElement('div', { ref: messagesEndRef })
       ),
       React.createElement('div', {
-        style: { borderTop: '1px solid #F3EFE9', padding: '10px 12px', background: GREY }
+        style: { borderTop: '1px solid var(--surface-2)', padding: '10px 12px', background: GREY }
       },
         speech.listening && React.createElement('div', {
           style: {
             display: 'flex', alignItems: 'center', gap: 6,
             marginBottom: 8, padding: '4px 8px',
-            background: '#FEF2F2', borderRadius: 8,
+            background: 'var(--bad-tint)', borderRadius: 8,
           }
         },
           React.createElement('span', {
-            style: { width: 7, height: 7, borderRadius: '50%', background: '#DC2626', display: 'inline-block' }
+            style: { width: 7, height: 7, borderRadius: '50%', background: 'var(--bad)', display: 'inline-block' }
           }),
-          React.createElement('span', { style: { fontSize: 11, color: '#DC2626', fontWeight: 600 } }, 'Listening...')
+          React.createElement('span', { style: { fontSize: 11, color: 'var(--bad-text)', fontWeight: 600 } }, 'Listening...')
         ),
         React.createElement('div', { style: { display: 'flex', gap: 6, alignItems: 'flex-end' } },
           React.createElement('textarea', {
             ref: inputRef,
             style: {
-              flex: 1, border: '1.5px solid #E7E2DA', borderRadius: 10,
+              flex: 1, border: '1.5px solid var(--border)', borderRadius: 10,
               padding: '9px 12px', fontSize: 13, fontFamily: 'inherit',
               color: BL, outline: 'none', resize: 'none', background: WH,
               lineHeight: 1.5, maxHeight: 80, overflowY: 'auto',
@@ -501,14 +502,14 @@ export default function PMBuddyAssistant({ project, context }) {
             style: {
               width: 36, height: 36, border: 'none', borderRadius: 10,
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: speech.listening ? '#DC2626' : '#F3EFE9', color: '#6B665F', flexShrink: 0,
+              background: speech.listening ? 'var(--bad)' : 'var(--surface-2)', color: 'var(--muted)', flexShrink: 0,
             },
             onClick: handleVoice,
             title: speech.listening ? 'Stop' : 'Voice input',
           }, speech.listening ? React.createElement(StopIcon, null) : React.createElement(MicIcon, null)),
           React.createElement('button', {
             style: {
-              width: 36, height: 36, background: BLUE, color: WH,
+              width: 36, height: 36, background: BLUE, color: '#FFFFFF',
               border: 'none', borderRadius: 10, cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0, opacity: (input.trim() && !loading) ? 1 : 0.4,
