@@ -164,3 +164,6 @@ Append a new rule here every time the agent gets something wrong, so it cannot h
 - **Shadows use the warm ink colour** `rgba(43,42,40, ...)`, never pure black.
 - **The font must be loaded** in `public/index.html`. A font name in CSS alone does nothing.
 - **Build with `CI=true npm.cmd run build`** before pushing. Warnings fail the Vercel build.
+- **The landing page may use display type** up to 68px (heading-1 is for app screens), soft blurred background shapes, and a hero scene made of floating cards in 3D. Keep one solid River Blue band and one River Blue closing panel at most.
+- **When mixing the fade-in helper with layout styles, spread the helper first** so its display value cannot override flex or grid layout.
+- **Never re-save source files through PowerShell Get-Content and Set-Content.** It corrupts symbols such as the check mark. Use the editor tools or Node.
