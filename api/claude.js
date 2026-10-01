@@ -1,4 +1,4 @@
-export const config = {
+﻿export const config = {
   api: { bodyParser: true },
 };
 
@@ -27,7 +27,7 @@ async function verifyAuth(request) {
 const HEAVY_MODEL = 'claude-sonnet-5-5';
 const LIGHT_MODEL = 'claude-haiku-4-5-20251001';
 
-const DAILY_LIMIT = parseInt(process.env.AI_DAILY_LIMIT || '50', 10);
+const DAILY_LIMIT = parseInt(process.env.AI_DAILY_LIMIT || '20', 10);
 
 function today() {
   return new Date().toISOString().slice(0, 10);
