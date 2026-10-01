@@ -35,7 +35,7 @@ export default function ThemeToggle({ showLabels = true }) {
   }, [mode]);
 
   return (
-    <div role="group" aria-label="Colour mode" style={s.wrap}>
+    <div className="theme-toggle" role="group" aria-label="Colour mode" style={s.wrap}>
       {OPTIONS.map(o => (
         <button
           key={o.id}

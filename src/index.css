@@ -227,11 +227,20 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .lp-grid { grid-template-columns: 1fr; }
   .lp-feat, .lp-feat:nth-child(2n), .lp-feat:nth-child(3n) { border-right: 0; border-bottom: 1px solid var(--border); }
   .lp-feat:last-child { border-bottom: 0; }
-  .lp-btn { padding: 14px 22px; font-size: 16px; width: 100%; }
+  .lp-btn { width: 100%; }
 }
 
 /* ---- App navigation ---- */
 @media (max-width: 640px) {
   .app-nav { padding: 0 14px !important; gap: 8px !important; }
   .app-nav .nav-text-btn, .theme-label { display: none !important; }
+}
+
+/* ---- Phone sizing ---- */
+@media (max-width: 640px) {
+  #root { zoom: 0.94; }
+  .nav-logo-text { font-size: 18px !important; white-space: nowrap; }
+  .nav-cta { padding: 8px 14px !important; font-size: 14px !important; white-space: nowrap; }
+  .theme-toggle button { padding: 6px 8px !important; }
+  .lp-btn { padding: 12px 20px !important; font-size: 15px !important; }
 }

@@ -222,7 +222,7 @@ function Tour() {
           <div style={{ maxWidth: 560, marginInline: 'auto', textAlign: 'center', display: 'grid', gap: 18, justifyItems: 'center', width: '100%' }}>
             <div style={s.dropzone}>
               <Icon name="upload" size={36} style={{ color: 'var(--accent-text)' }} />
-              <h4 style={{ fontSize: 24, fontWeight: 700 }}>Drop a plan, proposal or brief here</h4>
+              <h4 style={{ fontSize: 'clamp(19px, 2.4vw, 22px)', fontWeight: 700 }}>Drop a plan, proposal or brief here</h4>
               <p style={{ color: 'var(--muted)', fontSize: 16 }}>PDF, Word, Excel or pasted text. No forms to fill in.</p>
             </div>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
@@ -258,7 +258,7 @@ function Tour() {
         {step === 2 && (
           <div style={{ display: 'grid', gap: 18, position: 'relative' }}>
             <div style={s.rowBetween}>
-              <h4 style={{ fontSize: 26, fontWeight: 700 }}>Community Food Drive</h4>
+              <h4 style={{ fontSize: 'clamp(20px, 2.4vw, 24px)', fontWeight: 700 }}>Community Food Drive</h4>
               <Chip tone="ok" icon="check-circle">On track</Chip>
             </div>
             <div style={s.toast}><Icon name="bell" size={18} style={{ color: 'var(--warn-text)' }} /><span><b>Due today</b><br />Book venue for distribution day</span></div>
@@ -355,8 +355,8 @@ export default function LandingScreen({ onSelectMode, onSignup, onDashboard, use
         <div className="lp-cells">
           {[['1 document', 'in. Plan, proposal or brief.'], ['6 tasks', 'out, ready to assign.'], ['Every day', 'a nudge for what is due.'], ['1 click', 'to a progress or funder report.']].map(c => (
             <div key={c[0]} className="lp-cell">
-              <div style={{ fontFamily: 'var(--font-head)', fontSize: 'clamp(24px, 3vw, 32px)', fontWeight: 700, letterSpacing: '-0.03em' }}>{c[0]}</div>
-              <div style={{ color: 'var(--muted)', fontSize: 16 }}>{c[1]}</div>
+              <div style={{ fontFamily: 'var(--font-head)', fontSize: 'clamp(20px, 2.6vw, 28px)', fontWeight: 700, letterSpacing: '-0.03em' }}>{c[0]}</div>
+              <div style={{ color: 'var(--muted)', fontSize: 15 }}>{c[1]}</div>
             </div>
           ))}
         </div>
@@ -383,8 +383,8 @@ export default function LandingScreen({ onSelectMode, onSignup, onDashboard, use
             {features.map(f => (
               <div key={f.title} className="lp-feat">
                 <span style={s.featIcon}><Icon name={f.icon} size={22} /></span>
-                <h3 style={{ fontSize: 22, fontWeight: 700, margin: '18px 0 8px' }}>{f.title}</h3>
-                <p style={{ color: 'var(--muted)', fontSize: 17, lineHeight: 1.55 }}>{f.body}</p>
+                <h3 style={{ fontSize: 'clamp(18px, 2vw, 21px)', fontWeight: 700, margin: '16px 0 6px' }}>{f.title}</h3>
+                <p style={{ color: 'var(--muted)', fontSize: 'clamp(15px, 1.5vw, 16px)', lineHeight: 1.55 }}>{f.body}</p>
               </div>
             ))}
           </div>
@@ -403,8 +403,8 @@ export default function LandingScreen({ onSelectMode, onSignup, onDashboard, use
               ))}
             </div>
             <div style={s.whoCard}>
-              <h3 style={{ fontSize: 'clamp(24px, 3vw, 32px)', fontWeight: 700, color: 'var(--accent-text)' }}>{whoCards[activeWho].outcome}</h3>
-              <p style={{ color: 'var(--muted)', fontSize: 18, lineHeight: 1.65, margin: '14px 0 24px' }}>{whoCards[activeWho].body}</p>
+              <h3 style={{ fontSize: 'clamp(21px, 2.6vw, 28px)', fontWeight: 700, color: 'var(--accent-text)' }}>{whoCards[activeWho].outcome}</h3>
+              <p style={{ color: 'var(--muted)', fontSize: 'clamp(15px, 1.5vw, 17px)', lineHeight: 1.6, margin: '12px 0 22px' }}>{whoCards[activeWho].body}</p>
               <button type="button" className="lp-btn lp-btn-primary" style={{ width: 'auto' }} onClick={start}>{user ? 'Go to my projects' : 'Get started'}</button>
             </div>
           </div>
@@ -416,8 +416,8 @@ export default function LandingScreen({ onSelectMode, onSignup, onDashboard, use
         <div style={s.inner}>
           <div style={s.valid}>
             <div style={{ flex: 1, minWidth: 260 }}>
-              <h3 style={{ fontSize: 'clamp(26px, 3.4vw, 36px)', fontWeight: 700, marginBottom: 12 }}>Check your idea before you commit to building it.</h3>
-              <p style={{ color: 'var(--muted)', fontSize: 18, lineHeight: 1.6, maxWidth: 560 }}>Answer honest questions and get a report on what is strong, what is missing and what to do next. It takes about 10 minutes.</p>
+              <h3 style={{ fontSize: 'clamp(21px, 2.8vw, 30px)', fontWeight: 700, marginBottom: 10 }}>Check your idea before you commit to building it.</h3>
+              <p style={{ color: 'var(--muted)', fontSize: 'clamp(15px, 1.5vw, 17px)', lineHeight: 1.6, maxWidth: 560 }}>Answer honest questions and get a report on what is strong, what is missing and what to do next. It takes about 10 minutes.</p>
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 22 }}>
                 <button type="button" className="lp-btn lp-btn-primary" style={{ width: 'auto' }} onClick={() => handleSelect('startup')}>Validate a startup idea</button>
                 <button type="button" className="lp-btn lp-btn-ghost" style={{ width: 'auto' }} onClick={() => handleSelect('hackathon')}>Validate a hackathon idea</button>
@@ -425,7 +425,7 @@ export default function LandingScreen({ onSelectMode, onSignup, onDashboard, use
             </div>
             <div style={s.free}>
               <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--muted)' }}>Always</span>
-              <span style={{ fontFamily: 'var(--font-head)', fontSize: 56, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1.05, color: 'var(--accent-text)' }}>Free</span>
+              <span style={{ fontFamily: 'var(--font-head)', fontSize: 'clamp(40px, 5vw, 52px)', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1.05, color: 'var(--accent-text)' }}>Free</span>
               <span style={{ fontSize: 16, color: 'var(--muted)' }}>No account needed</span>
             </div>
           </div>
@@ -466,9 +466,9 @@ const s = {
   rainbow: { height: 4, background: 'var(--rainbow)' },
   section: { padding: 'clamp(40px, 7vw, 88px) 24px' },
   inner: { maxWidth: 1200, margin: '0 auto' },
-  h1: { fontSize: 'clamp(34px, 5.2vw, 62px)', lineHeight: 1.03, fontWeight: 600, letterSpacing: '-0.04em', margin: '0 0 22px' },
-  h2: { fontSize: 'clamp(28px, 4vw, 46px)', lineHeight: 1.08, fontWeight: 700, letterSpacing: '-0.035em', maxWidth: 780 },
-  sub: { fontSize: 'clamp(17px, 1.8vw, 20px)', lineHeight: 1.6, color: 'var(--muted)', maxWidth: 540 },
+  h1: { fontSize: 'clamp(27px, 4.6vw, 56px)', lineHeight: 1.06, fontWeight: 600, letterSpacing: '-0.04em', margin: '0 0 22px' },
+  h2: { fontSize: 'clamp(23px, 3.4vw, 40px)', lineHeight: 1.1, fontWeight: 700, letterSpacing: '-0.035em', maxWidth: 780 },
+  sub: { fontSize: 'clamp(15px, 1.6vw, 18px)', lineHeight: 1.6, color: 'var(--muted)', maxWidth: 540 },
   ctas: { display: 'flex', gap: 12, flexWrap: 'wrap', margin: '28px 0 22px' },
   note: { fontSize: 16, color: 'var(--muted)' },
   link: { background: 'none', border: 'none', padding: 0, color: 'var(--accent-text)', fontWeight: 700, textDecoration: 'underline', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' },
@@ -506,11 +506,11 @@ const s = {
   tourFoot: { padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', color: 'var(--muted)', fontSize: 15 },
 
   featIcon: { width: 46, height: 46, borderRadius: 14, display: 'grid', placeItems: 'center', background: 'var(--accent-tint)', color: 'var(--accent-text)' },
-  whoTab: { padding: '16px 20px', border: '1.5px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', borderRadius: 16, fontSize: 17, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'all 0.2s ease' },
+  whoTab: { padding: '14px 18px', border: '1.5px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', borderRadius: 16, fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'all 0.2s ease' },
   whoOn: { background: 'var(--accent)', color: '#FFFFFF', borderColor: 'var(--accent)' },
   whoCard: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 22, padding: 'clamp(24px, 4vw, 38px)', boxShadow: 'var(--shadow-sm)' },
   valid: { display: 'flex', gap: 40, flexWrap: 'wrap', alignItems: 'center', padding: 'clamp(24px, 4vw, 46px)', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 26, boxShadow: 'var(--shadow-sm)' },
-  free: { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px 44px', background: 'var(--accent-tint)', border: '1px solid var(--accent-border)', borderRadius: 20 },
+  free: { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '22px 36px', background: 'var(--accent-tint)', border: '1px solid var(--accent-border)', borderRadius: 20 },
   finalCta: { borderRadius: 28, padding: 'clamp(32px, 6vw, 70px)', border: '1px solid var(--border)' },
   footer: { borderTop: '1px solid var(--border)', padding: '40px 24px' },
   footLink: { fontSize: 16, color: 'var(--muted)', textDecoration: 'none', fontWeight: 600 },

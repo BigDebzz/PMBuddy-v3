@@ -346,12 +346,12 @@ export default function App() {
   return (
     <div>
       <nav className="app-nav" style={nav.bar}>
-        <button style={nav.logo} onClick={reset} aria-label="PM Buddy home"><Icon name="logo" size={28} style={{ color: 'var(--accent)' }} /><span style={nav.logoText}>PM Buddy</span></button>
+        <button style={nav.logo} onClick={reset} aria-label="PM Buddy home"><Icon name="logo" size={28} style={{ color: 'var(--accent)' }} /><span className="nav-logo-text" style={nav.logoText}>PM Buddy</span></button>
         <div style={nav.right}>
           <ThemeToggle />
           {user ? <button style={nav.dashBtn} onClick={() => setScreen(S.DASHBOARD)}>Dashboard</button> : <>
             <button className="nav-text-btn" style={nav.loginBtn} onClick={() => setScreen(S.AUTH)}>Log in</button>
-            <button style={nav.signupBtn} onClick={() => setScreen(S.AUTH)}>Get started</button>
+            <button className="nav-cta" style={nav.signupBtn} onClick={() => setScreen(S.AUTH)}>Get started</button>
           </>}
           {screen !== S.LAND && user && <button style={nav.loginBtn} onClick={reset}>Home</button>}
         </div>
@@ -374,7 +374,7 @@ export default function App() {
 const nav = {
   bar: { position: 'sticky', top: 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '0 28px', height: 64, background: 'color-mix(in srgb, var(--bg) 88%, transparent)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderBottom: '1px solid var(--border)' },
   logo: { display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', cursor: 'pointer', padding: 0 },
-  logoText: { fontFamily: 'var(--font-head)', fontSize: 21, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.04em' },
+  logoText: { fontFamily: 'var(--font-head)', fontSize: 20, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.04em' },
   right: { display: 'flex', gap: 10, alignItems: 'center' },
   dashBtn: { padding: '9px 18px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 999, fontSize: 15, fontWeight: 600, color: 'var(--text)', cursor: 'pointer', fontFamily: 'inherit' },
   loginBtn: { padding: '9px 16px', background: 'none', border: 'none', borderRadius: 999, fontSize: 15, fontWeight: 600, color: 'var(--text-2)', cursor: 'pointer', fontFamily: 'inherit' },
