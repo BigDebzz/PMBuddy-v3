@@ -347,7 +347,7 @@ export default function PMBuddyAssistant({ project, context }) {
         unread > 0 && React.createElement('span', {
           style: {
             position: 'absolute', top: -2, right: -2,
-            background: 'var(--bad)', color: '#FFFFFF', fontSize: 10, fontWeight: 700,
+            background: 'var(--bad)', color: '#FFFFFF', fontSize: 12, fontWeight: 700,
             borderRadius: '50%', width: 18, height: 18,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             border: '2px solid #fff',
@@ -385,8 +385,8 @@ export default function PMBuddyAssistant({ project, context }) {
             }
           }, React.createElement(BuddyIcon, { size: 16 })),
           React.createElement('div', null,
-            React.createElement('p', { style: { fontSize: 13, fontWeight: 700, color: '#FFFFFF', margin: 0 } }, 'PM Buddy'),
-            React.createElement('p', { style: { fontSize: 11, color: 'rgba(255,255,255,0.88)', margin: 0 } }, 'Your personal project manager')
+            React.createElement('p', { style: { fontSize: 14, fontWeight: 700, color: '#FFFFFF', margin: 0 } }, 'PM Buddy'),
+            React.createElement('p', { style: { fontSize: 12, color: 'rgba(255,255,255,0.88)', margin: 0 } }, 'Your personal project manager')
           )
         ),
         React.createElement('div', { style: { display: 'flex', gap: 6 } },
@@ -397,7 +397,7 @@ export default function PMBuddyAssistant({ project, context }) {
           }, icon('refresh', 16)),
           React.createElement('button', {
             onClick: handleClose,
-            style: { background: 'none', border: 'none', color: 'var(--muted)', fontSize: 14, cursor: 'pointer', padding: '2px 6px', borderRadius: 8, fontFamily: 'inherit' }
+            style: { background: 'none', border: 'none', color: 'var(--muted)', fontSize: 15, cursor: 'pointer', padding: '2px 6px', borderRadius: 8, fontFamily: 'inherit' }
           }, icon('x', 16))
         )
       ),
@@ -409,7 +409,7 @@ export default function PMBuddyAssistant({ project, context }) {
         }
       },
         messages.length === 0 && React.createElement('p', {
-          style: { fontSize: 13, color: 'var(--muted)', textAlign: 'center', lineHeight: 1.6, margin: 'auto' }
+          style: { fontSize: 14, color: 'var(--muted)', textAlign: 'center', lineHeight: 1.6, margin: 'auto' }
         }, 'Ask me anything about your project. I\'m reading your data and will give you specific guidance.'),
         messages.map(function(msg, i) {
           var isUser = msg.role === 'user';
@@ -431,7 +431,7 @@ export default function PMBuddyAssistant({ project, context }) {
                 color: isUser ? '#FFFFFF' : BL,
                 borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                 border: isUser ? 'none' : '1px solid var(--border)',
-                fontSize: 13, lineHeight: 1.65,
+                fontSize: 14, lineHeight: 1.65,
               }
             }, msg.text)
           );
@@ -481,14 +481,14 @@ export default function PMBuddyAssistant({ project, context }) {
           React.createElement('span', {
             style: { width: 7, height: 7, borderRadius: '50%', background: 'var(--bad)', display: 'inline-block' }
           }),
-          React.createElement('span', { style: { fontSize: 11, color: 'var(--bad-text)', fontWeight: 600 } }, 'Listening...')
+          React.createElement('span', { style: { fontSize: 12, color: 'var(--bad-text)', fontWeight: 600 } }, 'Listening...')
         ),
         React.createElement('div', { style: { display: 'flex', gap: 6, alignItems: 'flex-end' } },
           React.createElement('textarea', {
             ref: inputRef,
             style: {
               flex: 1, border: '1.5px solid var(--border)', borderRadius: 10,
-              padding: '9px 12px', fontSize: 13, fontFamily: 'inherit',
+              padding: '9px 12px', fontSize: 14, fontFamily: 'inherit',
               color: BL, outline: 'none', resize: 'none', background: WH,
               lineHeight: 1.5, maxHeight: 80, overflowY: 'auto',
             },

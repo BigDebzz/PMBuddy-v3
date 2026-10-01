@@ -337,7 +337,7 @@ Rewrite the complete updated document in HTML (h1 for title, h2 for sections, p 
               {thinking && (
                 <div style={{ ...s.msgRow, justifyContent: 'flex-start' }}>
                   <div style={s.avatar}>PM</div>
-                  <div style={{ ...s.bubble, background: WH, border: '1px solid var(--border)', color: 'var(--muted)', fontSize: 13 }}>
+                  <div style={{ ...s.bubble, background: WH, border: '1px solid var(--border)', color: 'var(--muted)', fontSize: 14 }}>
                     {stage === STAGES.GENERATING ? 'Writing your document. This can take up to 1 minute. Nothing good comes easily.' : 'Thinking...'}
                   </div>
                 </div>
@@ -366,9 +366,9 @@ Rewrite the complete updated document in HTML (h1 for title, h2 for sections, p 
             <div style={s.docActions}>
               <div>
                 <p style={s.docTitleLabel}>{docTitle}</p>
-                {saveStatus === 'saving' && <p style={{ fontSize: 12, color: 'var(--warn-text)', marginTop: 2 }}>Saving to your documents...</p>}
-                {saveStatus === 'saved' && <p style={{ fontSize: 12, color: 'var(--ok-text)', marginTop: 2 }}><Icon name="check" size={15} style={{ marginRight: 6 }} />Saved to My Documents</p>}
-                {saveStatus === 'error' && <p style={{ fontSize: 12, color: 'var(--bad-text)', marginTop: 2 }}>{saveError}</p>}
+                {saveStatus === 'saving' && <p style={{ fontSize: 13, color: 'var(--warn-text)', marginTop: 2 }}>Saving to your documents...</p>}
+                {saveStatus === 'saved' && <p style={{ fontSize: 13, color: 'var(--ok-text)', marginTop: 2 }}><Icon name="check" size={15} style={{ marginRight: 6 }} />Saved to My Documents</p>}
+                {saveStatus === 'error' && <p style={{ fontSize: 13, color: 'var(--bad-text)', marginTop: 2 }}>{saveError}</p>}
               </div>
               <div style={s.docBtns}>
                 <button style={s.smBtn} onClick={() => setEditing(e => !e)}>{editing ? 'Done editing' : 'Edit'}</button>
@@ -424,40 +424,40 @@ const s = {
   page: { minHeight: '100vh', background: 'var(--bg)', padding: '32px 24px 80px', fontFamily: "'DM Sans', system-ui, sans-serif" },
   wrap: { maxWidth: 800, margin: '0 auto' },
   header: { marginBottom: 24 },
-  backBtn: { background: 'none', border: 'none', color: 'var(--muted)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', padding: 0, marginBottom: 8, display: 'block' },
+  backBtn: { background: 'none', border: 'none', color: 'var(--muted)', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', padding: 0, marginBottom: 8, display: 'block' },
   title: { fontSize: 26, fontWeight: 600, color: BL, letterSpacing: '-0.6px', marginBottom: 4 },
-  sub: { fontSize: 14, color: 'var(--muted)' },
+  sub: { fontSize: 15, color: 'var(--muted)' },
   errorBar: { background: 'var(--bad-tint)', border: '1px solid var(--bad-border)', borderRadius: 10, padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  errorText: { fontSize: 13, color: 'var(--bad-text)' },
-  errorBtn: { fontSize: 12, color: 'var(--bad-text)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' },
+  errorText: { fontSize: 14, color: 'var(--bad-text)' },
+  errorBtn: { fontSize: 13, color: 'var(--bad-text)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' },
   chatWrap: { display: 'flex', flexDirection: 'column', gap: 12 },
   chatMessages: { background: WH, borderRadius: 16, border: '1px solid var(--border)', padding: '24px', minHeight: 400, maxHeight: 520, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 },
   msgRow: { display: 'flex', gap: 10, alignItems: 'flex-end' },
-  avatar: { width: 32, height: 32, borderRadius: '50%', background: BLUE, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0 },
-  bubble: { maxWidth: '75%', padding: '12px 16px', borderRadius: 16, fontSize: 14, lineHeight: 1.65 },
+  avatar: { width: 32, height: 32, borderRadius: '50%', background: BLUE, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 },
+  bubble: { maxWidth: '75%', padding: '12px 16px', borderRadius: 16, fontSize: 15, lineHeight: 1.65 },
   inputRow: { background: WH, borderRadius: 16, border: '1px solid var(--border)', overflow: 'hidden' },
   inputWrap: { padding: '12px' },
-  input: { width: '100%', border: 'none', outline: 'none', fontSize: 14, fontFamily: 'inherit', color: BL, resize: 'none', lineHeight: 1.6, boxSizing: 'border-box', background: 'transparent' },
+  input: { width: '100%', border: 'none', outline: 'none', fontSize: 15, fontFamily: 'inherit', color: BL, resize: 'none', lineHeight: 1.6, boxSizing: 'border-box', background: 'transparent' },
   inputActions: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, borderTop: '1px solid var(--surface-2)', marginTop: 8 },
-  voiceBtn: { padding: '6px 14px', borderRadius: 8, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
-  sendBtn: { padding: '8px 20px', background: BLUE, color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  voiceBtn: { padding: '6px 14px', borderRadius: 8, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  sendBtn: { padding: '8px 20px', background: BLUE, color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
   docWrap: { display: 'flex', flexDirection: 'column', gap: 12 },
   docActions: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 },
   docTitleLabel: { fontSize: 16, fontWeight: 600, color: BL },
   docBtns: { display: 'flex', gap: 8 },
-  smBtn: { padding: '7px 14px', background: WH, color: BL, border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
+  smBtn: { padding: '7px 14px', background: WH, color: BL, border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
   updateBar: { display: 'flex', gap: 10, alignItems: 'center', background: WH, border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px' },
-  updateInput: { flex: 1, border: 'none', outline: 'none', fontSize: 13, fontFamily: 'inherit', color: BL, background: 'transparent' },
+  updateInput: { flex: 1, border: 'none', outline: 'none', fontSize: 14, fontFamily: 'inherit', color: BL, background: 'transparent' },
   docCard: { background: WH, border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' },
   docViewer: { padding: '40px 48px', fontSize: 15, lineHeight: 1.8, color: 'var(--text-2)', fontFamily: 'Georgia, serif', maxHeight: 600, overflowY: 'auto' },
   docEditor: { padding: '40px 48px', fontSize: 15, lineHeight: 1.8, color: 'var(--text-2)', fontFamily: 'Georgia, serif', minHeight: 400, outline: 'none' },
   nextWrap: { display: 'flex', justifyContent: 'center', paddingTop: 40 },
   nextCard: { background: WH, border: '1px solid var(--border)', borderRadius: 16, padding: '32px', maxWidth: 560, width: '100%' },
   nextTitle: { fontSize: 18, fontWeight: 600, color: BL, marginBottom: 8 },
-  nextSub: { fontSize: 14, color: 'var(--muted)', marginBottom: 24 },
+  nextSub: { fontSize: 15, color: 'var(--muted)', marginBottom: 24 },
   nextOptions: { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 },
   nextOptionBtn: { padding: '16px 18px', background: WH, border: `1.5px solid ${BLUE}`, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' },
-  nextOptTitle: { fontSize: 14, fontWeight: 600, color: BL, marginBottom: 4 },
-  nextOptDesc: { fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 },
-  backToDocBtn: { background: 'none', border: 'none', color: 'var(--muted)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', padding: 0 },
+  nextOptTitle: { fontSize: 15, fontWeight: 600, color: BL, marginBottom: 4 },
+  nextOptDesc: { fontSize: 14, color: 'var(--muted)', lineHeight: 1.6 },
+  backToDocBtn: { background: 'none', border: 'none', color: 'var(--muted)', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', padding: 0 },
 };

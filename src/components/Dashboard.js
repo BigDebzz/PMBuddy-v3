@@ -165,7 +165,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
       <aside style={{ ...s.sidebar, transform: isMobile && !sidebarOpen ? 'translateX(-100%)' : 'translateX(0)' }}>
         <div style={s.sidebarTop}>
           <div style={s.brand}>
-            <div style={s.brandDot} />
+            <Icon name="logo" size={24} style={{ color: 'var(--accent)' }} />
             <span style={s.brandName}>PM Buddy</span>
           </div>
           <div style={s.userCard}>
@@ -192,8 +192,8 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
           {!onboardingComplete && (
             <div style={s.progressMini}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)' }}>Getting started</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-text)' }}>{checklistDoneCount}/{checklistTotal}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>Getting started</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-text)' }}>{checklistDoneCount}/{checklistTotal}</span>
               </div>
               <div style={s.miniBar}><div style={{ ...s.miniBarFill, width: `${(checklistDoneCount / checklistTotal) * 100}%` }} /></div>
             </div>
@@ -236,7 +236,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                       <p style={s.checklistSub}>Complete these steps to get the most out of the platform.</p>
                     </div>
                     <div style={s.checklistProgress}>
-                      <span style={s.checklistCount}>{checklistDoneCount}<span style={{ fontSize: 14, color: 'var(--muted)' }}>/{checklistTotal}</span></span>
+                      <span style={s.checklistCount}>{checklistDoneCount}<span style={{ fontSize: 15, color: 'var(--muted)' }}>/{checklistTotal}</span></span>
                     </div>
                   </div>
                   <div style={s.checklistBar}><div style={{ ...s.checklistBarFill, width: `${(checklistDoneCount / checklistTotal) * 100}%` }} /></div>
@@ -277,7 +277,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
               <p style={s.sectionLabel}>Quick actions</p>
               <div style={s.quickGrid}>
                 {[
-                  { icon: 'board', label: 'New Project', sub: 'Start a structured project', action: onNewProject, bg: BL, color: '#FFFFFF' },
+                  { icon: 'board', label: 'New Project', sub: 'Start a structured project', action: onNewProject, bg: 'var(--accent)', color: '#FFFFFF' },
                   { icon: 'upload', label: 'Import Document', sub: 'Paste or upload an existing plan', action: () => setShowImport(true), bg: 'var(--accent-tint)', color: 'var(--accent-text)' },
                 ].map((item, i) => (
                   <button key={i} style={s.quickCard} onClick={item.action}>
@@ -452,7 +452,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                       <div style={{ ...s.settingsRow, borderBottom: 'none' }}>
                         <div>
                           <p style={s.settingsLabel}>Email newsletter</p>
-                          <p style={{ fontSize: 13, color: 'var(--muted)' }}>Send a feature update to all PM Buddy users.</p>
+                          <p style={{ fontSize: 14, color: 'var(--muted)' }}>Send a feature update to all PM Buddy users.</p>
                         </div>
                         <button style={{ ...s.openBtn }} onClick={() => setShowBroadcast(true)}>Compose</button>
                       </div>
@@ -464,7 +464,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                     <div style={{ ...s.settingsRow, borderBottom: 'none' }}>
                       <div>
                         <p style={s.settingsLabel}>Send newsletter</p>
-                        <p style={{ fontSize: 13, color: 'var(--muted)' }}>Send a feature update to all PM Buddy users.</p>
+                        <p style={{ fontSize: 14, color: 'var(--muted)' }}>Send a feature update to all PM Buddy users.</p>
                       </div>
                       <button style={s.openBtn} onClick={() => setShowBroadcast(true)}>Compose</button>
                     </div>
@@ -475,7 +475,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                     <div style={{ ...s.settingsRow, borderBottom: 'none' }}>
                       <div>
                         <p style={s.settingsLabel}>Sign out</p>
-                        <p style={{ fontSize: 13, color: 'var(--muted)' }}>You will be signed out of this device.</p>
+                        <p style={{ fontSize: 14, color: 'var(--muted)' }}>You will be signed out of this device.</p>
                       </div>
                       <button style={{ ...s.openBtn, background: 'none', color: 'var(--bad-text)', border: '1px solid var(--bad-border)' }} onClick={onLogout}>Log out</button>
                     </div>
@@ -490,9 +490,9 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 16, padding: '0 20px 16px' }}>
-                      <a href="/privacy.html" style={{ fontSize: 13, color: 'var(--accent-text)' }}>Privacy Policy</a>
-                      <a href="/terms.html" style={{ fontSize: 13, color: 'var(--accent-text)' }}>Terms of Service</a>
-                      <a href="/about.html" style={{ fontSize: 13, color: 'var(--accent-text)' }}>About</a>
+                      <a href="/privacy.html" style={{ fontSize: 14, color: 'var(--accent-text)' }}>Privacy Policy</a>
+                      <a href="/terms.html" style={{ fontSize: 14, color: 'var(--accent-text)' }}>Terms of Service</a>
+                      <a href="/about.html" style={{ fontSize: 14, color: 'var(--accent-text)' }}>About</a>
                     </div>
                   </div>
                 </>
@@ -507,13 +507,13 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
           <div style={{ background: WH, borderRadius: 16, padding: '32px', maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
             <div style={{ width: 44, height: 44, borderRadius: 16, background: 'var(--bad-tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--bad-text)', marginBottom: 16 }}><Icon name="trash" size={22} /></div>
             <h3 style={{ fontSize: 18, fontWeight: 700, color: BL, marginBottom: 8 }}>Delete this {confirmDelete.type}?</h3>
-            <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.7, marginBottom: 8 }}>
+            <p style={{ fontSize: 15, color: 'var(--muted)', lineHeight: 1.7, marginBottom: 8 }}>
               <strong style={{ color: BL }}>{confirmDelete.name}</strong> will be permanently deleted.
             </p>
-            <p style={{ fontSize: 13, color: 'var(--bad-text)', fontWeight: 600, marginBottom: 24 }}>This cannot be undone.</p>
+            <p style={{ fontSize: 14, color: 'var(--bad-text)', fontWeight: 600, marginBottom: 24 }}>This cannot be undone.</p>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button style={{ flex: 1, padding: '11px', background: 'var(--bad)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={executeDelete}>Yes, delete it</button>
-              <button style={{ flex: 1, padding: '11px', background: 'none', color: 'var(--muted)', border: `1px solid ${RULE}`, borderRadius: 10, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setConfirmDelete(null)}>Cancel</button>
+              <button style={{ flex: 1, padding: '11px', background: 'var(--bad)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={executeDelete}>Yes, delete it</button>
+              <button style={{ flex: 1, padding: '11px', background: 'none', color: 'var(--muted)', border: `1px solid ${RULE}`, borderRadius: 10, fontSize: 15, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setConfirmDelete(null)}>Cancel</button>
             </div>
           </div>
         </div>
@@ -567,7 +567,7 @@ function ProjectCard({ p, onOpen, onDelete, isCampaign }) {
         <span style={{ ...s.industryBadge, background: isCampaign ? 'var(--warn-tint)' : 'var(--accent-tint)', color: isCampaign ? 'var(--warn-text)' : 'var(--accent-text)' }}>
           {isCampaign ? 'Campaign' : p.industry}
         </span>
-        {blockers > 0 && <span style={{ fontSize: 10, fontWeight: 700, background: 'var(--warn-tint)', color: 'var(--warn-text)', padding: '2px 8px', borderRadius: 100 }}><Icon name="blocked" size={12} style={{ marginRight: 4 }} />{blockers} blocker{blockers > 1 ? 's' : ''}</span>}
+        {blockers > 0 && <span style={{ fontSize: 12, fontWeight: 700, background: 'var(--warn-tint)', color: 'var(--warn-text)', padding: '2px 8px', borderRadius: 100 }}><Icon name="blocked" size={12} style={{ marginRight: 4 }} />{blockers} blocker{blockers > 1 ? 's' : ''}</span>}
       </div>
       <p style={s.projectName}>{p.name}</p>
       <p style={s.projectDesc}>{p.description}</p>
@@ -621,16 +621,16 @@ function DocViewerModal({ doc, onClose, onUpdate }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 28px', borderBottom: `1px solid ${RULE}` }}>
           <p style={{ fontSize: 16, fontWeight: 700, color: BL }}>{doc.title}</p>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button style={{ padding: '7px 16px', background: WH, color: 'var(--accent-text)', border: `1px solid ${BLUE}`, borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => { const blob = new Blob([content], { type: 'text/html' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${doc.title.replace(/\s+/g, '_')}.html`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); }}>Download</button>
-            <button style={{ padding: '7px 16px', background: 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={onClose}>Close</button>
+            <button style={{ padding: '7px 16px', background: WH, color: 'var(--accent-text)', border: `1px solid ${BLUE}`, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => { const blob = new Blob([content], { type: 'text/html' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${doc.title.replace(/\s+/g, '_')}.html`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); }}>Download</button>
+            <button style={{ padding: '7px 16px', background: 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={onClose}>Close</button>
           </div>
         </div>
         <div style={{ padding: '14px 28px', borderBottom: `1px solid ${RULE}`, background: GREY }}>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <input style={{ flex: 1, border: `1.5px solid ${RULE}`, borderRadius: 10, padding: '10px 14px', fontSize: 13, fontFamily: 'inherit', outline: 'none', background: WH }} placeholder="Want to change something? e.g. Add a budget section..." value={updateInput} onChange={e => setUpdateInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && updateDoc()} />
-            <button style={{ padding: '10px 20px', background: BLUE, color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: !updateInput.trim() || updating ? 0.5 : 1 }} onClick={updateDoc} disabled={!updateInput.trim() || updating}>{updating ? 'Updating...' : 'Update'}</button>
+            <input style={{ flex: 1, border: `1.5px solid ${RULE}`, borderRadius: 10, padding: '10px 14px', fontSize: 14, fontFamily: 'inherit', outline: 'none', background: WH }} placeholder="Want to change something? e.g. Add a budget section..." value={updateInput} onChange={e => setUpdateInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && updateDoc()} />
+            <button style={{ padding: '10px 20px', background: BLUE, color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: !updateInput.trim() || updating ? 0.5 : 1 }} onClick={updateDoc} disabled={!updateInput.trim() || updating}>{updating ? 'Updating...' : 'Update'}</button>
           </div>
-          {updateMsg && <p style={{ fontSize: 12, color: 'var(--ok-text)', marginTop: 6 }}>{updateMsg}</p>}
+          {updateMsg && <p style={{ fontSize: 13, color: 'var(--ok-text)', marginTop: 6 }}>{updateMsg}</p>}
         </div>
         <div style={{ padding: '32px 40px', fontSize: 15, lineHeight: 1.8, color: 'var(--text-2)', fontFamily: 'Georgia, serif', maxHeight: '65vh', overflowY: 'auto' }} dangerouslySetInnerHTML={{ __html: content }} />
       </div>
@@ -645,37 +645,37 @@ const s = {
   sidebarTop: { padding: '20px 16px 16px' },
   brand: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 },
   brandDot: { width: 8, height: 8, borderRadius: '50%', background: BLUE },
-  brandName: { fontSize: 15, fontWeight: 800, color: BL, letterSpacing: '-0.3px' },
+  brandName: { fontSize: 19, fontWeight: 800, color: BL, fontFamily: 'var(--font-head)', letterSpacing: '-0.04em' },
   userCard: { display: 'flex', alignItems: 'center', gap: 10, padding: '12px', background: GREY, borderRadius: 10, marginBottom: 8 },
-  avatar: { width: 32, height: 32, borderRadius: '50%', background: BLUE, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, flexShrink: 0 },
-  userName: { fontSize: 13, fontWeight: 700, color: BL, marginBottom: 1 },
-  userEmail: { fontSize: 11, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 },
+  avatar: { width: 32, height: 32, borderRadius: '50%', background: BLUE, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, flexShrink: 0 },
+  userName: { fontSize: 14, fontWeight: 700, color: BL, marginBottom: 1 },
+  userEmail: { fontSize: 12, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 },
   nav: { flex: 1, padding: '8px 8px', overflowY: 'auto' },
-  navItem: { width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: 'none', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, textAlign: 'left', marginBottom: 2, transition: 'all 0.15s' },
+  navItem: { width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: 'none', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, textAlign: 'left', marginBottom: 2, transition: 'all 0.15s' },
   navIcon: { fontSize: 16, width: 20, textAlign: 'center', flexShrink: 0 },
-  navBadge: { marginLeft: 'auto', fontSize: 11, fontWeight: 700, background: 'var(--accent-tint)', color: 'var(--accent-text)', padding: '1px 7px', borderRadius: 100 },
+  navBadge: { marginLeft: 'auto', fontSize: 12, fontWeight: 700, background: 'var(--accent-tint)', color: 'var(--accent-text)', padding: '1px 7px', borderRadius: 100 },
   sidebarBottom: { padding: '12px 16px 20px' },
   progressMini: { background: GREY, borderRadius: 10, padding: '10px 12px', marginBottom: 10 },
   miniBar: { height: 4, background: RULE, borderRadius: 2, overflow: 'hidden' },
   miniBarFill: { height: '100%', background: BLUE, borderRadius: 2, transition: 'width 0.4s' },
-  logoutBtn: { width: '100%', padding: '9px', background: 'none', border: `1px solid ${RULE}`, borderRadius: 10, fontSize: 13, color: 'var(--muted)', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center' },
+  logoutBtn: { width: '100%', padding: '9px', background: 'none', border: `1px solid ${RULE}`, borderRadius: 10, fontSize: 14, color: 'var(--muted)', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center' },
   main: { flex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column', transition: 'margin-left 0.25s' },
   topBar: { position: 'sticky', top: 0, background: WH, borderBottom: `1px solid ${RULE}`, padding: '0 28px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 30 },
   menuBtn: { background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--muted)', fontFamily: 'inherit' },
   topActions: { display: 'flex', alignItems: 'center', gap: 10 },
   installChip: { display: 'flex', alignItems: 'center', gap: 4, background: 'var(--color-primary)', borderRadius: 10, padding: '4px 4px 4px 12px' },
-  installChipBtn: { background: 'none', border: 'none', color: '#FFFFFF', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
-  installDismiss: { background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', fontSize: 14, cursor: 'pointer', padding: '0 6px', fontFamily: 'inherit' },
-  newBtn: { padding: '8px 16px', background: BLUE, color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  installChipBtn: { background: 'none', border: 'none', color: '#FFFFFF', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  installDismiss: { background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', fontSize: 15, cursor: 'pointer', padding: '0 6px', fontFamily: 'inherit' },
+  newBtn: { padding: '8px 16px', background: BLUE, color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
   content: { padding: '32px 28px 80px', maxWidth: 1000, width: '100%' },
   pageHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28, flexWrap: 'wrap', gap: 12 },
   pageTitle: { fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 800, color: BL, letterSpacing: '-0.5px', marginBottom: 4 },
-  pageSub: { fontSize: 14, color: 'var(--muted)' },
-  primaryBtn: { padding: '9px 18px', background: BLUE, color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  pageSub: { fontSize: 15, color: 'var(--muted)' },
+  primaryBtn: { padding: '9px 18px', background: BLUE, color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
   checklistCard: { background: WH, border: `1px solid ${RULE}`, borderRadius: 16, padding: '24px', marginBottom: 28 },
   checklistHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
   checklistTitle: { fontSize: 16, fontWeight: 700, color: BL, marginBottom: 4 },
-  checklistSub: { fontSize: 13, color: 'var(--muted)' },
+  checklistSub: { fontSize: 14, color: 'var(--muted)' },
   checklistProgress: { flexShrink: 0 },
   checklistCount: { fontSize: 24, fontWeight: 800, color: 'var(--accent-text)', letterSpacing: '-0.5px' },
   checklistBar: { height: 4, background: RULE, borderRadius: 2, overflow: 'hidden', marginBottom: 20 },
@@ -683,50 +683,50 @@ const s = {
   checklistItems: { display: 'flex', flexDirection: 'column', gap: 0 },
   checklistItem: { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: `1px solid ${GREY}` },
   checkBox: { width: 20, height: 20, borderRadius: 8, border: '2px solid', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' },
-  checkLabel: { fontSize: 14, fontWeight: 500 },
-  checkHint: { fontSize: 12, color: 'var(--muted)', marginTop: 2 },
-  checkAction: { padding: '5px 12px', background: 'var(--accent-tint)', color: 'var(--accent-text)', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 },
+  checkLabel: { fontSize: 15, fontWeight: 500 },
+  checkHint: { fontSize: 13, color: 'var(--muted)', marginTop: 2 },
+  checkAction: { padding: '5px 12px', background: 'var(--accent-tint)', color: 'var(--accent-text)', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 },
   statsRow: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 28 },
   statCard: { background: WH, border: `1px solid ${RULE}`, borderRadius: 16, padding: '16px', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' },
   statNum: { fontSize: 28, fontWeight: 800, letterSpacing: '-0.5px', marginBottom: 4 },
-  statLabel: { fontSize: 12, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' },
-  sectionLabel: { fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 },
+  statLabel: { fontSize: 13, color: 'var(--muted)', fontWeight: 600, },
+  sectionLabel: { fontSize: 12, fontWeight: 700, color: 'var(--muted)', marginBottom: 12 },
   sectionHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, marginTop: 28 },
-  seeAll: { background: 'none', border: 'none', color: 'var(--accent-text)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  seeAll: { background: 'none', border: 'none', color: 'var(--accent-text)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
   quickGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, marginBottom: 8 },
   quickCard: { display: 'flex', alignItems: 'center', gap: 12, background: WH, border: `1px solid ${RULE}`, borderRadius: 16, padding: '14px 16px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' },
   quickIcon: { width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 },
-  quickLabel: { fontSize: 13, fontWeight: 700, color: BL, marginBottom: 2 },
-  quickSub: { fontSize: 12, color: 'var(--muted)' },
+  quickLabel: { fontSize: 14, fontWeight: 700, color: BL, marginBottom: 2 },
+  quickSub: { fontSize: 13, color: 'var(--muted)' },
   projectsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 },
   projectCard: { background: WH, border: `1px solid ${RULE}`, borderRadius: 16, padding: '20px' },
   projectBadges: { display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' },
-  industryBadge: { fontSize: 10, fontWeight: 700, background: 'var(--accent-tint)', color: 'var(--accent-text)', padding: '3px 9px', borderRadius: 100 },
-  methodBadge: { fontSize: 10, fontWeight: 700, background: GREY, color: 'var(--muted)', padding: '3px 9px', borderRadius: 100 },
+  industryBadge: { fontSize: 12, fontWeight: 700, background: 'var(--accent-tint)', color: 'var(--accent-text)', padding: '3px 9px', borderRadius: 100 },
+  methodBadge: { fontSize: 12, fontWeight: 700, background: GREY, color: 'var(--muted)', padding: '3px 9px', borderRadius: 100 },
   projectName: { fontSize: 15, fontWeight: 700, color: BL, marginBottom: 4 },
-  projectDesc: { fontSize: 13, color: 'var(--muted)', lineHeight: 1.6, marginBottom: 16, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' },
+  projectDesc: { fontSize: 14, color: 'var(--muted)', lineHeight: 1.6, marginBottom: 16, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' },
   projectStats: { display: 'flex', marginBottom: 16, border: `1px solid ${RULE}`, borderRadius: 10, overflow: 'hidden' },
   stat: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 8px', gap: 3 },
   statNum2: { fontSize: 16, fontWeight: 700, color: BL },
-  statLabel2: { fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' },
+  statLabel2: { fontSize: 12, color: 'var(--muted)', },
   statDivider: { width: 1, background: RULE, flexShrink: 0 },
   cardActions: { display: 'flex', gap: 8 },
-  openBtn: { padding: '7px 16px', background: 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
-  deleteBtn: { padding: '7px 14px', background: 'none', color: 'var(--muted)', border: `1px solid ${RULE}`, borderRadius: 8, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' },
+  openBtn: { padding: '7px 16px', background: 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  deleteBtn: { padding: '7px 14px', background: 'none', color: 'var(--muted)', border: `1px solid ${RULE}`, borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' },
   emptyState: { padding: '60px 0', textAlign: 'center', maxWidth: 400 },
   emptyIcon: { fontSize: 32, marginBottom: 16, color: 'var(--border-strong)' },
   emptyTitle: { fontSize: 18, fontWeight: 700, color: BL, marginBottom: 8 },
-  emptyBody: { fontSize: 14, color: 'var(--muted)', lineHeight: 1.7, marginBottom: 24 },
-  emptyText: { color: 'var(--muted)', fontSize: 14, padding: '24px 0' },
+  emptyBody: { fontSize: 15, color: 'var(--muted)', lineHeight: 1.7, marginBottom: 24 },
+  emptyText: { color: 'var(--muted)', fontSize: 15, padding: '24px 0' },
   docRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: `1px solid ${RULE}`, flexWrap: 'wrap', gap: 16 },
   docRowLeft: { flex: 1 },
-  docTypeBadge: { fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 100, display: 'inline-block', marginBottom: 4 },
-  docRowTitle: { fontSize: 14, fontWeight: 600, color: BL, marginBottom: 2 },
-  docRowDate: { fontSize: 12, color: 'var(--muted)' },
+  docTypeBadge: { fontSize: 12, fontWeight: 700, padding: '3px 9px', borderRadius: 100, display: 'inline-block', marginBottom: 4 },
+  docRowTitle: { fontSize: 15, fontWeight: 600, color: BL, marginBottom: 2 },
+  docRowDate: { fontSize: 13, color: 'var(--muted)' },
   docRowActions: { display: 'flex', gap: 8 },
   settingsCard: { background: WH, border: `1px solid ${RULE}`, borderRadius: 16, overflow: 'hidden' },
-  settingsSection: { fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '14px 20px', borderBottom: `1px solid ${RULE}`, background: GREY },
+  settingsSection: { fontSize: 12, fontWeight: 700, color: 'var(--muted)', padding: '14px 20px', borderBottom: `1px solid ${RULE}`, background: GREY },
   settingsRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: `1px solid ${RULE}` },
-  settingsLabel: { fontSize: 12, fontWeight: 700, color: 'var(--muted)', marginBottom: 4 },
-  settingsValue: { fontSize: 14, color: BL, fontWeight: 500 },
+  settingsLabel: { fontSize: 13, fontWeight: 700, color: 'var(--muted)', marginBottom: 4 },
+  settingsValue: { fontSize: 15, color: BL, fontWeight: 500 },
 };

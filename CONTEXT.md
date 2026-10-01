@@ -10,7 +10,7 @@ PM Buddy turns existing project documents into a structured project (milestones,
 - **QuickDoc is on hold.** Do not spend time on it. Its code stays in `src/components/QuickDoc.js`.
 
 ## Design
-- `DESIGN.md` (rules) and `BrandGuidelines.md` (values) define the interface. Read `DESIGN.md` before any UI change, use CSS variables only, and restyle one screen at a time. When a mistake repeats, add a rule to the Drift log in `DESIGN.md`.
+- The interface follows the **Studio** direction. Read `DESIGN.md` (rules) and `BrandGuidelines.md` (values) before any UI change. Use CSS variables only (see `src/index.css`), use `Icon` for every icon (no emoji or symbols), and support light and dark (`ThemeToggle`). Restyle one screen at a time and add repeated mistakes to the Drift log in `DESIGN.md`.
 
 ## Stack
 - React 18, Create React App (`npm run build` outputs `build/`)

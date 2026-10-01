@@ -108,11 +108,11 @@ function VoiceInput({ value, onChange, placeholder }) {
 }
 
 const vs = {
-  textarea: { width: '100%', border: '1.5px solid var(--border)', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', resize: 'vertical', lineHeight: 1.65, background: WH },
-  input: { flex: 1, border: '1.5px solid var(--border)', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', background: WH, width: '100%' },
+  textarea: { width: '100%', border: '1.5px solid var(--border)', borderRadius: 10, padding: '12px 14px', fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', resize: 'vertical', lineHeight: 1.65, background: WH },
+  input: { flex: 1, border: '1.5px solid var(--border)', borderRadius: 10, padding: '12px 14px', fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', background: WH, width: '100%' },
   mic: { width: 44, height: 88, border: 'none', borderRadius: 10, color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   micSm: { width: 44, height: 44, border: 'none', borderRadius: 10, color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  badge: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--bad-text)', fontWeight: 600, padding: '6px 10px', background: 'var(--bad-tint)', borderRadius: 10, border: '1px solid var(--bad-border)', marginTop: 6 },
+  badge: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--bad-text)', fontWeight: 600, padding: '6px 10px', background: 'var(--bad-tint)', borderRadius: 10, border: '1px solid var(--bad-border)', marginTop: 6 },
   dot: { width: 8, height: 8, borderRadius: '50%', background: 'var(--bad)', flexShrink: 0 },
 };
 
@@ -320,9 +320,9 @@ Respond ONLY with raw JSON, no markdown, no code blocks:
           {STEPS.map(st => (
             <div key={st.num} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
               <div style={{ ...s.stepDot, background: step >= st.num ? BLUE : 'var(--border)' }}>
-                <span style={{ fontSize: 11, fontWeight: 800, color: step >= st.num ? '#FFFFFF' : 'var(--muted)' }}>{st.num}</span>
+                <span style={{ fontSize: 12, fontWeight: 800, color: step >= st.num ? '#FFFFFF' : 'var(--muted)' }}>{st.num}</span>
               </div>
-              <span style={{ fontSize: 10, color: step >= st.num ? 'var(--accent-text)' : 'var(--muted)', fontWeight: 600 }}>{st.label}</span>
+              <span style={{ fontSize: 12, color: step >= st.num ? 'var(--accent-text)' : 'var(--muted)', fontWeight: 600 }}>{st.label}</span>
             </div>
           ))}
         </div>
@@ -570,7 +570,7 @@ Respond ONLY with raw JSON, no markdown, no code blocks:
               {saveError && (
                 <div style={s.saveErrorBox}>
                   <p style={s.saveErrorText}>Could not save: {saveError}</p>
-                  <p style={{ fontSize: 13, color: 'var(--bad-text)', marginTop: 4 }}>Check your connection and try again.</p>
+                  <p style={{ fontSize: 14, color: 'var(--bad-text)', marginTop: 4 }}>Check your connection and try again.</p>
                 </div>
               )}
             </div>
@@ -586,7 +586,7 @@ Respond ONLY with raw JSON, no markdown, no code blocks:
                   {aiLoading ? 'Review Running...' : aiReview ? 'Continue to Launch' : 'Skip and Continue'}
                 </button>
                 {!aiReview && !aiLoading && (
-                  <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--muted)', margin: 0 }}>The review helps catch gaps early. You can skip if you prefer.</p>
+                  <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted)', margin: 0 }}>The review helps catch gaps early. You can skip if you prefer.</p>
                 )}
               </div>
             ) : (
@@ -653,56 +653,56 @@ function StopIcon() {
 const s = {
   page: { minHeight: '100vh', background: 'var(--bg)', padding: '40px 24px 80px' },
   wrap: { maxWidth: 680, margin: '0 auto' },
-  backBtn: { background: 'none', border: 'none', color: 'var(--muted)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 20, padding: 0 },
+  backBtn: { background: 'none', border: 'none', color: 'var(--muted)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 20, padding: 0 },
   header: { marginBottom: 24 },
-  typeBadge: { display: 'inline-block', fontSize: 11, fontWeight: 800, color: 'var(--accent-text)', textTransform: 'uppercase', letterSpacing: '0.12em', background: 'var(--accent-tint)', padding: '4px 12px', borderRadius: 100, marginBottom: 8 },
-  headerSub: { fontSize: 13, color: 'var(--muted)' },
-  draftBanner: { background: 'var(--ok-tint)', border: '1px solid var(--ok-border)', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: 'var(--ok-text)', fontWeight: 600, marginBottom: 20 },
+  typeBadge: { display: 'inline-block', fontSize: 12, fontWeight: 800, color: 'var(--accent-text)', background: 'var(--accent-tint)', padding: '4px 12px', borderRadius: 100, marginBottom: 8 },
+  headerSub: { fontSize: 14, color: 'var(--muted)' },
+  draftBanner: { background: 'var(--ok-tint)', border: '1px solid var(--ok-border)', borderRadius: 10, padding: '10px 16px', fontSize: 14, color: 'var(--ok-text)', fontWeight: 600, marginBottom: 20 },
   progressTrack: { height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden', marginBottom: 16 },
   progressFill: { height: '100%', background: 'var(--accent)', borderRadius: 2, transition: 'width 0.4s ease' },
   steps: { display: 'flex', gap: 16, marginBottom: 28, justifyContent: 'space-between' },
   stepDot: { width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.3s ease' },
   card: { background: WH, borderRadius: 20, padding: '36px', boxShadow: '0 4px 20px rgba(43,42,40,0.06)', border: '1px solid var(--border)' },
-  stepTag: { fontSize: 11, fontWeight: 800, color: 'var(--accent-text)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 },
+  stepTag: { fontSize: 12, fontWeight: 800, color: 'var(--accent-text)', marginBottom: 10 },
   stepTitle: { fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 900, color: BL, marginBottom: 8, letterSpacing: '-0.5px' },
-  stepSub: { fontSize: 14, color: 'var(--muted)', lineHeight: 1.7, marginBottom: 28 },
-  label: { display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-2)', marginBottom: 8, letterSpacing: '0.02em' },
-  fieldHint: { fontSize: 12, color: 'var(--muted)', lineHeight: 1.6, marginBottom: 16, marginTop: 4 },
-  input: { width: '100%', border: '1.5px solid var(--border)', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', marginBottom: 4, boxSizing: 'border-box', color: BL, outline: 'none', background: WH },
+  stepSub: { fontSize: 15, color: 'var(--muted)', lineHeight: 1.7, marginBottom: 28 },
+  label: { display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text-2)', marginBottom: 8, },
+  fieldHint: { fontSize: 13, color: 'var(--muted)', lineHeight: 1.6, marginBottom: 16, marginTop: 4 },
+  input: { width: '100%', border: '1.5px solid var(--border)', borderRadius: 10, padding: '12px 14px', fontSize: 15, fontFamily: 'inherit', marginBottom: 4, boxSizing: 'border-box', color: BL, outline: 'none', background: WH },
   twoCol: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 8 },
-  timelineOk: { background: 'var(--accent-tint)', border: '1px solid var(--accent-border)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--accent-text)', lineHeight: 1.6, marginBottom: 16 },
-  timelineWarn: { background: 'var(--bad-tint)', border: '1px solid var(--bad-border)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--bad-text)', lineHeight: 1.6, marginBottom: 16 },
+  timelineOk: { background: 'var(--accent-tint)', border: '1px solid var(--accent-border)', borderRadius: 10, padding: '10px 14px', fontSize: 14, color: 'var(--accent-text)', lineHeight: 1.6, marginBottom: 16 },
+  timelineWarn: { background: 'var(--bad-tint)', border: '1px solid var(--bad-border)', borderRadius: 10, padding: '10px 14px', fontSize: 14, color: 'var(--bad-text)', lineHeight: 1.6, marginBottom: 16 },
   channelGrid: { display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
-  channelBtn: { padding: '8px 14px', border: '1.5px solid', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' },
+  channelBtn: { padding: '8px 14px', border: '1.5px solid', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' },
   aiPromptBox: { background: 'var(--accent-tint)', border: '1px solid var(--accent-border)', borderRadius: 16, padding: '28px', textAlign: 'center' },
-  aiPromptText: { fontSize: 14, color: 'var(--text-2)', lineHeight: 1.7, marginBottom: 20 },
-  aiSkipNote: { fontSize: 12, color: 'var(--muted)', marginTop: 12 },
+  aiPromptText: { fontSize: 15, color: 'var(--text-2)', lineHeight: 1.7, marginBottom: 20 },
+  aiSkipNote: { fontSize: 13, color: 'var(--muted)', marginTop: 12 },
   aiBtn: { padding: '12px 28px', background: 'var(--accent)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
   aiLoading: { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '48px 20px', gap: 14 },
   aiSpinner: { width: 36, height: 36, border: '3px solid var(--surface-2)', borderTop: '3px solid var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' },
   aiLoadingText: { fontSize: 15, fontWeight: 600, color: 'var(--text-2)', textAlign: 'center' },
-  aiLoadingSub: { fontSize: 13, color: 'var(--muted)' },
+  aiLoadingSub: { fontSize: 14, color: 'var(--muted)' },
   aiErrorBox: { background: 'var(--bad-tint)', border: '1px solid var(--bad-border)', borderRadius: 16, padding: '24px', textAlign: 'center' },
-  aiErrorText: { fontSize: 14, color: 'var(--bad-text)', lineHeight: 1.7, marginBottom: 16 },
+  aiErrorText: { fontSize: 15, color: 'var(--bad-text)', lineHeight: 1.7, marginBottom: 16 },
   reviewBlock: { borderLeft: '3px solid var(--border)', padding: '14px 16px', marginBottom: 12, borderRadius: '0 10px 10px 0', background: GREY },
-  reviewBlockLabel: { fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 },
-  reviewBlockText: { fontSize: 14, color: 'var(--text-2)', lineHeight: 1.7 },
-  retryBtn: { background: 'none', border: 'none', color: 'var(--accent-text)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', padding: 0, marginTop: 8 },
+  reviewBlockLabel: { fontSize: 12, fontWeight: 800, color: 'var(--muted)', marginBottom: 8 },
+  reviewBlockText: { fontSize: 15, color: 'var(--text-2)', lineHeight: 1.7 },
+  retryBtn: { background: 'none', border: 'none', color: 'var(--accent-text)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', padding: 0, marginTop: 8 },
   summaryGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 },
   summaryItem: { background: GREY, borderRadius: 10, padding: '14px 16px' },
-  summaryLabel: { fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 },
-  summaryValue: { fontSize: 14, fontWeight: 700, color: BL },
+  summaryLabel: { fontSize: 12, fontWeight: 700, color: 'var(--muted)', marginBottom: 4 },
+  summaryValue: { fontSize: 15, fontWeight: 700, color: BL },
   summaryNote: { background: GREY, borderRadius: 10, padding: '14px 16px', marginBottom: 12 },
-  summaryNoteLabel: { fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 },
-  summaryNoteText: { fontSize: 14, color: 'var(--text-2)', lineHeight: 1.65 },
+  summaryNoteLabel: { fontSize: 12, fontWeight: 700, color: 'var(--muted)', marginBottom: 6 },
+  summaryNoteText: { fontSize: 15, color: 'var(--text-2)', lineHeight: 1.65 },
   milestonesPreview: { background: 'var(--accent-tint)', border: '1px solid var(--accent-border)', borderRadius: 16, padding: '18px', marginTop: 8 },
-  milestonesLabel: { fontSize: 11, fontWeight: 800, color: 'var(--accent-text)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 },
+  milestonesLabel: { fontSize: 12, fontWeight: 800, color: 'var(--accent-text)', marginBottom: 14 },
   milestoneRow: { display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10 },
   milestoneDot: { width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: 5 },
-  milestoneTitle: { fontSize: 14, fontWeight: 600, color: BL },
-  milestoneDate: { fontSize: 12, color: 'var(--muted)' },
+  milestoneTitle: { fontSize: 15, fontWeight: 600, color: BL },
+  milestoneDate: { fontSize: 13, color: 'var(--muted)' },
   saveErrorBox: { background: 'var(--bad-tint)', border: '1px solid var(--bad-border)', borderRadius: 10, padding: '14px 16px', marginTop: 16 },
-  saveErrorText: { fontSize: 14, fontWeight: 700, color: 'var(--bad-text)' },
+  saveErrorText: { fontSize: 15, fontWeight: 700, color: 'var(--bad-text)' },
   footer: { marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--surface-2)' },
   nextBtn: { width: '100%', padding: '14px', background: 'var(--accent)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'opacity 0.15s ease' },
 };

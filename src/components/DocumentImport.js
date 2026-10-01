@@ -455,12 +455,12 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
           <button onClick={() => setMode('paste')} style={{ padding: 32, borderRadius: 16, border: '2px dashed var(--border-strong)', background: 'var(--surface-2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ marginBottom: 10, color: 'var(--accent-text)' }}><Icon name="clipboard" size={34} /></div>
             <div style={{ fontWeight: 600 }}>Paste Text</div>
-            <div style={{ color: '#666', fontSize: 14, marginTop: 4 }}>Copy and paste your document content</div>
+            <div style={{ color: '#666', fontSize: 15, marginTop: 4 }}>Copy and paste your document content</div>
           </button>
           <button onClick={() => setMode('upload')} style={{ padding: 32, borderRadius: 16, border: '2px dashed var(--border-strong)', background: 'var(--surface-2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ marginBottom: 10, color: 'var(--accent-text)' }}><Icon name="upload" size={34} /></div>
             <div style={{ fontWeight: 600 }}>Upload File</div>
-            <div style={{ color: '#666', fontSize: 14, marginTop: 4 }}>PDF, Word, Excel, CSV, or text</div>
+            <div style={{ color: '#666', fontSize: 15, marginTop: 4 }}>PDF, Word, Excel, CSV, or text</div>
           </button>
         </div>
       )}
@@ -474,7 +474,7 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
             onChange={e => setPastedText(e.target.value)}
             placeholder="Paste your project document here..."
             rows={12}
-            style={{ width: '100%', padding: 16, borderRadius: 10, border: '1px solid var(--border-strong)', fontSize: 14, lineHeight: 1.6, resize: 'vertical' }}
+            style={{ width: '100%', padding: 16, borderRadius: 10, border: '1px solid var(--border-strong)', fontSize: 15, lineHeight: 1.6, resize: 'vertical' }}
           />
           <div style={{ display: 'flex', gap: 12, marginTop: 16, justifyContent: 'flex-end' }}>
             <button onClick={() => { setMode(null); setPastedText(''); setError(''); }} style={btnSecondary}>Back</button>
@@ -510,13 +510,13 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
               <>
                 <div style={{ marginBottom: 10, color: 'var(--ok-text)' }}><Icon name="check-circle" size={34} /></div>
                 <div style={{ fontWeight: 600, color: 'var(--ok-text)' }}>{fileName}</div>
-                <div style={{ color: '#666', fontSize: 14, marginTop: 4 }}>Click to change file</div>
+                <div style={{ color: '#666', fontSize: 15, marginTop: 4 }}>Click to change file</div>
               </>
             ) : (
               <>
                 <div style={{ marginBottom: 10, color: 'var(--accent-text)' }}><Icon name="upload" size={34} /></div>
                 <div style={{ fontWeight: 600 }}>Click to upload a file</div>
-                <div style={{ color: '#666', fontSize: 14, marginTop: 4 }}>PDF, Word (.docx), Excel (.xlsx/.xls), CSV, TXT, or Markdown</div>
+                <div style={{ color: '#666', fontSize: 15, marginTop: 4 }}>PDF, Word (.docx), Excel (.xlsx/.xls), CSV, TXT, or Markdown</div>
               </>
             )}
           </div>
@@ -542,14 +542,14 @@ function Field({ label, value, onChange, textarea = false }) {
   const Input = textarea ? 'textarea' : 'input';
   return (
     <div>
-      <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 4 }}>
+      <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--text-2)', marginBottom: 4 }}>
         {label}
       </label>
       <Input
         value={value}
         onChange={e => onChange(e.target.value)}
         rows={textarea ? 3 : undefined}
-        style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 14, fontFamily: 'inherit', resize: textarea ? 'vertical' : undefined }}
+        style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 15, fontFamily: 'inherit', resize: textarea ? 'vertical' : undefined }}
       />
     </div>
   );
@@ -578,11 +578,11 @@ function ArrayEditor({ label, items, onChange, fields, simple = false }) {
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <span style={{ fontWeight: 600, fontSize: 14 }}>{label}</span>
+        <span style={{ fontWeight: 600, fontSize: 15 }}>{label}</span>
         <button onClick={addItem} style={{ fontSize: 20, lineHeight: 1, padding: '2px 8px', borderRadius: 4, border: '1px solid var(--border-strong)', background: '#fff', cursor: 'pointer' }}>+</button>
       </div>
       {items.length === 0 && (
-        <div style={{ color: 'var(--muted)', fontSize: 13, fontStyle: 'italic' }}>None found. Click + to add.</div>
+        <div style={{ color: 'var(--muted)', fontSize: 14, fontStyle: 'italic' }}>None found. Click + to add.</div>
       )}
       {items.map((item, i) => (
         <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
@@ -590,19 +590,19 @@ function ArrayEditor({ label, items, onChange, fields, simple = false }) {
             <input
               value={item}
               onChange={e => updateItem(i, null, e.target.value)}
-              style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 14 }}
+              style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 15 }}
               placeholder="Add another..."
             />
           ) : (
             fields.map(f => (
               f.type === 'select' ? (
-                <select key={f.key} value={item[f.key] || ''} onChange={e => updateItem(i, f.key, e.target.value)} style={{ width: f.width, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 14 }}>
+                <select key={f.key} value={item[f.key] || ''} onChange={e => updateItem(i, f.key, e.target.value)} style={{ width: f.width, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 15 }}>
                   {f.options.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
               ) : f.textarea ? (
-                <textarea key={f.key} value={item[f.key] || ''} onChange={e => updateItem(i, f.key, e.target.value)} placeholder={f.label} rows={2} style={{ width: f.width, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 14, resize: 'vertical' }} />
+                <textarea key={f.key} value={item[f.key] || ''} onChange={e => updateItem(i, f.key, e.target.value)} placeholder={f.label} rows={2} style={{ width: f.width, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 15, resize: 'vertical' }} />
               ) : (
-                <input key={f.key} type={f.type || 'text'} value={item[f.key] || ''} onChange={e => updateItem(i, f.key, e.target.value)} placeholder={f.label} style={{ width: f.width, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 14 }} />
+                <input key={f.key} type={f.type || 'text'} value={item[f.key] || ''} onChange={e => updateItem(i, f.key, e.target.value)} placeholder={f.label} style={{ width: f.width, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 15 }} />
               )
             ))
           )}

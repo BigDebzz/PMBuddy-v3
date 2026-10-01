@@ -9,6 +9,7 @@ import ProjectWorkspace from './components/ProjectWorkspace';
 import CampaignWizard from './components/CampaignWizard';
 import QuickDoc from './components/QuickDoc';
 import FeedbackButton from './components/FeedbackButton';
+import ThemeToggle from './components/ThemeToggle';
 import { supabase } from './lib/supabase';
 import { Analytics } from './lib/analytics';
 import { analyze } from './data/analysis';
@@ -38,9 +39,9 @@ function ValidationModeModal({ onSelect, onClose }) {
         boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
         fontFamily: "'DM Sans', system-ui, sans-serif",
       }}>
-        <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>New Validation</p>
+        <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', marginBottom: 8 }}>New Validation</p>
         <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', marginBottom: 6, letterSpacing: '-0.4px' }}>What are you validating?</h2>
-        <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.7, marginBottom: 28 }}>Choose the type that best describes what you are building or pitching.</p>
+        <p style={{ fontSize: 15, color: 'var(--muted)', lineHeight: 1.7, marginBottom: 28 }}>Choose the type that best describes what you are building or pitching.</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <button
             onClick={() => onSelect('startup')}
@@ -57,7 +58,7 @@ function ValidationModeModal({ onSelect, onClose }) {
             <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0, color: '#FFFFFF' }}><Icon name="spark" size={20} /></div>
             <div>
               <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>Startup Idea</p>
-              <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>Validate a business idea, product, or venture you are building or planning to build.</p>
+              <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.6 }}>Validate a business idea, product, or venture you are building or planning to build.</p>
             </div>
           </button>
           <button
@@ -75,13 +76,13 @@ function ValidationModeModal({ onSelect, onClose }) {
             <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--ok)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0, color: '#FFFFFF' }}><Icon name="bolt" size={20} /></div>
             <div>
               <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>Hackathon Project</p>
-              <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>Validate an idea you are pitching at a hackathon, competition, or accelerator programme.</p>
+              <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.6 }}>Validate an idea you are pitching at a hackathon, competition, or accelerator programme.</p>
             </div>
           </button>
         </div>
         <button
           onClick={onClose}
-          style={{ width: '100%', marginTop: 16, padding: '10px', background: 'none', border: 'none', color: 'var(--muted)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+          style={{ width: '100%', marginTop: 16, padding: '10px', background: 'none', border: 'none', color: 'var(--muted)', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}
         >
           Cancel
         </button>
@@ -289,12 +290,12 @@ export default function App() {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 40, maxWidth: 480, width: '100%', border: '1px solid var(--border)', boxShadow: '0 4px 20px rgba(43,42,40,0.06)' }}>
-          <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-text)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>PM Buddy</p>
+          <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-text)', marginBottom: 12 }}>PM Buddy</p>
           {inviteError ? (
             <>
               <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>Invalid Invite</h2>
               <p style={{ fontSize: 15, color: 'var(--muted)', lineHeight: 1.7, marginBottom: 24 }}>{inviteError}</p>
-              <button style={{ padding: '12px 24px', background: 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setScreen(S.DASHBOARD)}>Go to Dashboard</button>
+              <button style={{ padding: '12px 24px', background: 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setScreen(S.DASHBOARD)}>Go to Dashboard</button>
             </>
           ) : inviteData ? (
             <>
@@ -302,15 +303,15 @@ export default function App() {
               <p style={{ fontSize: 15, color: 'var(--muted)', lineHeight: 1.7, marginBottom: 8 }}>
                 You have been invited to join <strong style={{ color: 'var(--text)' }}>{inviteData.pm_projects?.name}</strong> as a <strong style={{ color: 'var(--text)' }}>{inviteData.role}</strong>.
               </p>
-              <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 28 }}>{inviteData.pm_projects?.description}</p>
+              <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 28 }}>{inviteData.pm_projects?.description}</p>
               {!user && (
-                <p style={{ fontSize: 13, color: 'var(--bad-text)', marginBottom: 16, fontWeight: 600 }}>
+                <p style={{ fontSize: 14, color: 'var(--bad-text)', marginBottom: 16, fontWeight: 600 }}>
                   You need to log in or sign up to accept this invitation.
                 </p>
               )}
               {!user && (
                 <button
-                  style={{ width: '100%', padding: '12px', background: 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 12 }}
+                  style={{ width: '100%', padding: '12px', background: 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 12 }}
                   onClick={() => setScreen(S.AUTH)}
                 >
                   Log in or Sign up to Accept
@@ -319,14 +320,14 @@ export default function App() {
               {user && (
                 <div style={{ display: 'flex', gap: 12 }}>
                   <button
-                    style={{ flex: 1, padding: '12px', background: 'var(--accent)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: inviteAccepting ? 0.6 : 1 }}
+                    style={{ flex: 1, padding: '12px', background: 'var(--accent)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: inviteAccepting ? 0.6 : 1 }}
                     onClick={acceptInvite}
                     disabled={inviteAccepting}
                   >
                     {inviteAccepting ? 'Accepting...' : 'Accept Invitation'}
                   </button>
                   <button
-                    style={{ padding: '12px 20px', background: 'none', color: 'var(--muted)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
+                    style={{ padding: '12px 20px', background: 'none', color: 'var(--muted)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 15, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
                     onClick={declineInvite}
                   >
                     Decline
@@ -344,12 +345,13 @@ export default function App() {
 
   return (
     <div>
-      <nav style={nav.bar}>
-        <button style={nav.logo} onClick={reset}><span style={nav.logoText}>PM Buddy</span></button>
+      <nav className="app-nav" style={nav.bar}>
+        <button style={nav.logo} onClick={reset} aria-label="PM Buddy home"><Icon name="logo" size={28} style={{ color: 'var(--accent)' }} /><span style={nav.logoText}>PM Buddy</span></button>
         <div style={nav.right}>
+          <ThemeToggle />
           {user ? <button style={nav.dashBtn} onClick={() => setScreen(S.DASHBOARD)}>Dashboard</button> : <>
-            <button style={nav.loginBtn} onClick={() => setScreen(S.AUTH)}>Log In</button>
-            <button style={nav.signupBtn} onClick={() => setScreen(S.AUTH)}>Get Started</button>
+            <button className="nav-text-btn" style={nav.loginBtn} onClick={() => setScreen(S.AUTH)}>Log in</button>
+            <button style={nav.signupBtn} onClick={() => setScreen(S.AUTH)}>Get started</button>
           </>}
           {screen !== S.LAND && user && <button style={nav.loginBtn} onClick={reset}>Home</button>}
         </div>
@@ -370,11 +372,11 @@ export default function App() {
 }
 
 const nav = {
-  bar: { position: 'sticky', top: 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 48px', height: 52, background: 'var(--surface)', borderBottom: '1px solid var(--border)' },
-  logo: { display: 'flex', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: 0 },
-  logoText: { fontSize: 15, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.2px' },
-  right: { display: 'flex', gap: 8, alignItems: 'center' },
-  dashBtn: { padding: '6px 14px', background: 'none', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 500, color: 'var(--text)', cursor: 'pointer', fontFamily: 'inherit' },
-  loginBtn: { padding: '6px 14px', background: 'none', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 500, color: 'var(--muted)', cursor: 'pointer', fontFamily: 'inherit' },
-  signupBtn: { padding: '6px 14px', background: 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
+  bar: { position: 'sticky', top: 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '0 28px', height: 64, background: 'color-mix(in srgb, var(--bg) 88%, transparent)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderBottom: '1px solid var(--border)' },
+  logo: { display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', cursor: 'pointer', padding: 0 },
+  logoText: { fontFamily: 'var(--font-head)', fontSize: 21, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.04em' },
+  right: { display: 'flex', gap: 10, alignItems: 'center' },
+  dashBtn: { padding: '9px 18px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 999, fontSize: 15, fontWeight: 600, color: 'var(--text)', cursor: 'pointer', fontFamily: 'inherit' },
+  loginBtn: { padding: '9px 16px', background: 'none', border: 'none', borderRadius: 999, fontSize: 15, fontWeight: 600, color: 'var(--text-2)', cursor: 'pointer', fontFamily: 'inherit' },
+  signupBtn: { padding: '9px 20px', background: 'var(--accent)', color: '#FFFFFF', border: 'none', borderRadius: 999, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
 };

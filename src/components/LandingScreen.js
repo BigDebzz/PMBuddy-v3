@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Analytics } from '../lib/analytics';
+import Icon from './Icon';
 
-const RING_R = 34;
+const RING_R = 46;
 const RING_LEN = 2 * Math.PI * RING_R;
-const STAGE_W = 520;
-const STAGE_H = 470;
+
+const AVATAR = { a1: '#E8501F', a2: '#1D75DE', a3: '#17A57F', a4: '#C9488F' };
 
 function useInView(threshold = 0.1) {
   const ref = useRef(null);
@@ -20,95 +21,295 @@ function useInView(threshold = 0.1) {
 function Reveal({ children, delay = 0 }) {
   const [ref, inView] = useInView();
   return (
-    <div ref={ref} style={{ opacity: inView ? 1 : 0, transform: inView ? 'translateY(0)' : 'translateY(18px)', transition: `opacity 0.7s ease ${delay}s, transform 0.7s ease ${delay}s` }}>
+    <div ref={ref} style={{ opacity: inView ? 1 : 0, transform: inView ? 'none' : 'translateY(18px)', transition: `opacity 0.7s ease ${delay}s, transform 0.7s ease ${delay}s` }}>
       {children}
     </div>
   );
 }
 
-function line(visible, delay) {
-  return {
-    display: 'block',
-    opacity: visible ? 1 : 0,
-    transform: visible ? 'translateY(0)' : 'translateY(22px)',
-    transition: `opacity 0.7s ease ${delay}s, transform 0.7s ease ${delay}s`,
+function Chip({ tone, icon, children }) {
+  const tones = {
+    ok: { background: 'var(--ok-tint)', color: 'var(--ok-text)' },
+    warn: { background: 'var(--warn-tint)', color: 'var(--warn-text)' },
+    bad: { background: 'var(--bad-tint)', color: 'var(--bad-text)' },
+    none: { background: 'var(--surface-2)', color: 'var(--text-2)' },
   };
-}
-
-// Tilts a 3D scene toward the mouse. Touch and reduced-motion users get a still scene.
-function useTilt(maxX = 7, maxY = 11) {
-  const ref = useRef(null);
-  const reduced = useRef(false);
-  useEffect(() => {
-    try { reduced.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { reduced.current = false; }
-  }, []);
-  const onMove = (e) => {
-    if (reduced.current || e.pointerType !== 'mouse' || !ref.current) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const px = (e.clientX - rect.left) / rect.width - 0.5;
-    const py = (e.clientY - rect.top) / rect.height - 0.5;
-    ref.current.style.transition = 'transform 0.12s ease-out';
-    ref.current.style.transform = `rotateX(${(-py * maxX * 2).toFixed(2)}deg) rotateY(${(px * maxY * 2).toFixed(2)}deg)`;
-  };
-  const onLeave = () => {
-    if (!ref.current) return;
-    ref.current.style.transition = 'transform 0.7s cubic-bezier(0.16,1,0.3,1)';
-    ref.current.style.transform = 'rotateX(0deg) rotateY(0deg)';
-  };
-  return { ref, onMove, onLeave };
-}
-
-function MiniRing({ size = 84, percent = 64, stroke = 9, label }) {
-  const [drawn, setDrawn] = useState(false);
-  useEffect(() => { const id = setTimeout(() => setDrawn(true), 400); return () => clearTimeout(id); }, []);
-  const offset = RING_LEN * (1 - (drawn ? percent : 0) / 100);
   return (
-    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
-      <svg width={size} height={size} viewBox="0 0 84 84" aria-hidden="true">
-        <circle cx="42" cy="42" r={RING_R} fill="none" stroke="var(--color-primary-tint)" strokeWidth={stroke} />
-        <circle cx="42" cy="42" r={RING_R} fill="none" stroke="var(--color-primary)" strokeWidth={stroke} strokeLinecap="round"
-          strokeDasharray={RING_LEN} strokeDashoffset={offset} transform="rotate(-90 42 42)"
-          style={{ transition: 'stroke-dashoffset 1.4s cubic-bezier(0.16,1,0.3,1)' }} />
-      </svg>
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.27, fontWeight: 700, color: 'var(--color-text)' }}>
-        {label || `${percent}%`}
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 700, padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap', ...(tones[tone] || tones.none) }}>
+      {icon && <Icon name={icon} size={14} />}{children}
+    </span>
+  );
+}
+
+function Avatar({ tone, children }) {
+  return <span style={{ display: 'inline-grid', placeItems: 'center', width: 28, height: 28, borderRadius: '50%', fontSize: 12, fontWeight: 800, color: '#FFFFFF', background: AVATAR[tone], flexShrink: 0 }}>{children}</span>;
+}
+
+// ---------- real product views, drawn from sample data ----------
+const BOARD = [
+  { h: 'To do', cards: [
+    { t: 'Order banners and signage', tone: 'warn', due: 'Fri', who: ['a4', 'IK'] },
+    { t: 'Collect sponsor donations', tone: 'none', due: 'Next week', who: ['a2', 'TB'] },
+  ] },
+  { h: 'In progress', cards: [
+    { t: 'Book venue for distribution day', tone: 'bad', due: 'Today', who: ['a1', 'AO'] },
+    { t: 'Confirm 12 volunteers', tone: 'warn', due: 'Tomorrow', who: ['a3', 'CE'] },
+  ] },
+  { h: 'Done', cards: [
+    { t: 'Set the budget', tone: 'ok', due: 'Done', who: ['a2', 'TB'] },
+    { t: 'Invite the team', tone: 'ok', due: 'Done', who: ['a1', 'AO'] },
+  ] },
+];
+
+function BoardView() {
+  return (
+    <div className="lp-kan" style={{ padding: 16 }}>
+      {BOARD.map(col => (
+        <div key={col.h} style={s.col}>
+          <div style={s.colHead}><span>{col.h}</span><span>{col.cards.length}</span></div>
+          {col.cards.map(c => (
+            <div key={c.t} style={s.kcard}>
+              <span>{c.t}</span>
+              <div style={s.rowBetween}>
+                <Chip tone={c.tone} icon={c.tone === 'ok' ? 'check-circle' : 'clock'}>{c.due}</Chip>
+                <Avatar tone={c.who[0]}>{c.who[1]}</Avatar>
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const LIST = [
+  { group: 'In progress', dot: '#2F8BFF' },
+  { t: 'Book venue for distribution day', tone: 'bad', p: 'High', who: ['a1', 'AO'], due: 'Today' },
+  { t: 'Confirm 12 volunteers', tone: 'warn', p: 'Medium', who: ['a3', 'CE'], due: 'Tomorrow' },
+  { group: 'To do', dot: '#9AA0AA' },
+  { t: 'Order banners and signage', tone: 'warn', p: 'Medium', who: ['a4', 'IK'], due: 'Fri' },
+  { t: 'Collect sponsor donations', tone: 'none', p: 'Low', who: ['a2', 'TB'], due: 'Next week' },
+];
+
+function ListView() {
+  return (
+    <div style={{ padding: '6px 10px 14px', overflowX: 'auto' }}>
+      <table style={{ width: '100%', minWidth: 560, borderCollapse: 'collapse', fontSize: 15 }}>
+        <thead>
+          <tr>{['Task', 'Priority', 'Assignee', 'Due'].map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
+        </thead>
+        <tbody>
+          {LIST.map((r, i) => r.group ? (
+            <tr key={i}><td colSpan={4} style={{ ...s.td, fontWeight: 800, paddingTop: 16, borderBottom: 0 }}><i style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: r.dot, marginRight: 8 }} />{r.group}</td></tr>
+          ) : (
+            <tr key={i}>
+              <td style={{ ...s.td, fontWeight: 700 }}>{r.t}</td>
+              <td style={s.td}><Chip tone={r.tone} icon="flag">{r.p}</Chip></td>
+              <td style={s.td}><Avatar tone={r.who[0]}>{r.who[1]}</Avatar></td>
+              <td style={s.td}>{r.due}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function RemindView() {
+  const rows = [
+    ['Book venue for distribution day', 'bad', 'alert', 'Due today'],
+    ['Send funder update', 'bad', 'alert', '2 days overdue'],
+    ['Confirm 12 volunteers', 'warn', 'clock', 'Due in 3 days'],
+  ];
+  return (
+    <div style={{ padding: 18, display: 'grid', gap: 10 }}>
+      {rows.map(r => (
+        <div key={r[0]} style={s.kcard}>
+          <div style={s.rowBetween}><span>{r[0]}</span><Chip tone={r[1]} icon={r[2]}>{r[3]}</Chip></div>
+        </div>
+      ))}
+      <div style={{ color: 'var(--muted)', fontSize: 15 }}>One email each morning, only when something needs you.</div>
+    </div>
+  );
+}
+
+function HeroWindow() {
+  const [tab, setTab] = useState('board');
+  const tabs = [['board', 'Board'], ['list', 'List'], ['remind', 'Reminders']];
+  return (
+    <div className="lp-sky" style={s.heroVis}>
+      <div role="tablist" aria-label="Product views" style={s.tabs}>
+        {tabs.map(([id, label]) => (
+          <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)}
+            style={{ ...s.tab, ...(tab === id ? s.tabOn : null) }}>{label}</button>
+        ))}
+      </div>
+      <div style={s.win}>
+        <div style={s.winBar}>
+          <span style={{ display: 'flex', gap: 6, marginRight: 8 }}>{[0, 1, 2].map(i => <i key={i} style={s.dotI} />)}</span>
+          Community Food Drive
+          <span style={{ marginLeft: 'auto' }}><Chip tone="ok" icon="check-circle">On track</Chip></span>
+        </div>
+        {tab === 'board' && <BoardView />}
+        {tab === 'list' && <ListView />}
+        {tab === 'remind' && <RemindView />}
+      </div>
+      <div style={s.phone} aria-hidden="true">
+        <b style={{ fontSize: 16 }}>Today</b>
+        {[['alert', 'Book venue'], ['clock', 'Confirm volunteers'], ['check-circle', 'Funder update']].map(r => (
+          <div key={r[1]} style={s.phoneRow}><Icon name={r[0]} size={16} style={{ color: 'var(--accent-text)' }} />{r[1]}</div>
+        ))}
       </div>
     </div>
   );
 }
 
-function Check({ done, active }) {
+// ---------- the tour: drop a document, watch the project appear ----------
+const FOUND = [
+  { icon: 'flag', label: 'Goal', n: 1 },
+  { icon: 'calendar', label: 'Milestones', n: 4 },
+  { icon: 'alert', label: 'Risks to watch', n: 3 },
+  { icon: 'users', label: 'People involved', n: 5 },
+  { icon: 'board', label: 'Tasks created', n: 6 },
+];
+const START_TASKS = [
+  { t: 'Book venue for distribution day', c: 1 }, { t: 'Confirm 12 volunteers', c: 1 },
+  { t: 'Order banners and signage', c: 0 }, { t: 'Collect donations from sponsors', c: 0 },
+  { t: 'Set the budget', c: 2 }, { t: 'Invite the team', c: 2 },
+];
+const COLS = ['To do', 'In progress', 'Done'];
+
+function Tour() {
+  const [step, setStep] = useState(0);
+  const [shown, setShown] = useState(0);
+  const [tasks, setTasks] = useState(START_TASKS);
+
+  useEffect(() => {
+    if (step !== 1) return undefined;
+    setShown(0);
+    const ids = FOUND.map((_, i) => setTimeout(() => setShown(i + 1), 500 + i * 650));
+    ids.push(setTimeout(() => setStep(2), 500 + FOUND.length * 650 + 900));
+    return () => ids.forEach(clearTimeout);
+  }, [step]);
+
+  const go = (n) => { if (n === 2) setTasks(START_TASKS); setStep(n); };
+  const advance = (i) => setTasks(prev => prev.map((t, k) => (k === i && t.c < 2 ? { ...t, c: t.c + 1 } : t)));
+  const done = tasks.filter(t => t.c === 2).length;
+  const pct = Math.round((done / tasks.length) * 100);
+  const steps = ['Drop', 'Read', 'Run'];
+  const captions = [
+    'Step 1 of 3. This is the first thing a new user sees.',
+    'Step 2 of 3. PM Buddy reads the document and pulls out what matters.',
+    'Step 3 of 3. The project is ready. Click a task to move it forward.',
+  ];
+
   return (
-    <span style={{ ...s.check, background: done ? 'var(--color-primary)' : 'var(--color-surface)', borderColor: done || active ? 'var(--color-primary)' : 'var(--color-border)' }}>
-      {done && <span style={{ color: '#fff', fontSize: 10, fontWeight: 700, lineHeight: 1 }}>{'\u2713'}</span>}
-      {!done && active && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-primary)', display: 'block' }} />}
-    </span>
+    <div style={s.tour}>
+      <div style={s.tourSteps} role="tablist" aria-label="Tour steps">
+        {steps.map((label, i) => (
+          <React.Fragment key={label}>
+            {i > 0 && <span style={{ width: 22, height: 1, background: 'var(--border-strong)' }} />}
+            <button type="button" role="tab" aria-selected={step === i} onClick={() => go(i)}
+              style={{ ...s.stepBtn, ...(step === i ? s.stepOn : null) }}>
+              <i style={{ width: 8, height: 8, borderRadius: '50%', background: step >= i ? 'var(--accent)' : 'var(--border-strong)' }} />{label}
+            </button>
+          </React.Fragment>
+        ))}
+      </div>
+
+      <div style={{ padding: 'clamp(20px, 4vw, 34px)', minHeight: 380, display: 'grid', alignContent: 'center' }}>
+        {step === 0 && (
+          <div style={{ maxWidth: 560, marginInline: 'auto', textAlign: 'center', display: 'grid', gap: 18, justifyItems: 'center', width: '100%' }}>
+            <div style={s.dropzone}>
+              <Icon name="upload" size={36} style={{ color: 'var(--accent-text)' }} />
+              <h4 style={{ fontSize: 24, fontWeight: 700 }}>Drop a plan, proposal or brief here</h4>
+              <p style={{ color: 'var(--muted)', fontSize: 16 }}>PDF, Word, Excel or pasted text. No forms to fill in.</p>
+            </div>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
+              <span style={{ position: 'relative', display: 'inline-flex' }}>
+                <span style={s.cue} />
+                <button type="button" className="lp-btn lp-btn-primary" onClick={() => go(1)}>Use a sample plan <Icon name="arrow-right" size={18} /></button>
+              </span>
+              <button type="button" className="lp-btn lp-btn-ghost" onClick={() => go(1)}>Paste text instead</button>
+            </div>
+          </div>
+        )}
+
+        {step === 1 && (
+          <div className="lp-read">
+            <div style={s.docpage} aria-hidden="true">
+              {[54, 100, 92, 78, 54, 100, 85, 94, 60].map((w, i) => (
+                <div key={i} style={{ height: i === 0 || i === 4 ? 13 : 9, width: `${w}%`, borderRadius: 99, background: i === 0 || i === 4 ? 'var(--border-strong)' : 'var(--surface-3)', marginTop: i === 4 ? 10 : 0 }} />
+              ))}
+              <span style={s.scan} />
+            </div>
+            <div style={{ display: 'grid', gap: 10, alignContent: 'start' }}>
+              <h4 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>PM Buddy is reading</h4>
+              {FOUND.map((f, i) => (
+                <div key={f.label} style={{ ...s.found, opacity: shown > i ? 1 : 0, transform: shown > i ? 'none' : 'translateY(10px)' }}>
+                  <Icon name={f.icon} size={18} style={{ color: 'var(--ok-text)' }} />{f.label}
+                  <b style={{ marginLeft: 'auto', fontFamily: 'var(--font-head)', fontSize: 18 }}>{f.n}</b>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div style={{ display: 'grid', gap: 18, position: 'relative' }}>
+            <div style={s.rowBetween}>
+              <h4 style={{ fontSize: 26, fontWeight: 700 }}>Community Food Drive</h4>
+              <Chip tone="ok" icon="check-circle">On track</Chip>
+            </div>
+            <div style={s.toast}><Icon name="bell" size={18} style={{ color: 'var(--warn-text)' }} /><span><b>Due today</b><br />Book venue for distribution day</span></div>
+            <div className="lp-run">
+              <div style={s.ringBox}>
+                <div style={{ position: 'relative', width: 128, height: 128 }}>
+                  <svg viewBox="0 0 100 100" width="128" height="128" style={{ transform: 'rotate(-90deg)' }} aria-hidden="true">
+                    <circle cx="50" cy="50" r={RING_R} fill="none" stroke="var(--surface-3)" strokeWidth="10" />
+                    <circle cx="50" cy="50" r={RING_R} fill="none" stroke="var(--accent)" strokeWidth="10" strokeLinecap="round"
+                      strokeDasharray={RING_LEN} strokeDashoffset={RING_LEN * (1 - pct / 100)} style={{ transition: 'stroke-dashoffset 0.9s cubic-bezier(0.16,1,0.3,1)' }} />
+                  </svg>
+                  <b style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', fontFamily: 'var(--font-head)', fontSize: 30 }}>{pct}%</b>
+                </div>
+                <span style={{ color: 'var(--muted)', fontSize: 15, textAlign: 'center' }}>{pct === 100 ? 'Everything is done. Well done.' : `${done} of ${tasks.length} tasks done`}</span>
+              </div>
+              <div className="lp-kan">
+                {COLS.map((name, c) => (
+                  <div key={name} style={s.col}>
+                    <div style={s.colHead}><span>{name}</span><span>{tasks.filter(t => t.c === c).length}</span></div>
+                    {tasks.map((t, i) => t.c === c && (
+                      <button key={t.t} type="button" onClick={() => advance(i)} style={s.tcard} aria-label={c < 2 ? `Move ${t.t} forward` : t.t}>
+                        {t.t}
+                        {c < 2
+                          ? <span style={s.moveChip}>Move forward <Icon name="arrow-right" size={13} /></span>
+                          : <Chip tone="ok" icon="check-circle">Done</Chip>}
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={s.coach}>
+              <span>Everything here came from one document. In the real app you can edit any of it.</span>
+              <button type="button" className="lp-btn lp-btn-ghost" style={{ width: 'auto', padding: '10px 20px' }} onClick={() => go(0)}>Replay tour</button>
+            </div>
+          </div>
+        )}
+      </div>
+      <div style={s.tourFoot}>
+        <span>{captions[step]}</span>
+        <span>Sample data. Nothing is saved.</span>
+      </div>
+    </div>
   );
 }
 
-export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashboard, user }) {
-  const [visible, setVisible] = useState(false);
+export default function LandingScreen({ onSelectMode, onSignup, onDashboard, user }) {
   const [activeWho, setActiveWho] = useState(0);
-  const [tick, setTick] = useState(0);
-  const [scale, setScale] = useState(1);
-  const tilt = useTilt();
-
-  useEffect(() => { const t = setTimeout(() => setVisible(true), 80); return () => clearTimeout(t); }, []);
-  useEffect(() => { const t = setInterval(() => setTick(p => p + 1), 2200); return () => clearInterval(t); }, []);
-  useEffect(() => {
-    const fit = () => setScale(Math.min(1, (window.innerWidth - 40) / STAGE_W));
-    fit();
-    window.addEventListener('resize', fit);
-    return () => window.removeEventListener('resize', fit);
-  }, []);
-
   const handleSelect = (modeId) => { Analytics.modeSelected(modeId); onSelectMode(modeId); };
-  const scrollToHow = () => { const el = document.getElementById('how-it-works'); if (el) el.scrollIntoView({ behavior: 'smooth' }); };
   const start = user ? onDashboard : onSignup;
-  const startLabel = user ? 'Go to my projects' : 'Start your first project';
-
-  const milestones = ['Customer interviews', 'MVP wireframes', 'First user test', 'Investor demo'];
-  const active = tick % milestones.length;
+  const scrollTo = (id) => { const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: 'smooth' }); };
 
   const whoCards = [
     { label: 'Startup founders', outcome: 'Ship without falling apart', body: 'You are building fast and things keep slipping. PM Buddy keeps your team aligned, your timeline real and your risks visible before they become problems.' },
@@ -116,207 +317,59 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
     { label: 'Non-technical founders', outcome: 'Lead your team with confidence', body: 'You do not need to understand code to run a project well. PM Buddy puts you in control without the jargon.' },
     { label: 'Corporate teams', outcome: 'Get everyone on the same page', body: 'Multiple people, multiple opinions, one goal. PM Buddy gives your team clarity on who owns what, what is due and how to communicate.' },
   ];
+  const features = [
+    { icon: 'file', title: 'Starts from your document', body: 'Upload a plan, proposal or brief. PM Buddy finds the goal, steps, risks and people.' },
+    { icon: 'board', title: 'A board your team understands', body: 'Tasks and milestones on one board. Flag blockers, add notes and move things with one click.' },
+    { icon: 'bell', title: 'Reminders that nudge', body: 'A daily note when tasks are due, due soon or overdue. Nothing slips quietly.' },
+    { icon: 'chart', title: 'A health check in plain English', body: 'A score out of 100 and exactly what is missing, with how to fix it.' },
+    { icon: 'download', title: 'Reports in one click', body: 'Progress updates, funder reports and plans from your live data, as Word or PDF.' },
+    { icon: 'spark', title: 'Ask PM Buddy anything', body: 'Stuck on a risk or a message to your team? Ask in plain words and get a real answer.' },
+  ];
 
   return (
-    <div className="pmb-motion" style={s.page}>
+    <div style={s.page}>
 
       {/* HERO */}
-      <div style={s.heroWrap}>
-        <div className="lp-two" style={s.hero}>
+      <div style={s.rainbow} />
+      <div style={s.section}>
+        <div className="lp-hero" style={s.inner}>
           <div>
-            <p style={{ ...line(visible, 0), ...s.pill }}>
-              <span style={s.pillDot} /> Project management for people who are not project managers
-            </p>
-
-            <h1 style={s.h1}>
-              <span style={line(visible, 0.12)}>Run your project</span>
-              <span style={line(visible, 0.28)}>
-                <span style={s.marker}>like a pro,</span> without
-              </span>
-              <span style={line(visible, 0.44)}>being one.</span>
-            </h1>
-
-            <p style={{ ...s.heroSub, ...line(visible, 0.6) }}>
-              Drop in your plan, proposal or even a WhatsApp message. PM Buddy turns it into milestones, tasks, risks and reminders, in plain English.
-            </p>
-
-            <div style={{ ...line(visible, 0.75), ...s.ctas }}>
-              <button className="lp-btn lp-btn-primary" onClick={start}>{startLabel}</button>
-              {user
-                ? null
-                : <button className="lp-btn lp-btn-ghost" onClick={scrollToHow}>See how it works</button>}
+            <h1 style={s.h1}>Get your project out of your head and onto one screen.</h1>
+            <p style={s.sub}>PM Buddy reads the plan you already have and sets up the milestones, tasks, risks and reminders for you.</p>
+            <div style={s.ctas}>
+              <button type="button" className="lp-btn lp-btn-primary" onClick={start}>{user ? 'Go to my projects' : 'Try PM Buddy free'} <Icon name="arrow-right" size={18} /></button>
+              <button type="button" className="lp-btn lp-btn-ghost" onClick={() => scrollTo('tour')}>See a sample project</button>
             </div>
-
-            <ul style={{ ...line(visible, 0.9), ...s.trust }}>
-              {['Upload a plan, get a project', 'Reminders so nothing slips', 'No jargon, ever'].map(t => (
-                <li key={t} style={s.trustItem}><span style={s.trustTick}>{'\u2713'}</span>{t}</li>
-              ))}
-            </ul>
-
             {!user && (
-              <p style={{ ...s.heroNote, ...line(visible, 1.05) }}>
+              <p style={s.note}>
                 Not sure your idea is worth building?{' '}
-                <button style={s.inlineLink} onClick={() => handleSelect('startup')}>Validate it first, it is free</button>
+                <button type="button" style={s.link} onClick={() => handleSelect('startup')}>Validate it first, it is free</button>
               </p>
             )}
           </div>
+          <HeroWindow />
+        </div>
+      </div>
 
-          {/* 3D product scene */}
-          <div style={{ ...s.sceneBox, height: STAGE_H * scale, opacity: visible ? 1 : 0, transition: 'opacity 0.9s ease 0.4s' }}>
-            <div
-              style={{ ...s.stage, transform: `scale(${scale})` }}
-              onPointerMove={tilt.onMove}
-              onPointerLeave={tilt.onLeave}
-              aria-hidden="true"
-            >
-              <div style={{ ...s.blob, width: 300, height: 300, left: 40, top: 20, background: 'var(--color-primary-tint)', animation: 'lp-blob 9s ease-in-out infinite' }} />
-              <div style={{ ...s.blob, width: 220, height: 220, right: 10, bottom: 10, background: '#F1E6D6', animation: 'lp-blob 11s ease-in-out infinite reverse' }} />
-
-              <div ref={tilt.ref} style={s.scene}>
-                {/* main board */}
-                <div style={{ ...s.layer, left: 18, top: 62, width: 350, transform: 'translateZ(0px)' }}>
-                  <div style={s.mainCard}>
-                    <div style={s.mcTop}>
-                      <div>
-                        <p style={s.mcLabel}>Active project</p>
-                        <p style={s.mcName}>Fintech MVP Lagos</p>
-                      </div>
-                      <span style={s.badgeGood}>On track</span>
-                    </div>
-                    <div style={s.mcBody}>
-                      <MiniRing percent={64} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        {milestones.map((m, i) => (
-                          <div key={m} style={{ ...s.mcRow, background: active === i ? 'var(--color-primary-tint)' : 'transparent' }}>
-                            <Check done={i < active} active={active === i} />
-                            <span style={{ ...s.mcRowText, color: i < active ? 'var(--color-text-muted)' : 'var(--color-text)', textDecoration: i < active ? 'line-through' : 'none' }}>{m}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* reminder toast */}
-                <div style={{ ...s.layer, right: 0, top: 0, transform: 'translateZ(80px)' }}>
-                  <div style={{ ...s.floatCard, width: 224, animation: 'lp-float 5.2s ease-in-out infinite' }}>
-                    <span style={{ ...s.iconDot, background: 'var(--color-warning-tint)', color: 'var(--color-warning)' }}>{'\uD83D\uDD14'}</span>
-                    <div>
-                      <p style={s.fcLabel}>Due today</p>
-                      <p style={s.fcText}>Book venue for kickoff</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* assistant bubble */}
-                <div style={{ ...s.layer, left: 0, bottom: 14, transform: 'translateZ(100px)' }}>
-                  <div style={{ ...s.floatCard, width: 268, animation: 'lp-float 6s ease-in-out 0.6s infinite' }}>
-                    <span style={{ ...s.iconDot, background: 'var(--color-primary)', color: '#fff' }}>{'\u2726'}</span>
-                    <div>
-                      <p style={s.fcLabel}>PM Buddy</p>
-                      <p style={s.fcText}>I read your plan and set up 6 milestones and 4 risks.</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* health chip */}
-                <div style={{ ...s.layer, right: 4, bottom: 70, transform: 'translateZ(60px)' }}>
-                  <div style={{ ...s.floatCard, width: 150, flexDirection: 'column', alignItems: 'flex-start', gap: 6, animation: 'lp-float 5.6s ease-in-out 1.2s infinite' }}>
-                    <p style={s.fcLabel}>Health check</p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <MiniRing size={46} stroke={11} percent={82} label="" />
-                      <div>
-                        <p style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--color-success)', lineHeight: 1 }}>82</p>
-                        <p style={{ margin: 0, fontSize: 12, color: 'var(--color-text-muted)' }}>out of 100</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+      <div style={{ ...s.inner, padding: '0 24px' }}>
+        <div className="lp-cells">
+          {[['1 document', 'in. Plan, proposal or brief.'], ['6 tasks', 'out, ready to assign.'], ['Every day', 'a nudge for what is due.'], ['1 click', 'to a progress or funder report.']].map(c => (
+            <div key={c[0]} className="lp-cell">
+              <div style={{ fontFamily: 'var(--font-head)', fontSize: 'clamp(24px, 3vw, 32px)', fontWeight: 700, letterSpacing: '-0.03em' }}>{c[0]}</div>
+              <div style={{ color: 'var(--muted)', fontSize: 16 }}>{c[1]}</div>
             </div>
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* PROBLEM */}
-      <div style={s.section}>
+      {/* TOUR */}
+      <div id="tour" style={s.section}>
         <div style={s.inner}>
           <Reveal>
-            <p style={s.eyebrow}>Sound familiar?</p>
-            <h2 style={s.h2}>Great ideas rarely die from bad ideas. They die from poor execution.</h2>
+            <h2 style={s.h2}>Drop in a document. Watch your project appear.</h2>
+            <p style={{ ...s.sub, marginTop: 14, marginBottom: 32 }}>Try it with a sample plan. No sign-up, nothing to install.</p>
           </Reveal>
-          <div className="lp-steps" style={{ marginTop: 40 }}>
-            {[
-              { n: '1', title: 'No one is in charge', body: 'Tasks get dropped because nobody owns them.' },
-              { n: '2', title: 'The plan keeps changing', body: 'New ideas keep getting added until the original goal is gone.' },
-              { n: '3', title: 'Nothing is written down', body: 'Everything lives in a WhatsApp chat. When things go wrong there is no record.' },
-            ].map((p, i) => (
-              <Reveal key={p.n} delay={i * 0.1}>
-                <div className="lp-lift" style={s.problemCard}>
-                  <span style={s.problemNum}>{p.n}</span>
-                  <p style={s.cardTitle}>{p.title}</p>
-                  <p style={s.cardBody}>{p.body}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* HOW IT WORKS */}
-      <div id="how-it-works" style={{ ...s.section, background: 'var(--color-primary-tint)' }}>
-        <div style={s.inner}>
-          <Reveal>
-            <p style={s.eyebrow}>How it works</p>
-            <h2 style={s.h2}>From a messy document to a real project in three steps.</h2>
-          </Reveal>
-          <div className="lp-steps" style={{ marginTop: 40 }}>
-            <Reveal>
-              <div className="lp-lift" style={s.stepCard}>
-                <div style={s.stepVisual}>
-                  <div style={s.dropzone}>
-                    <span style={{ fontSize: 26 }}>{'\uD83D\uDCC4'}</span>
-                    <span style={s.filePill}>project-plan.pdf</span>
-                  </div>
-                </div>
-                <p style={s.stepNum}>Step 1</p>
-                <p style={s.cardTitle}>Drop in what you already have</p>
-                <p style={s.cardBody}>A plan, proposal, brief or pasted text. No forms to fill in.</p>
-              </div>
-            </Reveal>
-            <Reveal delay={0.1}>
-              <div className="lp-lift" style={s.stepCard}>
-                <div style={s.stepVisual}>
-                  <div style={{ width: '100%' }}>
-                    {[88, 64, 76].map((w, i) => (
-                      <div key={w} style={{ ...s.skeleton, width: `${w}%`, background: i === tick % 3 ? 'var(--color-primary-border)' : 'var(--color-border)', transition: 'background 0.5s' }} />
-                    ))}
-                    <p style={{ margin: '10px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--color-primary)' }}>PM Buddy is reading...</p>
-                  </div>
-                </div>
-                <p style={s.stepNum}>Step 2</p>
-                <p style={s.cardTitle}>PM Buddy reads and organises it</p>
-                <p style={s.cardBody}>Goals, milestones, risks and people are pulled out for you to review.</p>
-              </div>
-            </Reveal>
-            <Reveal delay={0.2}>
-              <div className="lp-lift" style={s.stepCard}>
-                <div style={s.stepVisual}>
-                  <div style={{ width: '100%' }}>
-                    {['Goal set', '6 milestones', '4 risks tracked'].map((t, i) => (
-                      <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 0' }}>
-                        <Check done={i <= tick % 3} active={false} />
-                        <span style={{ fontSize: 14, color: 'var(--color-text)' }}>{t}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <p style={s.stepNum}>Step 3</p>
-                <p style={s.cardTitle}>Your project is ready to run</p>
-                <p style={s.cardBody}>Track tasks, get reminders and ask for help whenever you are stuck.</p>
-              </div>
-            </Reveal>
-          </div>
+          <Tour />
         </div>
       </div>
 
@@ -324,130 +377,35 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
       <div style={s.section}>
         <div style={s.inner}>
           <Reveal>
-            <p style={s.eyebrow}>Everything in one place</p>
             <h2 style={s.h2}>The tools a project manager would use, in words anyone understands.</h2>
           </Reveal>
-          <div className="lp-bento" style={{ marginTop: 40 }}>
-
-            <div className="lp-span2">
-              <Reveal>
-                <div className="lp-lift" style={{ ...s.featCard, height: '100%' }}>
-                  <p style={s.cardTitle}>A board your whole team understands</p>
-                  <p style={s.cardBody}>Tasks and milestones on one board. Flag blockers, add notes and move things with one click.</p>
-                  <div style={s.boardMini}>
-                    {[
-                      { h: 'To do', items: ['Order banners', 'Confirm speakers'] },
-                      { h: 'In progress', items: ['Book venue'] },
-                      { h: 'Done', items: ['Set budget', 'Invite team'] },
-                    ].map(col => (
-                      <div key={col.h} style={s.boardCol}>
-                        <p style={s.boardHead}>{col.h}</p>
-                        {col.items.map(it => <div key={it} style={s.boardCard}>{it}</div>)}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </Reveal>
-            </div>
-
-            <Reveal delay={0.1}>
-              <div className="lp-lift" style={{ ...s.featCard, height: '100%' }}>
-                <p style={s.cardTitle}>Reminders that nudge</p>
-                <p style={s.cardBody}>Email nudges for milestones and tasks that are due or overdue.</p>
-                <div style={s.featVisual}>
-                  <div style={{ ...s.floatCard, boxShadow: 'var(--shadow-sm)', width: '100%', animation: 'lp-float 5s ease-in-out infinite' }}>
-                    <span style={{ ...s.iconDot, background: 'var(--color-danger-tint)', color: 'var(--color-danger)' }}>!</span>
-                    <div>
-                      <p style={s.fcLabel}>2 days overdue</p>
-                      <p style={s.fcText}>Send funder update</p>
-                    </div>
-                  </div>
-                </div>
+          <div className="lp-grid" style={{ marginTop: 36 }}>
+            {features.map(f => (
+              <div key={f.title} className="lp-feat">
+                <span style={s.featIcon}><Icon name={f.icon} size={22} /></span>
+                <h3 style={{ fontSize: 22, fontWeight: 700, margin: '18px 0 8px' }}>{f.title}</h3>
+                <p style={{ color: 'var(--muted)', fontSize: 17, lineHeight: 1.55 }}>{f.body}</p>
               </div>
-            </Reveal>
-
-            <Reveal>
-              <div className="lp-lift" style={{ ...s.featCard, height: '100%' }}>
-                <p style={s.cardTitle}>A health check, in plain English</p>
-                <p style={s.cardBody}>A score out of 100 and exactly what is missing.</p>
-                <div style={{ ...s.featVisual, justifyContent: 'flex-start' }}>
-                  <MiniRing size={92} stroke={9} percent={82} label="82" />
-                </div>
-              </div>
-            </Reveal>
-
-            <Reveal delay={0.1}>
-              <div className="lp-lift" style={{ ...s.featCard, height: '100%' }}>
-                <p style={s.cardTitle}>Reports in one click</p>
-                <p style={s.cardBody}>Progress updates, funder reports and plans from your live data.</p>
-                <div style={{ ...s.featVisual, flexWrap: 'wrap', justifyContent: 'flex-start', gap: 8 }}>
-                  {['Progress update', 'Funder report', 'PM plan'].map(t => <span key={t} style={s.docChip}>{'\uD83D\uDCC4'} {t}</span>)}
-                </div>
-              </div>
-            </Reveal>
-
-            <Reveal delay={0.2}>
-              <div className="lp-lift" style={{ ...s.featCard, height: '100%' }}>
-                <p style={s.cardTitle}>Ask PM Buddy anything</p>
-                <p style={s.cardBody}>Stuck on a risk or a message to your team? Just ask.</p>
-                <div style={s.featVisual}>
-                  <div style={s.bubble}>How do I tell my team the deadline moved?</div>
-                </div>
-              </div>
-            </Reveal>
-
+            ))}
           </div>
-        </div>
-      </div>
-
-      {/* SOLUTION BAND */}
-      <div style={s.band}>
-        <div style={s.inner}>
-          <Reveal>
-            <div className="lp-two" style={{ alignItems: 'start' }}>
-              <div>
-                <p style={{ ...s.eyebrow, color: 'var(--color-primary-border)' }}>The idea</p>
-                <h2 style={{ ...s.h2, color: '#fff' }}>PM Buddy thinks like a PM so you do not have to.</h2>
-                <p style={{ ...s.lead, color: 'rgba(255,255,255,0.88)' }}>You focus on building. PM Buddy handles the structure, the risks, the documents and the follow-ups that keep a project on track.</p>
-              </div>
-              <div className="lp-points">
-                {[
-                  { title: 'Structure from day one', body: 'Clear goal, realistic timeline and defined roles.' },
-                  { title: 'Stay focused', body: 'Say no to scope creep. Say yes to what matters.' },
-                  { title: 'Always ready to share', body: 'Your plan is always up to date and easy to send.' },
-                  { title: 'Expert help on demand', body: 'Book a real PM consultant when you need one.' },
-                ].map(p => (
-                  <div key={p.title}>
-                    <p style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 700, color: '#fff' }}>{p.title}</p>
-                    <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: 'rgba(255,255,255,0.88)' }}>{p.body}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Reveal>
         </div>
       </div>
 
       {/* WHO */}
       <div style={s.section}>
         <div style={s.inner}>
-          <Reveal>
-            <p style={s.eyebrow}>Who it is for</p>
-            <h2 style={s.h2}>Built for every kind of builder.</h2>
-          </Reveal>
-          <div style={s.whoLayout}>
-            <div style={s.whoTabs}>
+          <Reveal><h2 style={s.h2}>Built for every kind of builder.</h2></Reveal>
+          <div className="lp-who" style={{ marginTop: 32 }}>
+            <div style={{ display: 'grid', gap: 10 }}>
               {whoCards.map((w, i) => (
-                <button key={w.label} onClick={() => setActiveWho(i)}
-                  style={{ ...s.whoTab, background: activeWho === i ? 'var(--color-primary)' : 'var(--color-surface)', color: activeWho === i ? '#fff' : 'var(--color-text)', borderColor: activeWho === i ? 'var(--color-primary)' : 'var(--color-border)' }}>
-                  {w.label}
-                </button>
+                <button key={w.label} type="button" onClick={() => setActiveWho(i)}
+                  style={{ ...s.whoTab, ...(activeWho === i ? s.whoOn : null) }}>{w.label}</button>
               ))}
             </div>
-            <div style={s.whoDetail}>
-              <p style={s.whoOutcome}>{whoCards[activeWho].outcome}</p>
-              <p style={s.lead}>{whoCards[activeWho].body}</p>
-              <button className="lp-btn lp-btn-primary" onClick={start}>{user ? 'Go to my projects' : 'Get started'}</button>
+            <div style={s.whoCard}>
+              <h3 style={{ fontSize: 'clamp(24px, 3vw, 32px)', fontWeight: 700, color: 'var(--accent-text)' }}>{whoCards[activeWho].outcome}</h3>
+              <p style={{ color: 'var(--muted)', fontSize: 18, lineHeight: 1.65, margin: '14px 0 24px' }}>{whoCards[activeWho].body}</p>
+              <button type="button" className="lp-btn lp-btn-primary" style={{ width: 'auto' }} onClick={start}>{user ? 'Go to my projects' : 'Get started'}</button>
             </div>
           </div>
         </div>
@@ -456,149 +414,105 @@ export default function LandingScreen({ onSelectMode, onLogin, onSignup, onDashb
       {/* VALIDATION */}
       <div style={{ ...s.section, paddingTop: 0 }}>
         <div style={s.inner}>
-          <Reveal>
-            <div style={s.validCard}>
-              <div style={{ flex: 1, minWidth: 260 }}>
-                <p style={s.eyebrow}>Not sure where to start?</p>
-                <h3 style={s.h3}>Check your idea before you commit to building it.</h3>
-                <p style={s.lead}>Answer honest questions and get a report on what is strong, what is missing and what to do next. It takes about 10 minutes.</p>
-                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 20 }}>
-                  <button className="lp-btn lp-btn-primary" onClick={() => handleSelect('startup')}>Validate a startup idea</button>
-                  <button className="lp-btn lp-btn-ghost" onClick={() => handleSelect('hackathon')}>Validate a hackathon idea</button>
-                </div>
-              </div>
-              <div style={s.freeBadge}>
-                <span style={s.freeSmall}>Always</span>
-                <span style={s.freeBig}>Free</span>
-                <span style={s.freeSmall}>No account needed</span>
+          <div style={s.valid}>
+            <div style={{ flex: 1, minWidth: 260 }}>
+              <h3 style={{ fontSize: 'clamp(26px, 3.4vw, 36px)', fontWeight: 700, marginBottom: 12 }}>Check your idea before you commit to building it.</h3>
+              <p style={{ color: 'var(--muted)', fontSize: 18, lineHeight: 1.6, maxWidth: 560 }}>Answer honest questions and get a report on what is strong, what is missing and what to do next. It takes about 10 minutes.</p>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 22 }}>
+                <button type="button" className="lp-btn lp-btn-primary" style={{ width: 'auto' }} onClick={() => handleSelect('startup')}>Validate a startup idea</button>
+                <button type="button" className="lp-btn lp-btn-ghost" style={{ width: 'auto' }} onClick={() => handleSelect('hackathon')}>Validate a hackathon idea</button>
               </div>
             </div>
-          </Reveal>
+            <div style={s.free}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--muted)' }}>Always</span>
+              <span style={{ fontFamily: 'var(--font-head)', fontSize: 56, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1.05, color: 'var(--accent-text)' }}>Free</span>
+              <span style={{ fontSize: 16, color: 'var(--muted)' }}>No account needed</span>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* FINAL CTA */}
       <div style={{ ...s.section, paddingTop: 0 }}>
         <div style={s.inner}>
-          <Reveal>
-            <div style={s.finalCta}>
-              <span style={{ ...s.ringDecor, width: 320, height: 320, right: -90, top: -110 }} />
-              <span style={{ ...s.ringDecor, width: 190, height: 190, right: 120, bottom: -120 }} />
-              <h2 style={s.finalH2}>Start running your project like a professional.</h2>
-              <p style={{ ...s.lead, color: 'rgba(255,255,255,0.9)', maxWidth: 480, margin: '0 0 28px' }}>
-                The thinking, structure and tools of a project manager, without the cost of hiring one.
-              </p>
-              <button className="lp-btn lp-btn-white" onClick={start}>{user ? 'Go to my projects' : 'Create your account'}</button>
-            </div>
-          </Reveal>
+          <div className="lp-sky" style={s.finalCta}>
+            <h2 style={{ ...s.h2, color: 'var(--text)', maxWidth: 640 }}>Start running your project like a professional.</h2>
+            <p style={{ ...s.sub, margin: '16px 0 28px', color: 'var(--text-2)' }}>The thinking, structure and tools of a project manager, without the cost of hiring one.</p>
+            <button type="button" className="lp-btn lp-btn-primary" style={{ width: 'auto' }} onClick={start}>{user ? 'Go to my projects' : 'Create your account'} <Icon name="arrow-right" size={18} /></button>
+          </div>
         </div>
       </div>
 
       {/* FOOTER */}
       <div style={s.footer}>
-        <div style={{ ...s.inner, ...s.footerInner }}>
+        <div style={{ ...s.inner, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 20 }}>
           <div>
-            <p style={s.footerLogo}>PM Buddy</p>
-            <p style={s.footerTagline}>Think, plan and execute like a professional PM, without being one.</p>
+            <p style={{ fontFamily: 'var(--font-head)', fontSize: 20, fontWeight: 800, letterSpacing: '-0.03em' }}>PM Buddy</p>
+            <p style={{ color: 'var(--muted)', fontSize: 16, maxWidth: 380, marginTop: 6 }}>Think, plan and execute like a professional PM, without being one.</p>
           </div>
           <div style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
-            <a href="/about.html" style={s.footerLink}>About</a>
-            <a href="/privacy.html" style={s.footerLink}>Privacy</a>
-            <a href="/terms.html" style={s.footerLink}>Terms</a>
-            <p style={s.footerCredit}>Built in Nigeria by <strong style={{ color: 'var(--color-text)' }}>Deborah Akpokighe</strong></p>
+            <a href="/about.html" style={s.footLink}>About</a>
+            <a href="/privacy.html" style={s.footLink}>Privacy</a>
+            <a href="/terms.html" style={s.footLink}>Terms</a>
+            <span style={{ color: 'var(--muted)', fontSize: 15 }}>Built in Nigeria by <b style={{ color: 'var(--text)' }}>Deborah Akpokighe</b></span>
           </div>
         </div>
       </div>
-
     </div>
   );
 }
 
 const s = {
-  page: { background: 'var(--color-canvas)', fontFamily: 'var(--font)', color: 'var(--color-text)', overflowX: 'hidden' },
+  page: { background: 'var(--bg)', color: 'var(--text)', overflowX: 'hidden' },
+  rainbow: { height: 4, background: 'var(--rainbow)' },
+  section: { padding: 'clamp(40px, 7vw, 88px) 24px' },
+  inner: { maxWidth: 1200, margin: '0 auto' },
+  h1: { fontSize: 'clamp(34px, 5.2vw, 62px)', lineHeight: 1.03, fontWeight: 600, letterSpacing: '-0.04em', margin: '0 0 22px' },
+  h2: { fontSize: 'clamp(28px, 4vw, 46px)', lineHeight: 1.08, fontWeight: 700, letterSpacing: '-0.035em', maxWidth: 780 },
+  sub: { fontSize: 'clamp(17px, 1.8vw, 20px)', lineHeight: 1.6, color: 'var(--muted)', maxWidth: 540 },
+  ctas: { display: 'flex', gap: 12, flexWrap: 'wrap', margin: '28px 0 22px' },
+  note: { fontSize: 16, color: 'var(--muted)' },
+  link: { background: 'none', border: 'none', padding: 0, color: 'var(--accent-text)', fontWeight: 700, textDecoration: 'underline', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' },
 
-  heroWrap: { padding: '56px 24px 72px' },
-  hero: { maxWidth: 1180, margin: '0 auto' },
-  pill: { display: 'inline-flex', alignItems: 'center', gap: 8, margin: '0 0 24px', padding: '7px 14px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-full)', fontSize: 13, fontWeight: 600, color: 'var(--color-text-muted)' },
-  pillDot: { width: 8, height: 8, borderRadius: '50%', background: 'var(--color-success)', flexShrink: 0 },
-  h1: { margin: '0 0 22px', fontSize: 'clamp(40px, 6.2vw, 68px)', lineHeight: 1.06, fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--color-text)' },
-  marker: { background: 'linear-gradient(transparent 62%, var(--color-primary-border) 62%)', padding: '0 4px', margin: '0 -4px' },
-  heroSub: { margin: '0 0 28px', maxWidth: 520, fontSize: 'clamp(17px, 2vw, 20px)', lineHeight: 1.6, color: 'var(--color-text-muted)' },
-  ctas: { display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 26 },
-  trust: { listStyle: 'none', margin: '0 0 20px', padding: 0, display: 'flex', flexWrap: 'wrap', gap: '8px 22px' },
-  trustItem: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 500, color: 'var(--color-text-muted)' },
-  trustTick: { color: 'var(--color-success)', fontWeight: 700 },
-  heroNote: { margin: 0, fontSize: 14, color: 'var(--color-text-muted)' },
-  inlineLink: { background: 'none', border: 'none', padding: 0, color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'underline', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' },
+  heroVis: { position: 'relative', borderRadius: 26, padding: '30px 22px 58px' },
+  tabs: { display: 'inline-flex', gap: 4, padding: 5, background: 'rgba(15, 25, 50, 0.82)', borderRadius: 999, marginBottom: 18 },
+  tab: { border: 0, background: 'none', color: '#E8EEF9', fontWeight: 600, fontSize: 15, padding: '9px 18px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit' },
+  tabOn: { background: '#FFFFFF', color: '#0B1A33' },
+  win: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, boxShadow: 'var(--shadow-lg)', overflow: 'hidden' },
+  winBar: { display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 16 },
+  dotI: { width: 11, height: 11, borderRadius: '50%', background: 'var(--surface-3)', display: 'inline-block' },
+  col: { background: 'var(--surface-2)', borderRadius: 14, padding: 12, display: 'grid', gap: 10, alignContent: 'start' },
+  colHead: { display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 700, color: 'var(--muted)' },
+  kcard: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 14px', fontWeight: 600, fontSize: 15, lineHeight: 1.35, display: 'grid', gap: 10 },
+  rowBetween: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' },
+  th: { textAlign: 'left', padding: '10px 12px', fontSize: 14, fontWeight: 700, color: 'var(--muted)', borderBottom: '1px solid var(--border)' },
+  td: { padding: '12px', borderBottom: '1px solid var(--border)', verticalAlign: 'middle' },
+  phone: { position: 'absolute', right: 16, bottom: -30, width: 176, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 26, padding: '14px 12px 16px', boxShadow: 'var(--shadow-lg)', display: 'grid', gap: 8 },
+  phoneRow: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, padding: '8px 10px', borderRadius: 12, background: 'var(--surface-2)' },
 
-  sceneBox: { position: 'relative', width: '100%', maxWidth: STAGE_W, justifySelf: 'center' },
-  stage: { position: 'absolute', left: 0, top: 0, width: STAGE_W, height: STAGE_H, transformOrigin: 'top left', perspective: 1200 },
-  blob: { position: 'absolute', borderRadius: '50%', filter: 'blur(36px)', opacity: 0.9 },
-  scene: { position: 'absolute', inset: 0, transformStyle: 'preserve-3d', willChange: 'transform' },
-  layer: { position: 'absolute' },
-  mainCard: { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-lg)', padding: 20 },
-  mcTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
-  mcLabel: { margin: '0 0 2px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-text-muted)' },
-  mcName: { margin: 0, fontSize: 17, fontWeight: 700, color: 'var(--color-text)' },
-  badgeGood: { padding: '3px 10px', borderRadius: 'var(--radius-full)', background: 'var(--color-success-tint)', color: 'var(--color-success)', fontSize: 12, fontWeight: 700 },
-  mcBody: { display: 'flex', alignItems: 'center', gap: 16 },
-  mcRow: { display: 'flex', alignItems: 'center', gap: 9, padding: '6px 8px', borderRadius: 8, transition: 'background 0.4s' },
-  mcRowText: { fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  check: { width: 18, height: 18, borderRadius: '50%', border: '1.5px solid', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.4s' },
-  floatCard: { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow)' },
-  iconDot: { width: 34, height: 34, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, flexShrink: 0 },
-  fcLabel: { margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)' },
-  fcText: { margin: '1px 0 0', fontSize: 14, fontWeight: 600, color: 'var(--color-text)', lineHeight: 1.35 },
+  tour: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 24, boxShadow: 'var(--shadow)', overflow: 'hidden' },
+  tourSteps: { display: 'flex', alignItems: 'center', gap: 8, padding: '14px 20px', borderBottom: '1px solid var(--border)', flexWrap: 'wrap' },
+  stepBtn: { display: 'inline-flex', alignItems: 'center', gap: 8, background: 'none', border: 0, color: 'var(--muted)', fontWeight: 700, fontSize: 15, padding: '8px 12px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit' },
+  stepOn: { background: 'var(--surface-2)', color: 'var(--text)' },
+  dropzone: { width: '100%', border: '2px dashed var(--accent-border)', borderRadius: 22, padding: '40px 20px', display: 'grid', gap: 10, justifyItems: 'center', animation: 'lp-dash 3s ease-in-out infinite' },
+  cue: { position: 'absolute', inset: -6, borderRadius: 999, border: '2px solid var(--accent)', animation: 'lp-cue 1.8s ease-out infinite', pointerEvents: 'none' },
+  docpage: { position: 'relative', overflow: 'hidden', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 14, padding: 22, display: 'grid', gap: 10, alignContent: 'start' },
+  scan: { position: 'absolute', left: 0, right: 0, height: 60, background: 'linear-gradient(180deg, transparent, color-mix(in srgb, var(--accent) 28%, transparent), transparent)', animation: 'lp-scan 2.2s ease-in-out infinite' },
+  found: { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 16, fontWeight: 600, transition: 'opacity 0.4s ease, transform 0.4s ease' },
+  toast: { display: 'flex', gap: 12, alignItems: 'center', padding: '12px 16px', background: 'var(--warn-tint)', border: '1px solid var(--warn-border)', borderRadius: 14, fontSize: 16, animation: 'lp-toast 0.6s 1.2s cubic-bezier(0.16,1,0.3,1) both' },
+  ringBox: { background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 18, padding: 18, display: 'grid', justifyItems: 'center', gap: 10 },
+  tcard: { textAlign: 'left', width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 14px', color: 'var(--text)', fontWeight: 600, fontSize: 15, lineHeight: 1.35, cursor: 'pointer', display: 'grid', gap: 8, fontFamily: 'inherit', animation: 'lp-pop 0.45s cubic-bezier(0.16,1,0.3,1) both' },
+  moveChip: { justifySelf: 'start', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 700, padding: '4px 10px', borderRadius: 999, background: 'var(--accent-tint)', color: 'var(--accent-text)' },
+  coach: { color: 'var(--muted)', fontSize: 16, borderTop: '1px solid var(--border)', paddingTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14, flexWrap: 'wrap' },
+  tourFoot: { padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', color: 'var(--muted)', fontSize: 15 },
 
-  section: { padding: '88px 24px' },
-  inner: { maxWidth: 1180, margin: '0 auto' },
-  eyebrow: { margin: '0 0 12px', fontSize: 13, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-primary)' },
-  h2: { margin: 0, maxWidth: 760, fontSize: 'clamp(28px, 4vw, 42px)', lineHeight: 1.15, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--color-text)' },
-  h3: { margin: '0 0 12px', fontSize: 'clamp(24px, 3vw, 32px)', lineHeight: 1.2, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--color-text)' },
-  lead: { margin: '16px 0 24px', fontSize: 17, lineHeight: 1.7, color: 'var(--color-text-muted)' },
-  cardTitle: { margin: '0 0 6px', fontSize: 18, fontWeight: 700, color: 'var(--color-text)' },
-  cardBody: { margin: 0, fontSize: 15, lineHeight: 1.6, color: 'var(--color-text-muted)' },
-
-  problemCard: { height: '100%', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', padding: 24 },
-  problemNum: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, marginBottom: 14, borderRadius: '50%', background: 'var(--color-danger-tint)', color: 'var(--color-danger)', fontSize: 15, fontWeight: 700 },
-
-  stepCard: { height: '100%', background: 'var(--color-surface)', border: '1px solid var(--color-primary-border)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', padding: 22 },
-  stepVisual: { height: 132, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18, padding: 16, background: 'var(--color-canvas)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)' },
-  stepNum: { margin: '0 0 4px', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-primary)' },
-  dropzone: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, width: '100%', padding: '14px 10px', border: '2px dashed var(--color-primary-border)', borderRadius: 'var(--radius)' },
-  filePill: { padding: '3px 10px', borderRadius: 'var(--radius-full)', background: 'var(--color-primary-tint)', color: 'var(--color-primary-hover)', fontSize: 12, fontWeight: 600 },
-  skeleton: { height: 10, borderRadius: 999, marginBottom: 9 },
-
-  featCard: { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', padding: 24, display: 'flex', flexDirection: 'column' },
-  featVisual: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 18, minHeight: 80 },
-  boardMini: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginTop: 20 },
-  boardCol: { background: 'var(--color-canvas)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: 10 },
-  boardHead: { margin: '0 0 8px', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--color-text-muted)' },
-  boardCard: { padding: '8px 10px', marginBottom: 6, background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 13, fontWeight: 500, boxShadow: 'var(--shadow-sm)' },
-  docChip: { padding: '6px 12px', borderRadius: 'var(--radius-full)', background: 'var(--color-primary-tint)', border: '1px solid var(--color-primary-border)', color: 'var(--color-primary-hover)', fontSize: 13, fontWeight: 600 },
-  bubble: { padding: '12px 16px', background: 'var(--color-primary)', color: '#fff', borderRadius: '16px 16px 16px 4px', fontSize: 14, lineHeight: 1.45, fontWeight: 500 },
-
-  band: { background: 'var(--color-primary)', padding: '88px 24px' },
-
-  whoLayout: { display: 'flex', gap: 40, flexWrap: 'wrap', marginTop: 36, alignItems: 'flex-start' },
-  whoTabs: { display: 'flex', flexDirection: 'column', gap: 10, flex: '0 0 260px' },
-  whoTab: { padding: '14px 18px', border: '1.5px solid', borderRadius: 'var(--radius)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'all 0.2s ease' },
-  whoDetail: { flex: 1, minWidth: 280, background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', padding: 28 },
-  whoOutcome: { margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--color-primary)' },
-
-  validCard: { display: 'flex', gap: 40, flexWrap: 'wrap', alignItems: 'center', padding: 'clamp(24px, 4vw, 44px)', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-sm)' },
-  freeBadge: { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px 40px', background: 'var(--color-primary-tint)', border: '1px solid var(--color-primary-border)', borderRadius: 'var(--radius-lg)' },
-  freeSmall: { fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-text-muted)' },
-  freeBig: { fontSize: 52, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.1, color: 'var(--color-primary)' },
-
-  finalCta: { position: 'relative', overflow: 'hidden', padding: 'clamp(36px, 6vw, 72px)', background: 'var(--color-primary)', borderRadius: 28 },
-  ringDecor: { position: 'absolute', borderRadius: '50%', border: '28px solid rgba(255,255,255,0.1)' },
-  finalH2: { position: 'relative', margin: '0 0 14px', maxWidth: 640, fontSize: 'clamp(28px, 4.4vw, 46px)', lineHeight: 1.12, fontWeight: 800, letterSpacing: '-0.02em', color: '#fff' },
-
-  footer: { borderTop: '1px solid var(--color-border)', padding: '36px 24px' },
-  footerInner: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 16 },
-  footerLogo: { margin: '0 0 6px', fontSize: 17, fontWeight: 800, color: 'var(--color-text)' },
-  footerTagline: { margin: 0, maxWidth: 360, fontSize: 14, lineHeight: 1.6, color: 'var(--color-text-muted)' },
-  footerLink: { fontSize: 14, color: 'var(--color-text-muted)', textDecoration: 'none' },
-  footerCredit: { margin: 0, fontSize: 13, color: 'var(--color-text-muted)' },
+  featIcon: { width: 46, height: 46, borderRadius: 14, display: 'grid', placeItems: 'center', background: 'var(--accent-tint)', color: 'var(--accent-text)' },
+  whoTab: { padding: '16px 20px', border: '1.5px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', borderRadius: 16, fontSize: 17, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'all 0.2s ease' },
+  whoOn: { background: 'var(--accent)', color: '#FFFFFF', borderColor: 'var(--accent)' },
+  whoCard: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 22, padding: 'clamp(24px, 4vw, 38px)', boxShadow: 'var(--shadow-sm)' },
+  valid: { display: 'flex', gap: 40, flexWrap: 'wrap', alignItems: 'center', padding: 'clamp(24px, 4vw, 46px)', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 26, boxShadow: 'var(--shadow-sm)' },
+  free: { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px 44px', background: 'var(--accent-tint)', border: '1px solid var(--accent-border)', borderRadius: 20 },
+  finalCta: { borderRadius: 28, padding: 'clamp(32px, 6vw, 70px)', border: '1px solid var(--border)' },
+  footer: { borderTop: '1px solid var(--border)', padding: '40px 24px' },
+  footLink: { fontSize: 16, color: 'var(--muted)', textDecoration: 'none', fontWeight: 600 },
 };

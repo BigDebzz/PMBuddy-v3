@@ -22,7 +22,7 @@ export default function FeedbackButton() {
         color: '#FFFFFF',
         border: 'none',
         borderRadius: 100,
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 600,
         cursor: 'pointer',
         fontFamily: "'DM Sans', system-ui, sans-serif",

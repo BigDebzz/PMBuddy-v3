@@ -1,3 +1,4 @@
+import Icon from '../components/Icon';
 // src/lib/icons.js
 import React from 'react';
 
@@ -69,12 +70,4 @@ export const UsersIcon = icon(<>
   <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
 </>);
 
-export const LogoIcon = ({ size = 36 }) => (
-  <svg width={size} height={size} viewBox="0 0 36 36" fill="none">
-    <rect width="36" height="36" rx="10" fill="#35709A"/>
-    <circle cx="18" cy="18" r="8.7" stroke="white" strokeOpacity="0.3" strokeWidth="2.1"/>
-    <path d="M18 9.3A8.7 8.7 0 1 1 9.3 18" stroke="white" strokeWidth="2.1" strokeLinecap="round"/>
-    <path d="M14.3 18.4L17 21.1L21.9 15.2" stroke="white" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"/>
-    <circle cx="11.8" cy="11.8" r="1.2" fill="#BCD6E5"/>
-  </svg>
-);
+export const LogoIcon = ({ size = 36 }) => <Icon name="logo" size={size} style={{ color: 'var(--accent)' }} />;

@@ -1,169 +1,72 @@
-# PM Buddy: Design System
-> A friendly guide in a quiet, sunlit room: warm paper, a calm river-blue voice.
+# PM Buddy: Design System (Studio)
 
-**Theme:** light, warm
+Chosen direction: **Studio**, built from techniques measured on Dropbox, Airtable, ClickUp, Spotify and Zoom. Warm neutrals, a friendly confident headline, and the real product shown large. Light and dark are both first-class and the person chooses (Light, Dark or Auto, remembered per device).
 
-PM Buddy is for people who are not project managers, so it must feel safe, clear and encouraging. Warm off-white pages, white cards with soft shadows, one river-blue accent, and plain-English labels. Colour is rationed: blue means "do this" or "you are here", and green, amber and red only ever mean status.
+**All values live in `src/index.css` as CSS variables. Components must use the variables and never hardcode hex values.** The only fixed colours allowed are white text on filled buttons (`#FFFFFF`), avatar colours, and downloadable document templates.
 
-**All values live in `src/index.css` as CSS variables. Components must use the variables, never hardcoded hex values.**
+## Tokens
 
-## Tokens: Colors
+| Token | Light | Dark | Role |
+|---|---|---|---|
+| `--bg` | `#F7F5F2` | `#171412` | Page background (warm, never pure white or black) |
+| `--surface` | `#FFFFFF` | `#221E1B` | Cards, inputs, windows |
+| `--surface-2` | `#F2EFEA` | `#2A2521` | Subtle fills inside cards, columns, hover |
+| `--surface-3` | `#E9E5DF` | `#342E29` | Tracks, skeletons, stronger fills |
+| `--border` | `#E3DED7` | `rgba(255,255,255,.12)` | Default borders |
+| `--border-strong` | `#CFC8BF` | `rgba(255,255,255,.22)` | Dashed zones, emphasis |
+| `--text` | `#1E1919` | `#F6F2EC` | Headings and body |
+| `--text-2` | `#3F3A36` | `#DDD6CD` | Secondary strong text |
+| `--muted` | `#5F5852` | `#ABA39A` | Supporting text (always readable) |
+| `--faint` | `#77716A` | `#857D74` | Placeholders and disabled only |
+| `--accent` | `#1F57F0` | `#356FEE` | Buttons and fills. White text on it |
+| `--accent-text` | `#1F57F0` | `#8DB1FF` | Links and accent text |
+| `--accent-tint` / `--accent-border` | `#E9F0FE` / `#BCD3FB` | blue at 16% / 42% | Selected states, soft panels |
+| `--ok-*`, `--warn-*`, `--bad-*` | green, amber, red | lightened for dark | Status only: `-text`, `-tint`, `-border`, solid |
 
-| Name | Value | Token | Role |
-|------|-------|-------|------|
-| River Blue | `#35709A` | `--color-primary` | Primary buttons, links, active tab, focus ring |
-| River Blue Deep | `#2B5F85` | `--color-primary-hover` | Hover/pressed primary, emphasis text on River Mist |
-| River Mist | `#E8F1F6` | `--color-primary-tint` | Selected items, info panels, soft highlights |
-| River Border | `#BCD6E5` | `--color-primary-border` | Border of River Mist panels |
-| Canvas | `#FAF8F5` | `--color-canvas` | Page background |
-| Surface | `#FFFFFF` | `--color-surface` | Cards, inputs, modals, dropdowns |
-| Stone Border | `#E7E2DA` | `--color-border` | Default borders and dividers |
-| Ink | `#2B2A28` | `--color-text` | Headings and body text |
-| Muted | `#6B665F` | `--color-text-muted` | Secondary text, captions, labels |
-| Faint | `#8A847B` | `--color-text-faint` | Placeholders and disabled only (fails contrast for body text) |
-| Success | `#15803D` | `--color-success` | Done, healthy, on track |
-| Success Tint | `#F0FDF4` | `--color-success-tint` | Success badge/panel background |
-| Warning | `#D97706` | `--color-warning` | At risk, due soon |
-| Warning Tint | `#FFFBEB` | `--color-warning-tint` | Warning badge/panel background |
-| Danger | `#DC2626` | `--color-danger` | Overdue, blocked, errors, destructive actions |
-| Danger Tint | `#FEF2F2` | `--color-danger-tint` | Danger badge/panel background |
+Landing extras: `--sky-1/2/a/b/c` (the blended hero sky) and `--rainbow` (the thin four-colour line under the nav).
 
-## Tokens: Typography
+## Typography
 
-**Plus Jakarta Sans** (`--font`), fallback system sans-serif. Weights 400, 500, 600, 700.
+- **Headings:** Schibsted Grotesk (`--font-head`), weight 600 to 800, letter spacing -0.03 to -0.04em, tight line height 1.03 to 1.15.
+- **Body and UI:** Albert Sans (`--font`).
+- Landing headline 34px on phones up to 62px on desktop. Section headings 28 to 46px. App screens: body 15 to 16px.
+- **Nothing readable under 12px. No tiny uppercase tracked labels.** Labels are sentence case at 14px or larger, full-strength colour.
 
-| Role | Size | Line height | Weight | Token |
-|------|------|-------------|--------|-------|
-| caption | 12px | 1.4 | 500 | `--text-caption` |
-| body-sm | 14px | 1.5 | 400 | `--text-body-sm` |
-| body | 16px | 1.6 | 400 | `--text-body` |
-| heading-3 | 20px | 1.3 | 700 | `--text-h3` |
-| heading-2 | 26px | 1.25 | 700 | `--text-h2` |
-| heading-1 | 34px (28px under 480px) | 1.2 | 700 | `--text-h1` |
+## Shape and depth
 
-## Tokens: Spacing and Shapes
+Radius: buttons are pills (999px) on the landing page and 10 to 12px in the app, cards 16px, big windows 18 to 26px. Shadows come from `--shadow-sm`, `--shadow` and `--shadow-lg`. Colour is blended, not flat: the hero sky, the horizon glow and the rainbow line are the only gradients.
 
-Base unit 4px. Scale: `--space-1` 4, `--space-2` 8, `--space-3` 12, `--space-4` 16, `--space-6` 24, `--space-8` 32, `--space-12` 48, `--space-16` 64.
+## Icons
 
-| Element | Radius | Token |
-|---------|--------|-------|
-| Buttons, inputs | 10px | `--radius` |
-| Cards, panels | 16px | `--radius-lg` |
-| Modals, sheets | 20px | `--radius-xl` |
-| Badges, tags, avatars | 999px | `--radius-full` |
+One family in `src/components/Icon.js` (24px grid, rounded stroke). **No emoji and no symbol characters** (check marks, arrows, crosses, stars) anywhere in the UI. Use `<Icon name="..." />`. The AI is also told never to use emoji (`api/claude.js`).
 
-| Shadow | Value | Token |
-|--------|-------|-------|
-| Small | `0 1px 2px rgba(43,42,40,0.06)` | `--shadow-sm` |
-| Medium | `0 4px 14px rgba(43,42,40,0.08)` | `--shadow` |
-| Large (modals only) | `0 12px 32px rgba(43,42,40,0.12)` | `--shadow-lg` |
+## Theme
 
-Layout: content max-width 1120px, page padding 24px (16px on phones), section gap 32px, card padding 20px (16px on phones), gap between cards 16px.
+`ThemeToggle` sets `data-theme` on `<html>` and stores the choice in `localStorage` (`pmb-theme`). A tiny script in `public/index.html` applies it before first paint. Dark applies when `data-theme="dark"`, or when the device prefers dark and the choice is Auto.
 
-## Components
+## Do
 
-- **Primary button:** background `--color-primary`, white text, 10px radius, padding 10px 18px, 14px weight 600. Hover `--color-primary-hover`. Disabled: `--color-border` background, `--color-text-faint` text.
-- **Secondary button:** white surface, 1px `--color-border`, `--color-text` text, same size. Hover: `--color-canvas` background.
-- **Danger button:** only for destructive actions. `--color-danger` background, white text.
-- **Nav bar:** `--color-surface`, 1px bottom `--color-border`, no shadow. Active item in `--color-primary` with `--color-primary-tint` background.
-- **Card:** `--color-surface`, 1px `--color-border`, 16px radius, 20px padding, `--shadow-sm`. Hover on clickable cards: `--shadow`.
-- **Input:** `--color-surface`, 1px `--color-border`, 10px radius, 16px text, padding 10px 14px. Focus: 2px `--color-primary` ring. Error: `--color-danger` border and message below in 14px.
-- **Badge:** fully round, 12px weight 600, padding 2px 10px. Status badges use a tint background and the matching strong colour for text.
-- **Section header:** heading-2 in `--color-text`, optional one-line description in `--color-text-muted` 14px below, 4px apart.
-- **Footer:** `--color-canvas`, 1px top `--color-border`, caption text in `--color-text-muted`.
+- Show the real product (board, list, reminders) at real size.
+- Use two-tone headlines or one emphasis word instead of small labels.
+- Give every status a word and an icon, never colour alone.
+- Keep one primary button per view.
 
-## Do's and Don'ts
+## Don't
 
-### Do
-- Use CSS variables for every colour, radius, shadow and font size.
-- Use `--color-primary` for the single most important action on each screen.
-- Use plain English labels ("What could go wrong", not "Risk register").
-- Show status with colour **and** a word or icon, never colour alone.
-- Keep body text at 16px and secondary text at 14px minimum. Nothing readable below 12px.
-- Give every tap target at least 44px of height on phones.
-- Show empty states with a friendly sentence and one clear next action.
-
-### Don't
-- Don't hardcode hex values in components.
-- Don't use `#8A847B` (Faint) for text people need to read.
-- Don't use red, amber or green for decoration. They only mean status.
-- Don't use black buttons or the old purple.
-- Don't put more than one primary button in the same view.
-- Don't use shadows larger than `--shadow` on cards, or `--shadow-lg` anywhere except modals.
-- Don't use corner radii outside the token list.
-- Don't use jargon such as RACI, RAID, methodology, stakeholder matrix.
-
-## Surfaces and Elevation
-
-1. **Canvas** (`--color-canvas`): page background.
-2. **Surface** (`--color-surface`): cards and inputs, with `--shadow-sm`.
-3. **Raised** (hover cards, dropdowns): `--shadow`.
-4. **Modal** (`--color-surface` over a 40% ink overlay): `--shadow-lg`.
-
-Only these may have shadows. Flat elements (nav, footer, badges) have none.
-
-## Layout
-
-Single centred column, max 1120px. Dashboard and project views use a card grid: 1 column on phones, 2 on tablets, 3 on desktop, 16px gaps. Page title top-left, primary action top-right. Everything is left-aligned except hero and empty-state content, which is centred.
-
-## Agent Quick Reference
-
-- text `#2B2A28`, muted `#6B665F`
-- background `#FAF8F5`, card `#FFFFFF`
-- border `#E7E2DA`
-- accent / primary action `#35709A` (hover `#2B5F85`)
-
-Example prompts:
-1. "Build a project card: surface white, 1px border, 16px radius, 20px padding, shadow-sm. Title heading-3, status badge top-right, next milestone in muted 14px, progress bar in primary."
-2. "Build a primary button and a secondary button side by side, using tokens only."
-3. "Build an empty state for a project with no tasks: centred friendly sentence, one primary button 'Add your first task'."
-
-## Quick Start
-
-```css
-:root {
-  --color-primary: #35709A;
-  --color-primary-hover: #2B5F85;
-  --color-primary-tint: #E8F1F6;
-  --color-primary-border: #BCD6E5;
-  --color-canvas: #FAF8F5;
-  --color-surface: #FFFFFF;
-  --color-border: #E7E2DA;
-  --color-text: #2B2A28;
-  --color-text-muted: #6B665F;
-  --color-text-faint: #8A847B;
-  --color-success: #15803D;
-  --color-success-tint: #F0FDF4;
-  --color-warning: #D97706;
-  --color-warning-tint: #FFFBEB;
-  --color-danger: #DC2626;
-  --color-danger-tint: #FEF2F2;
-
-  --font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  --text-caption: 12px; --text-body-sm: 14px; --text-body: 16px;
-  --text-h3: 20px; --text-h2: 26px; --text-h1: 34px;
-
-  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
-  --space-6: 24px; --space-8: 32px; --space-12: 48px; --space-16: 64px;
-
-  --radius: 10px; --radius-lg: 16px; --radius-xl: 20px; --radius-full: 999px;
-
-  --shadow-sm: 0 1px 2px rgba(43,42,40,0.06);
-  --shadow: 0 4px 14px rgba(43,42,40,0.08);
-  --shadow-lg: 0 12px 32px rgba(43,42,40,0.12);
-}
-```
+- Don't hardcode hex values, `#FFFFFF` backgrounds or `#000000`.
+- Don't add emoji or unicode symbols. Use `Icon`.
+- Don't use grey text below 4.5:1 contrast. Use `--muted`, not `--faint`, for readable text.
+- Don't put equal rounded cards in threes. Use windows, ruled grids and varied sizes.
+- Don't add scroll-triggered fade-ins to content people must read.
 
 ## Drift log
-Append a new rule here every time the agent gets something wrong, so it cannot happen again.
 
-- **Text on River Blue panels** is white or `rgba(255,255,255,0.88)`. Never grey, and never the same blue as the panel.
-- **Prefer light panels** (`--color-primary-tint` with a `--color-primary-border` border and dark text) over solid blue panels. Solid blue is for buttons, the landing page bands and the assistant header.
-- **Cards are white** (`--color-surface`) on the warm canvas. Never give a card the canvas colour.
-- **No card inside a card.** Tab content sits directly on the canvas, and each section is its own card.
-- **Shadows use the warm ink colour** `rgba(43,42,40, ...)`, never pure black.
-- **The font must be loaded** in `public/index.html`. A font name in CSS alone does nothing.
-- **Build with `CI=true npm.cmd run build`** before pushing. Warnings fail the Vercel build.
-- **The landing page may use display type** up to 68px (heading-1 is for app screens), soft blurred background shapes, and a hero scene made of floating cards in 3D. Keep one solid River Blue band and one River Blue closing panel at most.
-- **When mixing the fade-in helper with layout styles, spread the helper first** so its display value cannot override flex or grid layout.
-- **Never re-save source files through PowerShell Get-Content and Set-Content.** It corrupts symbols such as the check mark. Use the editor tools or Node.
+Append a rule here every time the agent gets something wrong.
+
+- Text on solid blue panels is white or `rgba(255,255,255,0.88)`, never grey.
+- Cards are `--surface`; never give a card the page colour.
+- No card inside a card.
+- Spread the fade-in helper before layout styles so it cannot override flex or grid.
+- Never re-save source files through PowerShell Get-Content and Set-Content. It corrupts symbols and adds a BOM.
+- Build with `CI=true npm.cmd run build` before pushing. Warnings fail the Vercel build.
+- The `PMBuddyAssistant` and other `React.createElement` files use `icon(name, size)` from `Icon.js`.

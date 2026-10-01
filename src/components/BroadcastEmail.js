@@ -148,7 +148,7 @@ export default function BroadcastEmail({ user, onBack }) {
     <div style={{ maxWidth: 700, margin: '0 auto', padding: 24, fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       <button
         onClick={onBack}
-        style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', padding: 0, marginBottom: 24 }}
+        style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', padding: 0, marginBottom: 24 }}
       >
         Back to Settings
       </button>
@@ -156,12 +156,12 @@ export default function BroadcastEmail({ user, onBack }) {
       <h2 style={{ fontSize: 22, fontWeight: 900, color: BL, letterSpacing: '-0.5px', marginBottom: 6 }}>
         Send Email Update
       </h2>
-      <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 28, lineHeight: 1.6 }}>
+      <p style={{ fontSize: 15, color: 'var(--muted)', marginBottom: 28, lineHeight: 1.6 }}>
         Compose and send a newsletter to all PM Buddy users. Always send a preview to yourself first before sending to everyone.
       </p>
 
       <div style={{ marginBottom: 16 }}>
-        <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-2)', marginBottom: 6 }}>
+        <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text-2)', marginBottom: 6 }}>
           Subject line
         </label>
         <input
@@ -169,23 +169,23 @@ export default function BroadcastEmail({ user, onBack }) {
           value={subject}
           onChange={function(e) { setSubject(e.target.value); }}
           placeholder="Email subject..."
-          style={{ width: '100%', border: `1.5px solid ${RULE}`, borderRadius: 10, padding: '11px 14px', fontSize: 14, fontFamily: 'inherit', color: BL, outline: 'none', background: WH, boxSizing: 'border-box' }}
+          style={{ width: '100%', border: `1.5px solid ${RULE}`, borderRadius: 10, padding: '11px 14px', fontSize: 15, fontFamily: 'inherit', color: BL, outline: 'none', background: WH, boxSizing: 'border-box' }}
         />
       </div>
 
       <div style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-          <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-2)' }}>Email body</label>
+          <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-2)' }}>Email body</label>
           <div style={{ display: 'flex', gap: 6 }}>
             <button
               onClick={function() { setPreviewMode(false); }}
-              style={{ padding: '4px 10px', background: previewMode ? WH : 'var(--color-primary)', color: previewMode ? 'var(--text-2)' : '#FFFFFF', border: `1px solid ${RULE}`, borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+              style={{ padding: '4px 10px', background: previewMode ? WH : 'var(--color-primary)', color: previewMode ? 'var(--text-2)' : '#FFFFFF', border: `1px solid ${RULE}`, borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
             >
               Edit HTML
             </button>
             <button
               onClick={function() { setPreviewMode(true); }}
-              style={{ padding: '4px 10px', background: previewMode ? 'var(--color-primary)' : WH, color: previewMode ? '#FFFFFF' : 'var(--text-2)', border: `1px solid ${RULE}`, borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+              style={{ padding: '4px 10px', background: previewMode ? 'var(--color-primary)' : WH, color: previewMode ? '#FFFFFF' : 'var(--text-2)', border: `1px solid ${RULE}`, borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
             >
               Preview
             </button>
@@ -194,7 +194,7 @@ export default function BroadcastEmail({ user, onBack }) {
 
         {previewMode ? (
           <div
-            style={{ border: `1.5px solid ${RULE}`, borderRadius: 10, padding: '20px 24px', background: WH, fontSize: 14, lineHeight: 1.8, color: 'var(--text-2)', minHeight: 200 }}
+            style={{ border: `1.5px solid ${RULE}`, borderRadius: 10, padding: '20px 24px', background: WH, fontSize: 15, lineHeight: 1.8, color: 'var(--text-2)', minHeight: 200 }}
             dangerouslySetInnerHTML={{ __html: bodyHTML }}
           />
         ) : (
@@ -202,24 +202,24 @@ export default function BroadcastEmail({ user, onBack }) {
             value={bodyHTML}
             onChange={function(e) { setBodyHTML(e.target.value); }}
             rows={14}
-            style={{ width: '100%', border: `1.5px solid ${RULE}`, borderRadius: 10, padding: '12px 14px', fontSize: 12, fontFamily: 'monospace', color: BL, outline: 'none', resize: 'vertical', lineHeight: 1.6, background: WH, boxSizing: 'border-box' }}
+            style={{ width: '100%', border: `1.5px solid ${RULE}`, borderRadius: 10, padding: '12px 14px', fontSize: 13, fontFamily: 'monospace', color: BL, outline: 'none', resize: 'vertical', lineHeight: 1.6, background: WH, boxSizing: 'border-box' }}
           />
         )}
       </div>
 
       {error && (
         <div style={{ background: 'var(--bad-tint)', border: '1px solid var(--bad-border)', borderRadius: 10, padding: '12px 14px', marginBottom: 16 }}>
-          <p style={{ fontSize: 13, color: 'var(--bad-text)', margin: 0 }}>{error}</p>
+          <p style={{ fontSize: 14, color: 'var(--bad-text)', margin: 0 }}>{error}</p>
         </div>
       )}
 
       {result && (
         <div style={{ background: result.type === 'sent' ? 'var(--ok-tint)' : 'var(--accent-tint)', border: `1px solid ${result.type === 'sent' ? 'var(--ok-border)' : 'var(--accent-border)'}`, borderRadius: 10, padding: '14px 16px', marginBottom: 16 }}>
-          <p style={{ fontSize: 14, fontWeight: 700, color: result.type === 'sent' ? 'var(--ok-text)' : 'var(--accent-text)', marginBottom: result.type === 'sent' ? 4 : 0, margin: 0 }}>
+          <p style={{ fontSize: 15, fontWeight: 700, color: result.type === 'sent' ? 'var(--ok-text)' : 'var(--accent-text)', marginBottom: result.type === 'sent' ? 4 : 0, margin: 0 }}>
             {result.type === 'sent' ? 'Broadcast sent successfully' : 'Preview sent to your email'}
           </p>
           {result.message && (
-            <p style={{ fontSize: 13, color: result.type === 'sent' ? 'var(--ok-text)' : 'var(--accent-text)', marginTop: 4, marginBottom: 0 }}>
+            <p style={{ fontSize: 14, color: result.type === 'sent' ? 'var(--ok-text)' : 'var(--accent-text)', marginTop: 4, marginBottom: 0 }}>
               {result.message}
             </p>
           )}
@@ -230,21 +230,21 @@ export default function BroadcastEmail({ user, onBack }) {
         <button
           onClick={handlePreview}
           disabled={previewing || sending}
-          style={{ padding: '11px 22px', background: WH, color: 'var(--accent-text)', border: `1.5px solid ${BLUE}`, borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: (previewing || sending) ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: previewing ? 0.6 : 1 }}
+          style={{ padding: '11px 22px', background: WH, color: 'var(--accent-text)', border: `1.5px solid ${BLUE}`, borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: (previewing || sending) ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: previewing ? 0.6 : 1 }}
         >
           {previewing ? 'Sending preview...' : 'Send preview to me'}
         </button>
         <button
           onClick={handleSendAll}
           disabled={sending || previewing}
-          style={{ padding: '11px 22px', background: sending ? 'var(--muted)' : 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: (sending || previewing) ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: sending ? 0.6 : 1 }}
+          style={{ padding: '11px 22px', background: sending ? 'var(--muted)' : 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: (sending || previewing) ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: sending ? 0.6 : 1 }}
         >
           {sending ? 'Sending to all...' : 'Send to all users'}
         </button>
       </div>
 
       <div style={{ marginTop: 20, padding: '12px 14px', background: 'var(--warn-tint)', border: '1px solid var(--warn-border)', borderRadius: 10 }}>
-        <p style={{ fontSize: 12, color: 'var(--warn-text)', lineHeight: 1.65, margin: 0 }}>
+        <p style={{ fontSize: 13, color: 'var(--warn-text)', lineHeight: 1.65, margin: 0 }}>
           Always click "Send preview to me" first and check your inbox before sending to everyone.
         </p>
       </div>
