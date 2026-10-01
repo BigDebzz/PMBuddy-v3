@@ -58,7 +58,8 @@ const DEFAULT_BODY = `<p style="font-size:15px;color:#3F3A36;line-height:1.9;mar
 
 <p style="font-size:14px;color:#3F3A36;line-height:1.9;margin:0 0 4px;">Talk soon,</p>
 <p style="font-size:14px;font-weight:700;color:#1E1919;margin:0;">
-  The PM Buddy team
+  Debbie<br/>
+  <span style="font-weight:400;color:#5F5852;">PM Buddy</span>
 </p>`;
 
 async function getAuthHeader() {
