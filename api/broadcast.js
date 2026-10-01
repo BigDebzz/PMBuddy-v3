@@ -121,7 +121,7 @@ function buildEmailHTML(firstName, subject, body) {
               <p style="font-size:12px;color:#9CA3AF;margin:0;">
                 <a href="https://pmbuddy-v3.vercel.app" style="color:#0284C7;text-decoration:none;">pmbuddy-v3.vercel.app</a>
                 &nbsp;·&nbsp;
-                PM Buddy, Nigeria
+                PM Buddy
               </p>
             </td>
           </tr>

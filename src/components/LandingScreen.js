@@ -454,7 +454,6 @@ export default function LandingScreen({ onSelectMode, onSignup, onDashboard, use
             <a href="/about.html" style={s.footLink}>About</a>
             <a href="/privacy.html" style={s.footLink}>Privacy</a>
             <a href="/terms.html" style={s.footLink}>Terms</a>
-            <span style={{ color: 'var(--muted)', fontSize: 15 }}>Built in Nigeria by <b style={{ color: 'var(--text)' }}>Deborah Akpokighe</b></span>
           </div>
         </div>
       </div>
