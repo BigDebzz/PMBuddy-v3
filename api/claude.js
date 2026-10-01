@@ -22,9 +22,56 @@ async function verifyAuth(request) {
   } catch { return null; }
 }
 
+// Heavy jobs (documents, reports, file import) use the stronger model.
+// Small jobs (chat, goal rewrites, health checks) use the cheaper one.
+const HEAVY_MODEL = 'claude-sonnet-5-5';
+const LIGHT_MODEL = 'claude-haiku-4-5-20251001';
+
+const DAILY_LIMIT = parseInt(process.env.AI_DAILY_LIMIT || '50', 10);
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function supabaseHeaders() {
+  return {
+    'apikey': SUPABASE_SERVICE_ROLE_KEY,
+    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    'Content-Type': 'application/json',
+  };
+}
+
+// Returns how many AI requests this user has made today, or null if the
+// usage table is unavailable (limits then fail open so the app keeps working).
+async function getUsageToday(userId) {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/ai_usage?user_id=eq.${userId}&day=eq.${today()}&select=count`,
+      { headers: supabaseHeaders() }
+    );
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return rows[0]?.count || 0;
+  } catch { return null; }
+}
+
+async function recordUsage(userId, previousCount) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/ai_usage`, {
+      method: 'POST',
+      headers: { ...supabaseHeaders(), 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify({ user_id: userId, day: today(), count: previousCount + 1 }),
+    });
+  } catch (err) {
+    console.error('Usage record error:', err.message);
+  }
+}
+
 async function callClaude({ prompt, mode, documentBase64, documentMediaType }) {
   const API_KEY = process.env.ANTHROPIC_API_KEY;
-  const maxTokens = mode === 'document' ? 8000 : 2000;
+  const isHeavy = mode === 'document' || !!documentBase64;
+  const maxTokens = isHeavy ? 8000 : 2000;
+  const model = isHeavy ? HEAVY_MODEL : LIGHT_MODEL;
 
   let content;
   if (documentBase64 && documentMediaType) {
@@ -52,7 +99,7 @@ async function callClaude({ prompt, mode, documentBase64, documentMediaType }) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-5-5',
+        model,
         max_tokens: maxTokens,
         messages: [{ role: 'user', content }],
       }),
@@ -106,7 +153,15 @@ export default async function handler(request, response) {
       return response.status(400).json({ error: 'No prompt provided' });
     }
 
+    const usedToday = await getUsageToday(user.id);
+    if (usedToday !== null && usedToday >= DAILY_LIMIT) {
+      return response.status(429).json({ error: `You have reached today's AI limit (${DAILY_LIMIT} requests). It resets at midnight UTC.` });
+    }
+
     const result = await callClaude({ prompt, mode, documentBase64, documentMediaType });
+    if (result.text && usedToday !== null) {
+      await recordUsage(user.id, usedToday);
+    }
     if (!result.text) {
       console.error('Claude failed. Error:', result.error);
       return response.status(503).json({ error: 'AI is currently unavailable. Please try again in a moment.', debug: `Claude returned ${result.status || ''} ${result.detail || result.error}`.trim() });

@@ -1,6 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
+async function getAuthHeader() {
+  const { data } = await supabase.auth.getSession();
+  const token = data?.session?.access_token;
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
+
 const BLUE = '#0284C7';
 const BL = '#0A0A0A';
 const WH = '#FFFFFF';
@@ -111,7 +117,7 @@ This is follow-up question ${newProbeCount} of 2. Based on what they described, 
       try {
         const res = await fetch('/api/claude', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) },
           body: JSON.stringify({ prompt: probePrompt }),
         });
         if (!res.ok) throw new Error('API error');
@@ -204,7 +210,7 @@ Write EVERYTHING in full. Do not abbreviate any section. Every section must be s
       const timeout = setTimeout(() => controller.abort(), 90000);
       const res = await fetch('/api/claude', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) },
         body: JSON.stringify({ prompt: genPrompt, mode: 'document' }),
         signal: controller.signal,
       });
@@ -270,7 +276,7 @@ Rewrite the complete updated document in HTML (h1 for title, h2 for sections, p 
     try {
       const res = await fetch('/api/claude', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) },
         body: JSON.stringify({ prompt: updatePrompt, mode: 'document' }),
       });
       const result = await res.json();
