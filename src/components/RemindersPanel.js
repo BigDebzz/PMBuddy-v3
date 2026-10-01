@@ -48,22 +48,22 @@ export default function RemindersPanel({ project, onUpdate }) {
 <!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"></head>
-<body style="margin:0;padding:0;background:var(--surface-2);font-family:system-ui,-apple-system,sans-serif;">
-  <div style="max-width:560px;margin:40px auto;background:var(--surface);border-radius:12px;overflow:hidden;border:1px solid var(--border);">
-    <div style="background:var(--text);padding:24px 32px;">
-      <p style="margin:0;font-size:13px;font-weight:700;color:var(--accent-text);letter-spacing:0.1em;text-transform:uppercase;">PM Buddy</p>
+<body style="margin:0;padding:0;background:#F2EFEA;font-family:system-ui,-apple-system,sans-serif;">
+  <div style="max-width:560px;margin:40px auto;background:#FFFFFF;border-radius:12px;overflow:hidden;border:1px solid #E3DED7;">
+    <div style="background:#1E1919;padding:24px 32px;">
+      <p style="margin:0;font-size:13px;font-weight:700;color:#1F57F0;letter-spacing:0.1em;text-transform:uppercase;">PM Buddy</p>
     </div>
     <div style="padding:32px;">
-      <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:var(--accent-text);text-transform:uppercase;letter-spacing:0.1em;">Reminders Active</p>
-      <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:var(--text);">You are all set.</h1>
-      <p style="margin:0 0 16px;font-size:15px;color:var(--muted);line-height:1.7;">Reminders are now active for <strong style="color:var(--text);">${project.name}</strong>. You will receive:</p>
+      <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#1F57F0;text-transform:uppercase;letter-spacing:0.1em;">Reminders Active</p>
+      <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#1E1919;">You are all set.</h1>
+      <p style="margin:0 0 16px;font-size:15px;color:#5F5852;line-height:1.7;">Reminders are now active for <strong style="color:#1E1919;">${project.name}</strong>. You will receive:</p>
       <ul style="margin:0 0 24px;padding-left:20px;">
-        <li style="font-size:14px;color:var(--text-2);line-height:1.8;margin-bottom:4px;">A reminder 3 days before each milestone is due</li>
-        <li style="font-size:14px;color:var(--text-2);line-height:1.8;margin-bottom:4px;">A reminder on the day each milestone is due</li>
-        <li style="font-size:14px;color:var(--text-2);line-height:1.8;margin-bottom:4px;">A daily note when tasks are due today, due in 3 days, or overdue</li>
-        <li style="font-size:14px;color:var(--text-2);line-height:1.8;">A weekly summary every Monday with what is coming up</li>
+        <li style="font-size:14px;color:#3F3A36;line-height:1.8;margin-bottom:4px;">A reminder 3 days before each milestone is due</li>
+        <li style="font-size:14px;color:#3F3A36;line-height:1.8;margin-bottom:4px;">A reminder on the day each milestone is due</li>
+        <li style="font-size:14px;color:#3F3A36;line-height:1.8;margin-bottom:4px;">A daily note when tasks are due today, due in 3 days, or overdue</li>
+        <li style="font-size:14px;color:#3F3A36;line-height:1.8;">A weekly summary every Monday with what is coming up</li>
       </ul>
-      <a href="https://pmbuddy-v3.vercel.app" style="display:inline-block;background:var(--text);color:#ffffff;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;">Open PM Buddy</a>
+      <a href="https://pmbuddy-v3.vercel.app" style="display:inline-block;background:#1E1919;color:#ffffff;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;">Open PM Buddy</a>
     </div>
   </div>
 </body>

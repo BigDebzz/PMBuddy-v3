@@ -3,7 +3,7 @@
 Read this first in any new session, then the specific files you will change.
 
 ## What it is
-PM Buddy turns existing project documents into a structured project (milestones, tasks, risks, team, reports) for people who are not project managers. Built by Deborah Akpokighe (non-developer, works through Claude). Production: https://pmbuddy-v3.vercel.app
+PM Buddy turns existing project documents into a structured project (milestones, tasks, risks, team, reports) for people who are not project managers. Built by a non-developer working through Claude. Production: https://pmbuddy-v3.vercel.app
 
 ## Current focus
 - **Project management features are the priority.**

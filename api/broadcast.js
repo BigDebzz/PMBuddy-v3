@@ -7,9 +7,9 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
 
 const FROM_EMAIL = 'pmbuddy1@gmail.com';
-const FROM_NAME = 'Debbie from PM Buddy';
+const FROM_NAME = 'PM Buddy';
 
-// Only allow Deborah to trigger this
+// Only allow admins to trigger this
 const ALLOWED_EMAILS = ['akpodeborah@gmail.com', 'hello@pmbuddy.app'];
 
 async function verifyAuth(request) {

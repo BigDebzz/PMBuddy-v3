@@ -4,7 +4,7 @@ export const config = {
 
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const FROM_EMAIL = 'pmbuddy1@gmail.com';
-const FROM_NAME = 'Debbie from PM Buddy';
+const FROM_NAME = 'PM Buddy';
 
 export default async function handler(request, response) {
   if (request.method !== 'POST') {

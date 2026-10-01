@@ -8,19 +8,19 @@ const RULE = 'var(--border)';
 
 const DEFAULT_SUBJECT = 'We have been building something for you';
 
-const DEFAULT_BODY = `<p style="font-size:15px;color:var(--text-2);line-height:1.9;margin:0 0 16px;">
+const DEFAULT_BODY = `<p style="font-size:15px;color:#3F3A36;line-height:1.9;margin:0 0 16px;">
   It has been a while! While you were away, we have been building some things that I think will genuinely make managing your projects a lot easier.
 </p>
 
-<p style="font-size:15px;color:var(--text-2);line-height:1.9;margin:0 0 24px;">
+<p style="font-size:15px;color:#3F3A36;line-height:1.9;margin:0 0 24px;">
   Here is what is new on PM Buddy:
 </p>
 
 <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
   <tr>
-    <td style="background:var(--accent-tint);border-radius:10px;padding:18px 20px;">
-      <p style="font-size:14px;font-weight:800;color:var(--accent-text);margin:0 0 8px;">You no longer have to type everything in</p>
-      <p style="font-size:14px;color:var(--text-2);line-height:1.8;margin:0;">
+    <td style="background:#E9F0FE;border-radius:10px;padding:18px 20px;">
+      <p style="font-size:14px;font-weight:800;color:#1F57F0;margin:0 0 8px;">You no longer have to type everything in</p>
+      <p style="font-size:14px;color:#3F3A36;line-height:1.8;margin:0;">
         If you already have a project document, a proposal, a brief, or even something you wrote on Google Docs, just upload it. PM Buddy reads it and puts everything in the right place for you. Your milestones, your risks, your team, your timeline. No forms to fill.
       </p>
     </td>
@@ -29,37 +29,36 @@ const DEFAULT_BODY = `<p style="font-size:15px;color:var(--text-2);line-height:1
 
 <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
   <tr>
-    <td style="background:var(--ok-tint);border-radius:10px;padding:18px 20px;">
-      <p style="font-size:14px;font-weight:800;color:var(--ok-text);margin:0 0 8px;">Your project now has a proper task board</p>
-      <p style="font-size:14px;color:var(--text-2);line-height:1.8;margin:0;">
+    <td style="background:#E8F7EE;border-radius:10px;padding:18px 20px;">
+      <p style="font-size:14px;font-weight:800;color:#15803D;margin:0 0 8px;">Your project now has a proper task board</p>
+      <p style="font-size:14px;color:#3F3A36;line-height:1.8;margin:0;">
         You can now track your tasks on a board with To Do, In Progress, and Done. Your milestones show up on the board too so everything is in one place. You can flag blockers, add notes, and see what is overdue at a glance.
       </p>
     </td>
   </tr>
 </table>
 
-<p style="font-size:15px;color:var(--text-2);line-height:1.9;margin:0 0 24px;">
+<p style="font-size:15px;color:#3F3A36;line-height:1.9;margin:0 0 24px;">
   I built PM Buddy because I am a project manager myself and I kept seeing smart capable people running projects with no structure. Not because they did not care, but because the tools out there assumed you already knew how to manage projects. PM Buddy does not assume anything. You bring the project, it brings the structure.
 </p>
 
-<p style="font-size:15px;color:var(--text-2);line-height:1.9;margin:0 0 28px;">
+<p style="font-size:15px;color:#3F3A36;line-height:1.9;margin:0 0 28px;">
   Log in and give it a try. And if anything is confusing or broken, just reply to this email. It comes straight to me.
 </p>
 
 <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
   <tr>
     <td align="center">
-      <a href="https://pmbuddy-v3.vercel.app" style="display:inline-block;background:var(--text);color:#FFFFFF;font-size:14px;font-weight:700;padding:14px 32px;border-radius:8px;text-decoration:none;">
+      <a href="https://pmbuddy-v3.vercel.app" style="display:inline-block;background:#1E1919;color:#FFFFFF;font-size:14px;font-weight:700;padding:14px 32px;border-radius:8px;text-decoration:none;">
         Open PM Buddy
       </a>
     </td>
   </tr>
 </table>
 
-<p style="font-size:14px;color:var(--text-2);line-height:1.9;margin:0 0 4px;">Talk soon,</p>
-<p style="font-size:14px;font-weight:700;color:var(--text);margin:0;">
-  Debbie<br/>
-  <span style="font-weight:400;color:var(--muted);">PM Buddy</span>
+<p style="font-size:14px;color:#3F3A36;line-height:1.9;margin:0 0 4px;">Talk soon,</p>
+<p style="font-size:14px;font-weight:700;color:#1E1919;margin:0;">
+  The PM Buddy team
 </p>`;
 
 async function getAuthHeader() {

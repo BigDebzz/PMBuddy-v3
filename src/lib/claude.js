@@ -29,7 +29,7 @@ export async function deepAnalyze(mode, answers) {
     .map(([key, val]) => `${questionLabels[key] || key}: ${val}`)
     .join('\n\n');
 
-  const prompt = `You are a senior product manager and startup advisor with deep experience in African markets, specifically Nigeria. You are reviewing a ${mode === 'hackathon' ? 'hackathon project' : 'startup idea'} validation submission.
+  const prompt = `You are a senior product manager and startup advisor with deep experience in early-stage products and emerging markets. You are reviewing a ${mode === 'hackathon' ? 'hackathon project' : 'startup idea'} validation submission.
 
 Here are the founder's answers:
 

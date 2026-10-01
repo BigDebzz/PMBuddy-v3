@@ -368,7 +368,7 @@ Respond ONLY with raw JSON, no markdown, no code blocks:
 
               <label style={s.label}>What Is the Business or Awareness Goal? *</label>
               <div style={{ marginBottom: 20 }}>
-                <VoiceTextarea value={data.businessGoal} onChange={v => update('businessGoal', v)} placeholder="e.g. Increase product signups by 30%, build brand awareness among young professionals in Lagos, drive 500 people to the event" rows={3} />
+                <VoiceTextarea value={data.businessGoal} onChange={v => update('businessGoal', v)} placeholder="e.g. Increase product signups by 30%, build brand awareness among young professionals, drive 500 people to the event" rows={3} />
               </div>
 
               <label style={s.label}>What Is the Key Message? *</label>
@@ -433,7 +433,7 @@ Respond ONLY with raw JSON, no markdown, no code blocks:
 
               <label style={s.label}>Budget (if known)</label>
               <div style={{ marginBottom: 16 }}>
-                <VoiceInput value={data.budget} onChange={v => update('budget', v)} placeholder="e.g. NGN 500,000 or USD 2,000 — leave blank if not confirmed yet" />
+                <VoiceInput value={data.budget} onChange={v => update('budget', v)} placeholder="e.g. $2,000. Leave blank if not confirmed yet" />
               </div>
 
               <label style={s.label}>How Will You Measure Success?</label>

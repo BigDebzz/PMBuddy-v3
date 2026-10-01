@@ -49,7 +49,7 @@ export const hackathonQuestions = [
     question: 'What problem are you solving and who has it?',
     subtext: 'Describe the problem in plain language. Who experiences it and what does it cost them?',
     tooltip: 'A clear problem statement is the foundation of a good hackathon project. The more specific you are the better your feedback will be.',
-    placeholder: 'e.g. Market traders in Lagos have no way to track what they have sold. They spend 2 hours at the end of each day doing manual counts and still get it wrong.',
+    placeholder: 'e.g. Market traders have no way to track what they have sold. They spend 2 hours at the end of each day doing manual counts and still get it wrong.',
     required: true,
   },
   {
@@ -113,9 +113,9 @@ export const startupQuestions = [
     question: 'What problem are you solving and who has it?',
     subtext: 'Be specific. Name the type of person, the situation they are in, and what the problem costs them.',
     tooltip: 'The more specific your problem statement the better your validation feedback will be.',
-    placeholder: 'e.g. Independent pharmacy owners in Nigeria lose 15 to 20 percent of monthly revenue to stockouts and expired drugs because they manage inventory on paper.',
+    placeholder: 'e.g. Independent pharmacy owners lose 15 to 20 percent of monthly revenue to stockouts and expired drugs because they manage inventory on paper.',
     required: true,
-    bestPractice: 'Paystack identified one problem: Nigerian developers could not accept card payments online. They built only that. Stripe acquired them for 200 million dollars.',
+    bestPractice: 'Paystack identified one problem: developers could not accept card payments online. They built only that. Stripe acquired them for 200 million dollars.',
   },
   {
     id: 'startup_q2',
@@ -134,7 +134,7 @@ export const startupQuestions = [
     question: 'What are you building and how will you make money from it?',
     subtext: 'Describe your idea and name the price, the person paying, and why they would pay it.',
     tooltip: 'The earlier you get specific about who pays and how much the better every other decision becomes.',
-    placeholder: 'e.g. An inventory management app for pharmacies. Owners pay 5,000 NGN per month. We know this because we asked 12 owners and 8 said they would pay between 3,000 and 8,000 NGN.',
+    placeholder: 'e.g. An inventory management app for pharmacies. Owners pay $10 per month. We know this because we asked 12 owners and 8 said they would pay between $5 and $15.',
     required: true,
   },
   {

@@ -161,13 +161,13 @@ function getHackathonTools(a) {
 
   if (theme === 'fintech') {
     tools.themeSpecific = [
-      { name: 'Paystack', use: 'Accept payments in Nigeria. Integrate in minutes.', link: 'paystack.com', free: true },
-      { name: 'Flutterwave', use: 'Pan-African payment processing.', link: 'flutterwave.com', free: true },
+      { name: 'Paystack', use: 'Accept payments online. Integrate in minutes.', link: 'paystack.com', free: true },
+      { name: 'Flutterwave', use: 'Payment processing across many countries.', link: 'flutterwave.com', free: true },
     ];
   } else if (theme === 'health' || theme === 'agriculture') {
     tools.themeSpecific = [
       { name: 'Twilio', use: 'Send SMS and WhatsApp messages programmatically.', link: 'twilio.com', free: true },
-      { name: "Africa's Talking", use: 'USSD and SMS APIs that work on feature phones.', link: 'africastalking.com', free: true },
+      { name: 'Twilio', use: 'SMS and voice APIs for reaching customers on any phone.', link: 'twilio.com', free: true },
     ];
   } else if (theme === 'ai_ml') {
     tools.themeSpecific = [
@@ -193,7 +193,7 @@ function hackathonProofs(theme) {
       { name: 'Paystack', result: 'Acquired by Stripe for 200 million dollars', stage: 'success', lesson: 'Solved one problem for one group. Started focused and expanded only after dominating that niche.' },
     ],
     health: [
-      { name: 'mPharma', result: 'Operating in 8 African countries', stage: 'success', lesson: 'Started with one pharmacy in Ghana. Solved one problem completely before expanding.' },
+      { name: 'mPharma', result: 'Operating in 8 countries', stage: 'success', lesson: 'Started with one pharmacy. Solved one problem completely before expanding.' },
     ],
     default: [
       { name: 'GroupMe', result: 'Sold to Skype for 85 million dollars', stage: 'success', lesson: 'Built at a hackathon in 36 hours. Did one thing: group SMS. Nothing else.' },
@@ -324,7 +324,7 @@ function getStartupTools(a) {
 
   if (team === 'solo_notech' || team === 'team_no_tech') {
     tools.build = [
-      { name: 'Bubble', use: 'Build a full web app without code. Used by many Nigerian startups for MVPs.', link: 'bubble.io', free: true },
+      { name: 'Bubble', use: 'Build a full web app without code. Used by many startups for MVPs.', link: 'bubble.io', free: true },
       { name: 'Glide', use: 'Build a mobile app from a Google Sheet. Fastest path to a working mobile product.', link: 'glideapps.com', free: true },
     ];
   } else {
@@ -336,8 +336,8 @@ function getStartupTools(a) {
   }
 
   tools.payments = [
-    { name: 'Paystack', use: 'Accept card payments and bank transfers in Nigeria. 1.5 percent transaction fee.', link: 'paystack.com', free: true },
-    { name: 'Flutterwave', use: 'Accept payments across Africa. Good for multi-country products.', link: 'flutterwave.com', free: true },
+    { name: 'Paystack', use: 'Accept card payments and bank transfers. 1.5 percent transaction fee.', link: 'paystack.com', free: true },
+    { name: 'Flutterwave', use: 'Accept payments across many countries. Good for multi-country products.', link: 'flutterwave.com', free: true },
   ];
 
   tools.analytics = [
@@ -346,7 +346,7 @@ function getStartupTools(a) {
   ];
 
   tools.customer = [
-    { name: 'WhatsApp Business', use: 'Free customer support channel. Most Nigerian customers prefer WhatsApp over email.', link: 'business.whatsapp.com', free: true },
+    { name: 'WhatsApp Business', use: 'Free customer support channel. Many customers prefer WhatsApp over email.', link: 'business.whatsapp.com', free: true },
     { name: 'Typeform', use: 'Collect feedback with forms that feel like conversations.', link: 'typeform.com', free: true },
   ];
 
@@ -355,9 +355,9 @@ function getStartupTools(a) {
 
 function startupProofs() {
   return [
-    { name: 'Paystack', country: 'Nigeria', result: 'Acquired by Stripe for 200 million dollars', stage: 'success', lesson: 'Solved one precise problem for one specific group. Started focused and only expanded after dominating that niche.' },
-    { name: 'Piggyvest', country: 'Nigeria', result: '4 million users, profitable without VC until Series A', stage: 'success', lesson: 'Started as a WhatsApp savings group before any technology was built. Proved the behaviour existed before automating it.' },
-    { name: 'Flutterwave', country: 'Nigeria', result: '3 billion dollar valuation', stage: 'success', lesson: 'Founded by people who had worked inside the banks they were disrupting. Insider knowledge was the unfair advantage.' },
-    { name: 'Gokada', country: 'Nigeria', result: 'Forced to pivot after Lagos bike ban', stage: 'struggle', lesson: 'Great product but regulatory risk was not managed. A single government decision changed the business overnight. Always know your regulatory exposure.' },
+    { name: 'Paystack', result: 'Acquired by Stripe for 200 million dollars', stage: 'success', lesson: 'Solved one precise problem for one specific group. Started focused and only expanded after dominating that niche.' },
+    { name: 'Piggyvest', result: '4 million users, profitable without VC until Series A', stage: 'success', lesson: 'Started as a WhatsApp savings group before any technology was built. Proved the behaviour existed before automating it.' },
+    { name: 'Flutterwave', result: '3 billion dollar valuation', stage: 'success', lesson: 'Founded by people who had worked inside the banks they were disrupting. Insider knowledge was the unfair advantage.' },
+    { name: 'Gokada', result: 'Forced to pivot after a city-wide bike ban', stage: 'struggle', lesson: 'Great product but regulatory risk was not managed. A single government decision changed the business overnight. Always know your regulatory exposure.' },
   ];
 }
