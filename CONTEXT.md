@@ -9,6 +9,9 @@ PM Buddy turns existing project documents into a structured project (milestones,
 - **Project management features are the priority.**
 - **QuickDoc is on hold.** Do not spend time on it. Its code stays in `src/components/QuickDoc.js`.
 
+## Design
+- `DESIGN.md` (rules) and `BrandGuidelines.md` (values) define the interface. Read `DESIGN.md` before any UI change, use CSS variables only, and restyle one screen at a time. When a mistake repeats, add a rule to the Drift log in `DESIGN.md`.
+
 ## Stack
 - React 18, Create React App (`npm run build` outputs `build/`)
 - Supabase: auth, database (client in `src/lib/supabase.js`)
