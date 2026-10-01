@@ -60,6 +60,7 @@ export default function RemindersPanel({ project, onUpdate }) {
       <ul style="margin:0 0 24px;padding-left:20px;">
         <li style="font-size:14px;color:#374151;line-height:1.8;margin-bottom:4px;">A reminder 3 days before each milestone is due</li>
         <li style="font-size:14px;color:#374151;line-height:1.8;margin-bottom:4px;">A reminder on the day each milestone is due</li>
+        <li style="font-size:14px;color:#374151;line-height:1.8;margin-bottom:4px;">A daily note when tasks are due today, due in 3 days, or overdue</li>
         <li style="font-size:14px;color:#374151;line-height:1.8;">A weekly summary every Monday with what is coming up</li>
       </ul>
       <a href="https://pmbuddy-v3.vercel.app" style="display:inline-block;background:#0A0A0A;color:#ffffff;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;">Open PM Buddy</a>
@@ -80,8 +81,8 @@ export default function RemindersPanel({ project, onUpdate }) {
     <div style={s.wrap}>
       <div style={s.header}>
         <div>
-          <h3 style={s.title}>Milestone Reminders</h3>
-          <p style={s.sub}>Get email reminders 3 days before milestones are due, on the day they are due and a weekly summary every Monday.</p>
+          <h3 style={s.title}>Milestone and Task Reminders</h3>
+          <p style={s.sub}>Get email reminders before milestones are due, a daily note when tasks are due or overdue, and a weekly summary every Monday.</p>
         </div>
         <button
           style={{ ...s.toggle, background: enabled ? BLUE : '#E5E7EB' }}
@@ -109,6 +110,7 @@ export default function RemindersPanel({ project, onUpdate }) {
             {[
               '3 days before each milestone — a heads up to prepare',
               'On the day each milestone is due — a final reminder',
+              'Each morning — tasks due today, due in 3 days, or overdue',
               'Every Monday morning — a summary of what is coming up this week',
             ].map((item, i) => (
               <div key={i} style={s.whatItem}>

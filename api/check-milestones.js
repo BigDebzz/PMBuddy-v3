@@ -159,6 +159,66 @@ function buildWeeklyEmail(project, upcomingMilestones) {
 </html>`;
 }
 
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+
+// Sorts a project's open tasks into overdue / due today / due in 3 days.
+// Overdue tasks stop appearing after 14 days so old tasks do not nag forever.
+export function collectTaskReminders(tasks, today) {
+  const groups = { overdue: [], today: [], soon: [] };
+  for (const task of tasks || []) {
+    if (!task || task.status === 'done' || !task.dueDate) continue;
+    const [y, mo, d] = String(task.dueDate).slice(0, 10).split('-').map(Number);
+    const due = new Date(y, (mo || 1) - 1, d || 1);
+    if (!y || Number.isNaN(due.getTime())) continue;
+    const daysUntil = Math.round((due - today) / 86400000);
+    if (daysUntil < 0 && daysUntil >= -14) groups.overdue.push({ ...task, daysUntil });
+    else if (daysUntil === 0) groups.today.push({ ...task, daysUntil });
+    else if (daysUntil === 3) groups.soon.push({ ...task, daysUntil });
+  }
+  return groups;
+}
+
+function buildTaskDigestEmail(project, groups) {
+  const section = (title, color, tasks) => {
+    if (tasks.length === 0) return '';
+    const rows = tasks.map(t => {
+      const when = t.daysUntil < 0 ? `${Math.abs(t.daysUntil)} day${t.daysUntil === -1 ? '' : 's'} overdue` : t.daysUntil === 0 ? 'Due today' : 'Due in 3 days';
+      const who = t.assignee ? ` &middot; ${escapeHtml(t.assignee)}` : '';
+      return `<tr>
+        <td style="padding:10px 14px;font-size:14px;color:#2B2A28;border-bottom:1px solid #E7E2DA;">${escapeHtml(t.title)}</td>
+        <td style="padding:10px 14px;font-size:13px;color:${color};font-weight:600;border-bottom:1px solid #E7E2DA;white-space:nowrap;">${when}${who}</td>
+      </tr>`;
+    }).join('');
+    return `<p style="margin:24px 0 8px;font-size:12px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:0.08em;">${title}</p>
+      <table style="width:100%;border-collapse:collapse;">${rows}</table>`;
+  };
+
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#FAF8F5;font-family:system-ui,-apple-system,sans-serif;">
+  <div style="max-width:560px;margin:40px auto;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #E7E2DA;">
+    <div style="background:#35709A;padding:20px 32px;">
+      <p style="margin:0;font-size:13px;font-weight:700;color:#ffffff;letter-spacing:0.1em;text-transform:uppercase;">PM Buddy</p>
+    </div>
+    <div style="padding:32px;">
+      <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#2B2A28;">A few tasks need you.</h1>
+      <p style="margin:0;font-size:15px;color:#6B665F;line-height:1.6;">Here is what needs attention on <strong style="color:#2B2A28;">${escapeHtml(project.name)}</strong>.</p>
+      ${section('Overdue', '#DC2626', groups.overdue)}
+      ${section('Due today', '#D97706', groups.today)}
+      ${section('Coming up', '#35709A', groups.soon)}
+      <p style="margin:28px 0 0;"><a href="https://pmbuddy-v3.vercel.app" style="display:inline-block;background:#35709A;color:#ffffff;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;">Open PM Buddy</a></p>
+    </div>
+    <div style="padding:20px 32px;border-top:1px solid #E7E2DA;">
+      <p style="margin:0;font-size:12px;color:#6B665F;">You get this because task reminders are on for this project. Mark tasks done in PM Buddy and they stop appearing here.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
 export default async function handler(request, response) {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !BREVO_API_KEY) {
     return response.status(500).json({ error: 'Missing environment variables' });
@@ -170,7 +230,7 @@ export default async function handler(request, response) {
     const isMonday = today.getDay() === 1;
 
     const projects = await supabaseQuery(
-      `pm_projects?select=id,name,milestones,reminders,status,timeline,owner_email&status=eq.active`,
+      `pm_projects?select=id,name,milestones,tasks,reminders,status,timeline,owner_email&status=eq.active`,
       { method: 'GET' }
     );
 
@@ -221,6 +281,15 @@ export default async function handler(request, response) {
           const sent = await sendEmail(emails, subject, html);
           results.push({ type: 'timeline', project: project.name, daysUntilEnd, recipients: emails.length, sent });
         }
+      }
+
+      // ── Task reminders (one digest per project per day) ──────────
+      const taskGroups = collectTaskReminders(project.tasks, today);
+      if (taskGroups.overdue.length + taskGroups.today.length + taskGroups.soon.length > 0) {
+        const total = taskGroups.overdue.length + taskGroups.today.length + taskGroups.soon.length;
+        const subject = `${total} task${total === 1 ? '' : 's'} need attention: ${project.name}`;
+        const sent = await sendEmail(emails, subject, buildTaskDigestEmail(project, taskGroups));
+        results.push({ type: 'tasks', project: project.name, tasks: total, recipients: emails.length, sent });
       }
 
       // ── Weekly summary (Mondays only) ────────────────────────────
