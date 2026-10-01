@@ -44,7 +44,7 @@ Answer honest questions about your idea and get a detailed report with a score, 
 |---|---|
 | Frontend | React 18 (Create React App) |
 | Backend / DB | Supabase (auth, database, storage) |
-| AI | Google Gemini API |
+| AI | Anthropic Claude API (Sonnet for documents, Haiku for small tasks) |
 | Email | Brevo (transactional + newsletter) |
 | Hosting | Vercel |
 | PWA | Service worker + Web App Manifest |
@@ -56,7 +56,7 @@ Answer honest questions about your idea and get a detailed report with a score, 
 ```
 PMBuddy-v3/
 ├── api/
-│   ├── gemini.js              # AI text generation (Gemini API)
+│   ├── claude.js              # AI text generation (Claude API), model tiers + daily limit
 │   ├── broadcast.js           # Newsletter broadcast to all users
 │   ├── invite.js              # Team invite emails
 │   ├── notify.js              # Project notifications
@@ -94,7 +94,7 @@ PMBuddy-v3/
 │   │   └── analysis.js            # Validation scoring logic
 │   └── lib/
 │       ├── supabase.js            # Supabase client
-│       ├── gemini.js              # Gemini wrapper (validation)
+│       ├── claude.js              # Claude wrapper (validation)
 │       ├── analytics.js           # Event tracking
 │       └── icons.js               # Icon components
 ├── CONTEXT.md                     # Full project context (read before building)
@@ -110,7 +110,8 @@ Set these in Vercel (Settings → Environment Variables):
 
 | Variable | Description |
 |---|---|
-| `GEMINI_API_KEY` | Google Gemini API key |
+| `ANTHROPIC_API_KEY` | Anthropic Claude API key |
+| `AI_DAILY_LIMIT` | Optional. AI requests per user per day (default 20) |
 | `SUPABASE_URL` | Supabase project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key |
 | `BREVO_API_KEY` | Brevo email API key |
@@ -137,6 +138,8 @@ All new work goes to `dev`. Test on the Vercel preview URL. Merge to `main` when
 | `documents` | Generated PM plans, reports, quick docs |
 | `project_members` | Team invites and roles |
 | `feedback` | In-app feedback submissions |
+| `chat_messages` | PM Buddy Assistant chat history |
+| `ai_usage` | Per-user daily AI request counts (enforces `AI_DAILY_LIMIT`) |
 
 ---
 
