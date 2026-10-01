@@ -291,7 +291,7 @@ export default function LandingScreen({ onSelectMode, onSignup, onDashboard, use
   const gets = [
     { icon: 'board', title: 'Your plan, organised', body: 'Tasks, milestones and risks on one board your whole team understands.' },
     { icon: 'bell', title: 'Reminders that keep you on track', body: 'One email each morning, only when something needs your attention.' },
-    { icon: 'download', title: 'Reports in one click', body: 'Progress and funder reports from your live project, ready as Word or PDF.' },
+    { icon: 'download', title: 'Reports in one click', body: 'Team updates, funder reports and investor updates from your live project, ready as Word or PDF.' },
   ];
 
   return (
