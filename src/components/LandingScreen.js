@@ -35,7 +35,7 @@ function Chip({ tone, icon, children }) {
     none: { background: 'var(--surface-2)', color: 'var(--text-2)' },
   };
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 700, padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap', ...(tones[tone] || tones.none) }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, padding: '3px 9px', borderRadius: 999, whiteSpace: 'nowrap', ...(tones[tone] || tones.none) }}>
       {icon && <Icon name={icon} size={14} />}{children}
     </span>
   );
@@ -70,7 +70,7 @@ function BoardView() {
           {col.cards.map(c => (
             <div key={c.t} style={s.kcard}>
               <span>{c.t}</span>
-              <div style={s.rowBetween}>
+              <div style={s.cardRow}>
                 <Chip tone={c.tone} icon={c.tone === 'ok' ? 'check-circle' : 'clock'}>{c.due}</Chip>
                 <Avatar tone={c.who[0]}>{c.who[1]}</Avatar>
               </div>
@@ -154,12 +154,6 @@ function HeroWindow() {
         {tab === 'list' && <ListView />}
         {tab === 'remind' && <RemindView />}
       </div>
-      <div className="lp-phone" style={s.phone} aria-hidden="true">
-        <b style={{ fontSize: 16 }}>Today</b>
-        {[['alert', 'Book venue'], ['clock', 'Confirm volunteers'], ['check-circle', 'Funder update']].map(r => (
-          <div key={r[1]} style={s.phoneRow}><Icon name={r[0]} size={16} style={{ color: 'var(--accent-text)' }} />{r[1]}</div>
-        ))}
-      </div>
     </div>
   );
 }
@@ -197,11 +191,6 @@ function Tour() {
   const done = tasks.filter(t => t.c === 2).length;
   const pct = Math.round((done / tasks.length) * 100);
   const steps = ['Drop', 'Read', 'Run'];
-  const captions = [
-    'Step 1 of 3. This is the first thing a new user sees.',
-    'Step 2 of 3. PM Buddy reads the document and pulls out what matters.',
-    'Step 3 of 3. The project is ready. Click a task to move it forward.',
-  ];
 
   return (
     <div style={s.tour}>
@@ -223,7 +212,7 @@ function Tour() {
             <div style={s.dropzone}>
               <Icon name="upload" size={36} style={{ color: 'var(--accent-text)' }} />
               <h4 style={{ fontSize: 'clamp(19px, 2.4vw, 22px)', fontWeight: 700 }}>Drop a plan, proposal or brief here</h4>
-              <p style={{ color: 'var(--muted)', fontSize: 16 }}>PDF, Word, Excel or pasted text. No forms to fill in.</p>
+              <p style={{ color: 'var(--muted)', fontSize: 15 }}>PDF, Word, Excel or text.</p>
             </div>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
               <span style={{ position: 'relative', display: 'inline-flex' }}>
@@ -291,14 +280,14 @@ function Tour() {
               </div>
             </div>
             <div style={s.coach}>
-              <span>Everything here came from one document. In the real app you can edit any of it.</span>
+              <span>All of this came from one document.</span>
               <button type="button" className="lp-btn lp-btn-ghost" style={{ width: 'auto', padding: '10px 20px' }} onClick={() => go(0)}>Replay tour</button>
             </div>
           </div>
         )}
       </div>
       <div style={s.tourFoot}>
-        <span>{captions[step]}</span>
+        <span>Step {step + 1} of 3</span>
         <span>Sample data. Nothing is saved.</span>
       </div>
     </div>
@@ -306,46 +295,32 @@ function Tour() {
 }
 
 export default function LandingScreen({ onSelectMode, onSignup, onDashboard, user }) {
-  const [activeWho, setActiveWho] = useState(0);
   const handleSelect = (modeId) => { Analytics.modeSelected(modeId); onSelectMode(modeId); };
   const start = user ? onDashboard : onSignup;
   const scrollTo = (id) => { const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: 'smooth' }); };
 
-  const whoCards = [
-    { label: 'Startup founders', outcome: 'Ship without falling apart', body: 'You are building fast and things keep slipping. PM Buddy keeps your team aligned, your timeline real and your risks visible before they become problems.' },
-    { label: 'Solo builders', outcome: 'Build like a team of ten', body: 'No co-founder. No PM. No problem. PM Buddy gives you the structure that turns a solo effort into a professional project.' },
-    { label: 'Non-technical founders', outcome: 'Lead your team with confidence', body: 'You do not need to understand code to run a project well. PM Buddy puts you in control without the jargon.' },
-    { label: 'Corporate teams', outcome: 'Get everyone on the same page', body: 'Multiple people, multiple opinions, one goal. PM Buddy gives your team clarity on who owns what, what is due and how to communicate.' },
-  ];
   const features = [
-    { icon: 'file', title: 'Starts from your document', body: 'Upload a plan, proposal or brief. PM Buddy finds the goal, steps, risks and people.' },
-    { icon: 'board', title: 'A board your team understands', body: 'Tasks and milestones on one board. Flag blockers, add notes and move things with one click.' },
-    { icon: 'bell', title: 'Reminders that nudge', body: 'A daily note when tasks are due, due soon or overdue. Nothing slips quietly.' },
-    { icon: 'chart', title: 'A health check in plain English', body: 'A score out of 100 and exactly what is missing, with how to fix it.' },
-    { icon: 'download', title: 'Reports in one click', body: 'Progress updates, funder reports and plans from your live data, as Word or PDF.' },
-    { icon: 'spark', title: 'Ask PM Buddy anything', body: 'Stuck on a risk or a message to your team? Ask in plain words and get a real answer.' },
+    { icon: 'file', title: 'Starts from your document', body: 'Upload a plan. Get a project.' },
+    { icon: 'board', title: 'A simple board', body: 'Move tasks with one click.' },
+    { icon: 'bell', title: 'Reminders that nudge', body: 'Nothing slips quietly.' },
+    { icon: 'chart', title: 'A health check', body: 'A score and what to fix.' },
+    { icon: 'download', title: 'One-click reports', body: 'Word or PDF, from live data.' },
+    { icon: 'spark', title: 'Ask PM Buddy', body: 'Plain answers when you are stuck.' },
   ];
 
   return (
     <div style={s.page}>
 
-      {/* HERO */}
       <div style={s.rainbow} />
       <div style={s.section}>
         <div className="lp-hero" style={s.inner}>
           <div>
             <h1 style={s.h1}>Get your project out of your head and onto one screen.</h1>
-            <p style={s.sub}>PM Buddy reads the plan you already have and sets up the milestones, tasks, risks and reminders for you.</p>
+            <p style={s.sub}>PM Buddy reads your plan and sets up the milestones, tasks and reminders.</p>
             <div style={s.ctas}>
               <button type="button" className="lp-btn lp-btn-primary" onClick={start}>{user ? 'Go to my projects' : 'Try PM Buddy free'} <Icon name="arrow-right" size={18} /></button>
               <button type="button" className="lp-btn lp-btn-ghost" onClick={() => scrollTo('tour')}>See a sample project</button>
             </div>
-            {!user && (
-              <p style={s.note}>
-                Not sure your idea is worth building?{' '}
-                <button type="button" style={s.link} onClick={() => handleSelect('startup')}>Validate it first, it is free</button>
-              </p>
-            )}
           </div>
           <HeroWindow />
         </div>
@@ -353,104 +328,68 @@ export default function LandingScreen({ onSelectMode, onSignup, onDashboard, use
 
       <div style={{ ...s.inner, padding: '0 24px' }}>
         <div className="lp-cells">
-          {[['1 document', 'in. Plan, proposal or brief.'], ['6 tasks', 'out, ready to assign.'], ['Every day', 'a nudge for what is due.'], ['1 click', 'to a progress or funder report.']].map(c => (
+          {[['1 document', 'in'], ['6 tasks', 'out'], ['Daily', 'reminders'], ['1 click', 'reports']].map(c => (
             <div key={c[0]} className="lp-cell">
-              <div style={{ fontFamily: 'var(--font-head)', fontSize: 'clamp(20px, 2.6vw, 28px)', fontWeight: 700, letterSpacing: '-0.03em' }}>{c[0]}</div>
+              <div style={{ fontFamily: 'var(--font-head)', fontSize: 'clamp(20px, 2.2vw, 26px)', fontWeight: 700, letterSpacing: '-0.03em' }}>{c[0]}</div>
               <div style={{ color: 'var(--muted)', fontSize: 15 }}>{c[1]}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* TOUR */}
       <div id="tour" style={s.section}>
         <div style={s.inner}>
-          <Reveal>
-            <h2 style={s.h2}>Drop in a document. Watch your project appear.</h2>
-            <p style={{ ...s.sub, marginTop: 16, marginBottom: 40 }}>Try it with a sample plan. No sign-up, nothing to install.</p>
-          </Reveal>
+          <Reveal><h2 style={{ ...s.h2, marginBottom: 32 }}>Try it. Drop in a plan.</h2></Reveal>
           <Tour />
         </div>
       </div>
 
-      {/* FEATURES */}
       <div style={s.section}>
         <div style={s.inner}>
-          <Reveal>
-            <h2 style={s.h2}>The tools a project manager would use, in words anyone understands.</h2>
-          </Reveal>
-          <div className="lp-grid" style={{ marginTop: 44 }}>
+          <Reveal><h2 style={s.h2}>Everything a project manager would use.</h2></Reveal>
+          <div className="lp-grid" style={{ marginTop: 40 }}>
             {features.map(f => (
               <div key={f.title} className="lp-feat">
-                <span style={s.featIcon}><Icon name={f.icon} size={22} /></span>
-                <h3 style={{ fontSize: 'clamp(18px, 2vw, 21px)', fontWeight: 700, margin: '16px 0 6px' }}>{f.title}</h3>
-                <p style={{ color: 'var(--muted)', fontSize: 'clamp(15px, 1.5vw, 16px)', lineHeight: 1.55 }}>{f.body}</p>
+                <span style={s.featIcon}><Icon name={f.icon} size={20} /></span>
+                <h3 style={{ fontSize: 'clamp(16px, 1.5vw, 18px)', fontWeight: 700, margin: '16px 0 4px' }}>{f.title}</h3>
+                <p style={{ color: 'var(--muted)', fontSize: 15, lineHeight: 1.5 }}>{f.body}</p>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* WHO */}
-      <div style={s.section}>
-        <div style={s.inner}>
-          <Reveal><h2 style={s.h2}>Built for every kind of builder.</h2></Reveal>
-          <div className="lp-who" style={{ marginTop: 40 }}>
-            <div style={{ display: 'grid', gap: 10 }}>
-              {whoCards.map((w, i) => (
-                <button key={w.label} type="button" onClick={() => setActiveWho(i)}
-                  style={{ ...s.whoTab, ...(activeWho === i ? s.whoOn : null) }}>{w.label}</button>
-              ))}
-            </div>
-            <div style={s.whoCard}>
-              <h3 style={{ fontSize: 'clamp(21px, 2.6vw, 28px)', fontWeight: 700, color: 'var(--accent-text)' }}>{whoCards[activeWho].outcome}</h3>
-              <p style={{ color: 'var(--muted)', fontSize: 'clamp(15px, 1.5vw, 17px)', lineHeight: 1.6, margin: '12px 0 22px' }}>{whoCards[activeWho].body}</p>
-              <button type="button" className="lp-btn lp-btn-primary" style={{ width: 'auto' }} onClick={start}>{user ? 'Go to my projects' : 'Get started'}</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* VALIDATION */}
       <div style={{ ...s.section, paddingTop: 0 }}>
         <div style={s.inner}>
           <div style={s.valid}>
-            <div style={{ flex: 1, minWidth: 260 }}>
-              <h3 style={{ fontSize: 'clamp(21px, 2.8vw, 30px)', fontWeight: 700, marginBottom: 10 }}>Check your idea before you commit to building it.</h3>
-              <p style={{ color: 'var(--muted)', fontSize: 'clamp(15px, 1.5vw, 17px)', lineHeight: 1.6, maxWidth: 560 }}>Answer honest questions and get a report on what is strong, what is missing and what to do next. It takes about 10 minutes.</p>
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 22 }}>
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <h3 style={{ fontSize: 'clamp(20px, 2.4vw, 28px)', fontWeight: 700, marginBottom: 20 }}>Not sure your idea is worth building?</h3>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 <button type="button" className="lp-btn lp-btn-primary" style={{ width: 'auto' }} onClick={() => handleSelect('startup')}>Validate a startup idea</button>
                 <button type="button" className="lp-btn lp-btn-ghost" style={{ width: 'auto' }} onClick={() => handleSelect('hackathon')}>Validate a hackathon idea</button>
               </div>
             </div>
             <div style={s.free}>
-              <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--muted)' }}>Always</span>
-              <span style={{ fontFamily: 'var(--font-head)', fontSize: 'clamp(40px, 5vw, 52px)', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1.05, color: 'var(--accent-text)' }}>Free</span>
-              <span style={{ fontSize: 16, color: 'var(--muted)' }}>No account needed</span>
+              <span style={{ fontFamily: 'var(--font-head)', fontSize: 'clamp(32px, 4vw, 44px)', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1.05, color: 'var(--accent-text)' }}>Free</span>
+              <span style={{ fontSize: 15, color: 'var(--muted)' }}>No account needed</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* FINAL CTA */}
       <div style={{ ...s.section, paddingTop: 0 }}>
         <div style={s.inner}>
           <div className="lp-sky" style={s.finalCta}>
-            <h2 style={{ ...s.h2, color: 'var(--text)', maxWidth: 640 }}>Start running your project like a professional.</h2>
-            <p style={{ ...s.sub, margin: '16px 0 28px', color: 'var(--text-2)' }}>The thinking, structure and tools of a project manager, without the cost of hiring one.</p>
+            <h2 style={{ ...s.h2, color: 'var(--text)', maxWidth: 560, marginBottom: 28 }}>Start running your project like a pro.</h2>
             <button type="button" className="lp-btn lp-btn-primary" style={{ width: 'auto' }} onClick={start}>{user ? 'Go to my projects' : 'Create your account'} <Icon name="arrow-right" size={18} /></button>
           </div>
         </div>
       </div>
 
-      {/* FOOTER */}
       <div style={s.footer}>
-        <div style={{ ...s.inner, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 20 }}>
-          <div>
-            <p style={{ fontFamily: 'var(--font-head)', fontSize: 20, fontWeight: 800, letterSpacing: '-0.03em' }}>PM Buddy</p>
-            <p style={{ color: 'var(--muted)', fontSize: 16, maxWidth: 380, marginTop: 6 }}>Think, plan and execute like a professional PM, without being one.</p>
-          </div>
-          <div style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ ...s.inner, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+          <p style={{ fontFamily: 'var(--font-head)', fontSize: 18, fontWeight: 800, letterSpacing: '-0.03em' }}>PM Buddy</p>
+          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
             <a href="/about.html" style={s.footLink}>About</a>
             <a href="/privacy.html" style={s.footLink}>Privacy</a>
             <a href="/terms.html" style={s.footLink}>Terms</a>
@@ -466,23 +405,24 @@ const s = {
   rainbow: { height: 4, background: 'var(--rainbow)' },
   section: { padding: 'clamp(64px, 9vw, 104px) 24px' },
   inner: { maxWidth: 1200, margin: '0 auto' },
-  h1: { fontSize: 'clamp(27px, 4.6vw, 56px)', lineHeight: 1.06, fontWeight: 600, letterSpacing: '-0.04em', margin: '0 0 22px' },
-  h2: { fontSize: 'clamp(23px, 3.4vw, 40px)', lineHeight: 1.1, fontWeight: 700, letterSpacing: '-0.035em', maxWidth: 780 },
-  sub: { fontSize: 'clamp(16px, 1.6vw, 18px)', lineHeight: 1.7, color: 'var(--muted)', maxWidth: 540 },
+  h1: { fontSize: 'clamp(26px, 3.6vw, 46px)', lineHeight: 1.08, fontWeight: 600, letterSpacing: '-0.04em', margin: '0 0 22px' },
+  h2: { fontSize: 'clamp(22px, 2.8vw, 34px)', lineHeight: 1.12, fontWeight: 700, letterSpacing: '-0.035em', maxWidth: 780 },
+  sub: { fontSize: 'clamp(15px, 1.4vw, 17px)', lineHeight: 1.65, color: 'var(--muted)', maxWidth: 540 },
   ctas: { display: 'flex', gap: 14, flexWrap: 'wrap', margin: '32px 0 28px' },
   note: { fontSize: 16, color: 'var(--muted)' },
   link: { background: 'none', border: 'none', padding: 0, color: 'var(--accent-text)', fontWeight: 700, textDecoration: 'underline', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' },
 
-  heroVis: { position: 'relative', borderRadius: 26, padding: '30px 22px 58px' },
-  tabs: { display: 'inline-flex', gap: 4, padding: 5, background: 'rgba(15, 25, 50, 0.82)', borderRadius: 999, marginBottom: 18 },
-  tab: { border: 0, background: 'none', color: '#E8EEF9', fontWeight: 600, fontSize: 15, padding: '9px 18px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit' },
+  heroVis: { position: 'relative', borderRadius: 26, padding: '26px 22px 26px' },
+  tabs: { display: 'inline-flex', gap: 4, padding: 5, background: 'rgba(15, 25, 50, 0.82)', borderRadius: 999, marginBottom: 16 },
+  tab: { border: 0, background: 'none', color: '#E8EEF9', fontWeight: 600, fontSize: 14, padding: '8px 16px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit' },
   tabOn: { background: '#FFFFFF', color: '#0B1A33' },
   win: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, boxShadow: 'var(--shadow-lg)', overflow: 'hidden' },
   winBar: { display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 16 },
   dotI: { width: 11, height: 11, borderRadius: '50%', background: 'var(--surface-3)', display: 'inline-block' },
   col: { background: 'var(--surface-2)', borderRadius: 14, padding: 12, display: 'grid', gap: 10, alignContent: 'start' },
   colHead: { display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 700, color: 'var(--muted)' },
-  kcard: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 14px', fontWeight: 600, fontSize: 15, lineHeight: 1.35, display: 'grid', gap: 10 },
+  kcard: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 14px', fontWeight: 600, fontSize: 14, lineHeight: 1.35, display: 'grid', gap: 10, alignContent: 'space-between', minHeight: 92 },
+  cardRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   rowBetween: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' },
   th: { textAlign: 'left', padding: '10px 12px', fontSize: 14, fontWeight: 700, color: 'var(--muted)', borderBottom: '1px solid var(--border)' },
   td: { padding: '12px', borderBottom: '1px solid var(--border)', verticalAlign: 'middle' },

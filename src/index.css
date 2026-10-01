@@ -203,7 +203,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .lp-kan { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .lp-who { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 32px; align-items: start; }
 
-.lp-btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 14px 26px; border-radius: 999px; font-size: 17px; font-weight: 700; font-family: inherit; cursor: pointer; border: 1.5px solid transparent; transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease; }
+.lp-btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 12px 22px; border-radius: 999px; font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer; border: 1.5px solid transparent; transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease; }
 .lp-btn:hover { transform: translateY(-2px); }
 .lp-btn-primary { background: var(--accent); color: #FFFFFF; box-shadow: 0 10px 24px -10px var(--accent); }
 .lp-btn-primary:hover { background: var(--accent-hover); }
