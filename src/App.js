@@ -110,6 +110,16 @@ export default function App() {
   useEffect(() => { answersRef.current = answers; }, [answers]);
   useEffect(() => { analysisRef.current = analysis; }, [analysis]);
 
+  // Remember which project is open in this tab, so a reload or a returning tab puts you back where you were.
+  const prevScreen = useRef(screen);
+  useEffect(() => {
+    try {
+      if (screen === S.PROJECT_OPEN && activeProject?.id) sessionStorage.setItem('pmb-open-project', String(activeProject.id));
+      else if (prevScreen.current === S.PROJECT_OPEN) sessionStorage.removeItem('pmb-open-project');
+    } catch (e) { /* storage can be unavailable */ }
+    prevScreen.current = screen;
+  }, [screen, activeProject]);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('invite');
@@ -164,6 +174,16 @@ export default function App() {
         if (pendingToken) {
           loadInvite(pendingToken);
         } else {
+          let savedId = null;
+          try { savedId = sessionStorage.getItem('pmb-open-project'); } catch (e) { savedId = null; }
+          if (savedId) {
+            const { data: saved } = await supabase.from('pm_projects').select('*').eq('id', savedId).single();
+            if (saved) {
+              setActiveProject({ ...saved, _currentUser: session.user });
+              setScreen(S.PROJECT_OPEN);
+              return;
+            }
+          }
           setScreen(S.DASHBOARD);
         }
       } else if (pendingToken) {
@@ -177,7 +197,8 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user && _event === 'SIGNED_IN') {
         setUser(session.user);
-        setScreen(prev => prev === S.INVITE ? S.INVITE : S.DASHBOARD);
+        // Only move to the dashboard from the home or login screens. Coming back to the tab re-sends SIGNED_IN and must not reset where you were.
+        setScreen(prev => (prev === S.LAND || prev === S.AUTH ? S.DASHBOARD : prev));
       }
       if (session?.user && _event === 'TOKEN_REFRESHED') {
         // Only update user token silently — do not change the screen
