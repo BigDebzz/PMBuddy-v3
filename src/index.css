@@ -238,9 +238,23 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 
 /* ---- Phone sizing ---- */
 @media (max-width: 640px) {
-  #root { zoom: 0.94; }
   .nav-logo-text { font-size: 18px !important; white-space: nowrap; }
   .nav-cta { padding: 8px 14px !important; font-size: 14px !important; white-space: nowrap; }
   .theme-toggle button { padding: 6px 8px !important; }
   .lp-btn { padding: 12px 20px !important; font-size: 15px !important; }
+}
+
+/* ---- Room to breathe on phones ---- */
+@media (max-width: 960px) {
+  .lp-phone { display: none !important; }
+  .lp-herovis { padding-bottom: 28px !important; }
+}
+@media (max-width: 640px) {
+  .lp-hero { gap: 40px !important; }
+  .lp-herovis { padding: 22px 16px 24px !important; }
+  .lp-herovis .lp-kan > div:not(:nth-child(2)) { display: none !important; }
+  .lp-cell { padding: 22px 20px; }
+  .lp-feat { padding: 28px 24px; }
+  .lp-kan { gap: 16px; }
+  body { line-height: 1.65; }
 }

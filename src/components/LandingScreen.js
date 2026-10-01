@@ -137,7 +137,7 @@ function HeroWindow() {
   const [tab, setTab] = useState('board');
   const tabs = [['board', 'Board'], ['list', 'List'], ['remind', 'Reminders']];
   return (
-    <div className="lp-sky" style={s.heroVis}>
+    <div className="lp-sky lp-herovis" style={s.heroVis}>
       <div role="tablist" aria-label="Product views" style={s.tabs}>
         {tabs.map(([id, label]) => (
           <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)}
@@ -154,7 +154,7 @@ function HeroWindow() {
         {tab === 'list' && <ListView />}
         {tab === 'remind' && <RemindView />}
       </div>
-      <div style={s.phone} aria-hidden="true">
+      <div className="lp-phone" style={s.phone} aria-hidden="true">
         <b style={{ fontSize: 16 }}>Today</b>
         {[['alert', 'Book venue'], ['clock', 'Confirm volunteers'], ['check-circle', 'Funder update']].map(r => (
           <div key={r[1]} style={s.phoneRow}><Icon name={r[0]} size={16} style={{ color: 'var(--accent-text)' }} />{r[1]}</div>
@@ -367,7 +367,7 @@ export default function LandingScreen({ onSelectMode, onSignup, onDashboard, use
         <div style={s.inner}>
           <Reveal>
             <h2 style={s.h2}>Drop in a document. Watch your project appear.</h2>
-            <p style={{ ...s.sub, marginTop: 14, marginBottom: 32 }}>Try it with a sample plan. No sign-up, nothing to install.</p>
+            <p style={{ ...s.sub, marginTop: 16, marginBottom: 40 }}>Try it with a sample plan. No sign-up, nothing to install.</p>
           </Reveal>
           <Tour />
         </div>
@@ -379,7 +379,7 @@ export default function LandingScreen({ onSelectMode, onSignup, onDashboard, use
           <Reveal>
             <h2 style={s.h2}>The tools a project manager would use, in words anyone understands.</h2>
           </Reveal>
-          <div className="lp-grid" style={{ marginTop: 36 }}>
+          <div className="lp-grid" style={{ marginTop: 44 }}>
             {features.map(f => (
               <div key={f.title} className="lp-feat">
                 <span style={s.featIcon}><Icon name={f.icon} size={22} /></span>
@@ -395,7 +395,7 @@ export default function LandingScreen({ onSelectMode, onSignup, onDashboard, use
       <div style={s.section}>
         <div style={s.inner}>
           <Reveal><h2 style={s.h2}>Built for every kind of builder.</h2></Reveal>
-          <div className="lp-who" style={{ marginTop: 32 }}>
+          <div className="lp-who" style={{ marginTop: 40 }}>
             <div style={{ display: 'grid', gap: 10 }}>
               {whoCards.map((w, i) => (
                 <button key={w.label} type="button" onClick={() => setActiveWho(i)}
@@ -464,12 +464,12 @@ export default function LandingScreen({ onSelectMode, onSignup, onDashboard, use
 const s = {
   page: { background: 'var(--bg)', color: 'var(--text)', overflowX: 'hidden' },
   rainbow: { height: 4, background: 'var(--rainbow)' },
-  section: { padding: 'clamp(40px, 7vw, 88px) 24px' },
+  section: { padding: 'clamp(64px, 9vw, 104px) 24px' },
   inner: { maxWidth: 1200, margin: '0 auto' },
   h1: { fontSize: 'clamp(27px, 4.6vw, 56px)', lineHeight: 1.06, fontWeight: 600, letterSpacing: '-0.04em', margin: '0 0 22px' },
   h2: { fontSize: 'clamp(23px, 3.4vw, 40px)', lineHeight: 1.1, fontWeight: 700, letterSpacing: '-0.035em', maxWidth: 780 },
-  sub: { fontSize: 'clamp(15px, 1.6vw, 18px)', lineHeight: 1.6, color: 'var(--muted)', maxWidth: 540 },
-  ctas: { display: 'flex', gap: 12, flexWrap: 'wrap', margin: '28px 0 22px' },
+  sub: { fontSize: 'clamp(16px, 1.6vw, 18px)', lineHeight: 1.7, color: 'var(--muted)', maxWidth: 540 },
+  ctas: { display: 'flex', gap: 14, flexWrap: 'wrap', margin: '32px 0 28px' },
   note: { fontSize: 16, color: 'var(--muted)' },
   link: { background: 'none', border: 'none', padding: 0, color: 'var(--accent-text)', fontWeight: 700, textDecoration: 'underline', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' },
 
