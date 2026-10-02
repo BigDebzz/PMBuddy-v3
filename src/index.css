@@ -298,11 +298,17 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 
 /* ---- Generated documents (DocView.js) ---- */
-.pmb-doc { font-family: Georgia, serif; font-size: 15px; line-height: 1.75; color: var(--text-2); }
-.pmb-doc h1 { font-family: var(--font-head); font-size: 22px; font-weight: 800; color: var(--text); margin-bottom: 14px; }
-.pmb-doc h2 { font-family: var(--font-head); font-size: 17px; font-weight: 700; color: var(--accent-text); margin: 22px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
-.pmb-doc p, .pmb-doc li { margin-bottom: 10px; }
-.pmb-doc ul { padding-left: 22px; margin-bottom: 10px; }
-.pmb-doc table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
-.pmb-doc th, .pmb-doc td { border: 1px solid var(--border-strong); padding: 8px 10px; text-align: left; vertical-align: top; }
-.pmb-doc th { background: var(--surface-2); color: var(--text); }
+.pmb-doc { font-family: inherit; font-size: 15px; line-height: 1.65; color: var(--text-2); }
+.pmb-doc h1 { font-family: var(--font-head); font-size: 26px; font-weight: 800; color: var(--text); margin: 0 0 18px; padding-bottom: 12px; border-bottom: 3px solid var(--accent); letter-spacing: -0.01em; }
+.pmb-doc h2 { font-family: var(--font-head); font-size: 17px; font-weight: 700; color: var(--accent-text); margin: 30px 0 10px; padding-left: 12px; border-left: 4px solid var(--accent); }
+.pmb-doc h3 { font-family: var(--font-head); font-size: 15px; font-weight: 700; color: var(--text); margin: 20px 0 6px; }
+.pmb-doc p { margin: 0 0 14px; }
+.pmb-doc ul, .pmb-doc ol { padding-left: 22px; margin: 0 0 16px; }
+.pmb-doc li { margin-bottom: 8px; }
+.pmb-doc strong { color: var(--text); }
+.pmb-doc .keypoints { background: var(--accent-tint); border-left: 4px solid var(--accent); border-radius: 10px; padding: 14px 18px 4px; margin: 0 0 22px; }
+.pmb-doc .keypoints p { margin-bottom: 8px; }
+.pmb-doc table { width: 100%; border-collapse: collapse; margin: 14px 0 20px; font-size: 14px; }
+.pmb-doc th, .pmb-doc td { border: 1px solid var(--border-strong); padding: 9px 12px; text-align: left; vertical-align: top; }
+.pmb-doc th { background: var(--accent-tint); color: var(--text); font-weight: 700; }
+.pmb-doc tr:nth-child(even) td { background: var(--surface-2); }

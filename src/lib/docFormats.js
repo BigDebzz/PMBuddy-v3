@@ -6,6 +6,7 @@ const MUTED = '5F5852';
 const ACCENT = '1F57F0';
 const BORDER = 'CFC8BF';
 const HEADER_FILL = 'F2EFEA';
+const CALLOUT_FILL = 'EAF0FE';
 
 function footerText() {
   const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -27,8 +28,8 @@ export async function buildDocxBlob(blocks, title) {
   const border = { style: BorderStyle.SINGLE, size: 4, color: BORDER };
   const cellBorders = { top: border, bottom: border, left: border, right: border };
 
-  const children = [];
-  blocks.forEach((block) => {
+  const render = (block) => {
+    const children = [];
     if (block.type === 'heading') {
       const sizes = { 1: 40, 2: 28, 3: 24 };
       const levels = { 1: HeadingLevel.HEADING_1, 2: HeadingLevel.HEADING_2, 3: HeadingLevel.HEADING_3 };
@@ -48,6 +49,18 @@ export async function buildDocxBlob(blocks, title) {
           children: toRuns(runs, { size: 22 }),
         }));
       });
+    } else if (block.type === 'callout') {
+      const none = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' };
+      children.push(new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [new TableRow({ children: [new TableCell({
+          borders: { top: none, bottom: none, right: none, left: { style: BorderStyle.SINGLE, size: 24, color: ACCENT } },
+          shading: { type: ShadingType.CLEAR, fill: CALLOUT_FILL, color: 'auto' },
+          margins: { top: 120, bottom: 120, left: 200, right: 160 },
+          children: block.blocks.flatMap(render).filter(c => c instanceof Paragraph),
+        })] })],
+      }));
+      children.push(new Paragraph({ spacing: { after: 160 }, children: [] }));
     } else if (block.type === 'table') {
       const cols = Math.max(...block.rows.map(r => r.length));
       children.push(new Table({
@@ -68,7 +81,10 @@ export async function buildDocxBlob(blocks, title) {
       }));
       children.push(new Paragraph({ spacing: { after: 160 }, children: [] }));
     }
-  });
+    return children;
+  };
+
+  const children = blocks.flatMap(render);
 
   const doc = new Document({
     creator: 'PM Buddy',
@@ -99,7 +115,14 @@ export async function buildPdfBlob(blocks, title) {
 
   const toText = (runs) => runs.map(r => ({ text: r.text, bold: r.bold, italics: r.italic }));
 
-  const content = blocks.map((block) => {
+  const renderBlock = (block) => {
+    if (block.type === 'callout') {
+      return {
+        margin: [0, 2, 0, 12],
+        table: { widths: ['*'], body: [[{ stack: block.blocks.map(renderBlock), fillColor: `#${CALLOUT_FILL}`, margin: [8, 6, 8, 2] }]] },
+        layout: { hLineWidth: () => 0, vLineWidth: (i) => (i === 0 ? 3 : 0), vLineColor: () => `#${ACCENT}` },
+      };
+    }
     if (block.type === 'heading') {
       const style = { 1: { fontSize: 20, bold: true, color: `#${INK}`, margin: [0, 0, 0, 10] }, 2: { fontSize: 13.5, bold: true, color: `#${ACCENT}`, margin: [0, 16, 0, 6] }, 3: { fontSize: 11.5, bold: true, color: `#${INK}`, margin: [0, 10, 0, 4] } }[block.level];
       return { text: toText(block.runs), ...style };
@@ -122,7 +145,8 @@ export async function buildPdfBlob(blocks, title) {
       },
       layout: { hLineColor: () => `#${BORDER}`, vLineColor: () => `#${BORDER}`, hLineWidth: () => 0.6, vLineWidth: () => 0.6 },
     };
-  });
+  };
+  const content = blocks.map(renderBlock);
 
   const definition = {
     info: { title: String(title || 'Document'), author: 'PM Buddy' },

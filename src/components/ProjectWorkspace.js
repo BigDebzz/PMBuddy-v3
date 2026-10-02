@@ -8,6 +8,7 @@ import ProgressOverview from './ProgressOverview';
 import Icon from './Icon';
 import ReportBuilder from './ReportBuilder';
 import DocView from './DocView';
+import { DOC_LAYOUT_RULES } from '../lib/docStyle';
 import { downloadWord, downloadPDF } from '../lib/docExport';
 
 const BLUE = 'var(--accent)';
@@ -945,6 +946,7 @@ function DocumentsTab({ data, history, onSave, project, onCreateReport, docsVers
   const [docGenerating, setDocGenerating] = useState(null);
   const [docPreview, setDocPreview] = useState(null);
   const [docPreviewType, setDocPreviewType] = useState(null);
+  const [docPreviewId, setDocPreviewId] = useState(null);
   const [aiReport, setAiReport] = useState(data.ai_health_check || null);
   const [aiReportLoading, setAiReportLoading] = useState(false);
   const [aiReportError, setAiReportError] = useState(null);
@@ -982,18 +984,21 @@ function DocumentsTab({ data, history, onSave, project, onCreateReport, docsVers
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (sessionData?.session?.user) {
-        await supabase.from('documents').insert({ user_id: sessionData.session.user.id, project_id: project.id, project_name: data.name, type: type || 'report', title, content: html });
+        const { data: row } = await supabase.from('documents').insert({ user_id: sessionData.session.user.id, project_id: project.id, project_name: data.name, type: type || 'report', title, content: html }).select('id').single();
         fetchDocs();
+        return row?.id || null;
       }
     } catch (err) { console.error(err); }
+    return null;
   };
 
   const generateDoc = async (type) => {
     setDocGenerating(type);
     setDocPreview(null);
+    setDocPreviewId(null);
     const formatD = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Not set';
     const prompts = {
-      pm: `Write a Project Management Plan in HTML. h2 for headings, p for paragraphs. No html/head/body tags.\n\nProject: ${data.name} | Industry: ${data.industry} | Goal: ${data.scope?.goal || 'Not set'}\nTimeline: ${formatD(data.timeline?.start)} to ${formatD(data.timeline?.end)}\nTeam: ${(data.team || []).map(m => `${m.name} (${m.role})`).join(', ') || 'Solo'}\nRisks: ${risks.map(r => `${r.title} (${r.level})`).join(', ') || 'None'}\nMilestones: ${milestones.map(m => `${m.title} due ${formatD(m.date)}`).join(', ')}\n\nSections: Executive Summary, Project Overview, Scope and Deliverables, Team and Responsibilities, Timeline and Milestones, Communication Plan, Risk Management, Definition of Done.`,
+      pm: `Write a concise Project Management Plan, about 500 words. ${DOC_LAYOUT_RULES} Do not use emoji. Use only the facts given, and use [square bracket placeholders] for anything missing.\n\nProject: ${data.name} | Industry: ${data.industry} | Goal: ${data.scope?.goal || 'Not set'}\nTimeline: ${formatD(data.timeline?.start)} to ${formatD(data.timeline?.end)}\nTeam: ${(data.team || []).map(m => `${m.name} (${m.role})`).join(', ') || 'Solo'}\nRisks: ${risks.map(r => `${r.title} (${r.level})`).join(', ') || 'None'}\nMilestones: ${milestones.map(m => `${m.title} due ${formatD(m.date)}`).join(', ')}\n\nSections: Executive Summary, Project Overview, Scope and Deliverables, Team and Responsibilities, Timeline and Milestones, Communication Plan, Risk Management, Definition of Done.`,
     };
     try {
       const authHeader = await getAuthHeader();
@@ -1003,7 +1008,7 @@ function DocumentsTab({ data, history, onSave, project, onCreateReport, docsVers
       if (html && html.length > 100) {
         setDocPreview(html);
         setDocPreviewType(type);
-        await saveDoc(html, `${data.name} — Project Management Plan — ${new Date().toLocaleDateString('en-GB')}`, type);
+        setDocPreviewId(await saveDoc(html, `${data.name} — Project Management Plan — ${new Date().toLocaleDateString('en-GB')}`, type));
       }
     } catch (err) {
       console.error('generateDoc error:', err);
@@ -1096,13 +1101,14 @@ function DocumentsTab({ data, history, onSave, project, onCreateReport, docsVers
           <button style={{ padding: '12px 24px', background: BLUE, color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: docGenerating === 'pm' ? 0.6 : 1, marginBottom: 16 }} onClick={() => { setDocError(''); generateDoc('pm'); }} disabled={!!docGenerating}>{docGenerating === 'pm' ? 'Writing your plan...' : 'Generate PM Plan'}</button>
           {docError && <div style={{ padding: '12px 14px', background: 'var(--bad-tint)', border: '1px solid var(--bad-border)', borderRadius: 10, marginBottom: 16 }}><p style={{ fontSize: 14, color: 'var(--bad-text)' }}>{docError}</p></div>}
           {docPreview && docPreviewType === 'pm' && (
-            <div>
-              <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-                <button style={{ padding: '8px 16px', background: WH, color: 'var(--accent-text)', border: `1.5px solid ${BLUE}`, borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadWord(docPreview, `${data.name} PM Plan`)}><Icon name="download" size={15} style={{ marginRight: 6 }} />Word</button>
-                <button style={{ padding: '8px 16px', background: 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadPDF(docPreview, `${data.name} PM Plan`)}><Icon name="download" size={15} style={{ marginRight: 6 }} />PDF</button>
-              </div>
-              <div style={{ background: WH, border: `1px solid ${RULE}`, borderRadius: 16, padding: '28px 32px', fontSize: 15, lineHeight: 1.8, color: 'var(--text-2)', fontFamily: 'Georgia, serif', maxHeight: '55vh', overflowY: 'auto' }} dangerouslySetInnerHTML={{ __html: docPreview }} />
-            </div>
+            <DocView key={docPreviewId || 'pm-new'} html={docPreview} title={`${data.name} PM Plan`} onSave={async (next) => {
+              setDocPreview(next);
+              if (docPreviewId) {
+                const { error: updateError } = await supabase.from('documents').update({ content: next, updated_at: new Date().toISOString() }).eq('id', docPreviewId);
+                if (updateError) throw updateError;
+                fetchDocs();
+              }
+            }} />
           )}
         </div>
       )}

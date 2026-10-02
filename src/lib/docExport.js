@@ -1,6 +1,6 @@
 // Shared helpers for showing, editing and downloading generated documents.
 
-const DOC_CSS = 'body{font-family:Georgia,serif;max-width:800px;margin:40px auto;padding:0 40px;color:#1a1a1a;line-height:1.7;}h1{font-size:24px;}h2{font-size:16px;color:#1F57F0;text-transform:uppercase;border-bottom:1px solid #E3DED7;padding-bottom:6px;margin-top:28px;}p,li{font-size:14px;margin-bottom:10px;}ul{padding-left:22px;}table{border-collapse:collapse;width:100%;margin:12px 0;font-size:13px;}th,td{border:1px solid #CFC8BF;padding:8px 10px;text-align:left;vertical-align:top;}th{background:#F2EFEA;}@media print{body{margin:0;padding:20px;}}';
+const DOC_CSS = 'body{font-family:Georgia,serif;max-width:800px;margin:40px auto;padding:0 40px;color:#1a1a1a;line-height:1.7;}h1{font-size:24px;}h1{border-bottom:3px solid #1F57F0;padding-bottom:10px;}h2{font-size:16px;color:#1F57F0;border-left:4px solid #1F57F0;padding-left:10px;margin-top:28px;}.keypoints{background:#EAF0FE;border-left:4px solid #1F57F0;padding:12px 16px 2px;margin-bottom:20px;}p,li{font-size:14px;margin-bottom:10px;}ul{padding-left:22px;}table{border-collapse:collapse;width:100%;margin:12px 0;font-size:13px;}th,td{border:1px solid #CFC8BF;padding:8px 10px;text-align:left;vertical-align:top;}th{background:#F2EFEA;}@media print{body{margin:0;padding:20px;}}';
 
 // Generated or edited HTML is cleaned before it is shown, saved or downloaded.
 export function sanitizeHtml(html) {

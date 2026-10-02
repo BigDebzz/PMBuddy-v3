@@ -6,6 +6,7 @@
 //   { type: 'paragraph', runs }
 //   { type: 'list', ordered: boolean, items: [runs] }
 //   { type: 'table', rows: [[{ runs, header }]] }
+//   { type: 'callout', blocks: [...] }   the highlighted key points box
 // A run is { text, bold, italic }.
 
 function collectRuns(node, style, out) {
@@ -98,6 +99,10 @@ function walk(container, blocks) {
       flush();
       const rows = tableRows(node);
       if (rows.length) blocks.push({ type: 'table', rows });
+    } else if (tag === 'div' && node.classList.contains('keypoints')) {
+      flush();
+      const inner = walk(node, []);
+      if (inner.length) blocks.push({ type: 'callout', blocks: inner });
     } else if (['div', 'section', 'article', 'blockquote', 'main', 'body'].includes(tag)) {
       flush();
       walk(node, blocks);

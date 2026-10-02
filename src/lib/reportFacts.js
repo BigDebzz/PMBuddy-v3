@@ -1,5 +1,6 @@
+import { DOC_LAYOUT_RULES } from './docStyle';
 // Builds the facts and the instructions for each report type.
-// No imports, so it can be tested on its own.
+// Only imports the shared layout rules, so it can still be tested on its own.
 
 export const REPORT_TYPES = [
   { id: 'team', label: 'Team update', desc: 'One page. What is done, what is next, blockers.' },
@@ -119,7 +120,7 @@ const RULES = [
   'If a section needs information that is not in the facts, write a placeholder in square brackets, for example [Add budget figure], so the user can fill it in.',
   'Where a fact says a date was not recorded, say the item was completed without claiming when.',
   'Do not use emoji or decorative symbols.',
-  'Output HTML only: h1 for the title, h2 for sections, p for text, ul and li for lists, and simple table, tr, th, td for tables. No html, head or body tags. No markdown.',
+  DOC_LAYOUT_RULES,
 ].join(' ');
 
 const STRUCTURES = {
@@ -128,7 +129,7 @@ const STRUCTURES = {
     'Sections: Overall status (say On track, At risk or Off track, with one sentence why: At risk if anything is overdue or blocked, Off track if the end date has passed with open milestones or more than a third of tasks are overdue, otherwise On track); Done this period; Coming up next; Blockers and who needs to act; Deadlines in the next 14 days.',
   ],
   funder: [
-    'Write a FUNDER OR DONOR REPORT. Formal tone, about 600 words.',
+    'Write a FUNDER OR DONOR REPORT. Formal tone, about 500 words.',
     'Begin with a cover block listing: Project name, Prepared for, Reporting period, Prepared by, Date.',
     'Sections: Executive summary (one paragraph); Progress against objectives (a table with columns Objective, Planned, Achieved, Status, built from the project goal and the milestones, with Status as Complete, In progress, Behind or Not started); Milestones completed this period and upcoming milestones; Key activities carried out; Challenges and how they were addressed; Risks and mitigation; Budget utilisation (only from the user key figures, otherwise [Add budget figure]); Plan for next period; Lessons learned (only what the facts support, otherwise a short placeholder such as [Add lessons learned]).',
   ],
@@ -137,7 +138,7 @@ const STRUCTURES = {
     'Sections: a one-line headline of the period; Key metrics (only the user key figures, otherwise placeholders such as [Add active users] and [Add revenue]); Wins; Challenges; Priorities for next period; Asks (introductions, hires, advice, taken from the user notes, otherwise [Add ask]).',
   ],
   personal: [
-    'Write a PERSONAL PROGRESS REPORT in the first person ("I"), for the user or their line manager. The user is responsible for the whole project, including tasks assigned to other people, so cover everything in the project and mention who a task is assigned to where relevant. About 400 words.',
+    'Write a PERSONAL PROGRESS REPORT in the first person ("I"), for the user or their line manager. The user is responsible for the whole project, including tasks assigned to other people, so cover everything in the project and mention who a task is assigned to where relevant. About 350 words.',
     'Sections: Summary of the period; What I completed; What is in progress; What is overdue and why (use task notes, otherwise [Add reason]); My focus for next period; Support I need (from the user notes, otherwise [Add support needed]).',
   ],
 };

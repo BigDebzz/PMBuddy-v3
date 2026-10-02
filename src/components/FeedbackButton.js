@@ -1,36 +1,35 @@
 import React from 'react';
 import Icon from './Icon';
 
-
+// A small round chat button. It opens the feedback form without covering the page.
 export default function FeedbackButton() {
   return (
     <button
+      type="button"
       data-tally-open="mY6NzW"
       data-tally-emoji-animation="wave"
       data-tally-auto-close="3000"
       title="Give feedback"
+      aria-label="Give feedback"
       style={{
         position: 'fixed',
-        bottom: 28,
-        left: 28,
+        bottom: 20,
+        left: 20,
         zIndex: 9998,
+        width: 40,
+        height: 40,
         display: 'flex',
         alignItems: 'center',
-        gap: 8,
-        padding: '10px 16px',
-        background: 'var(--color-primary)',
-        color: '#FFFFFF',
-        border: 'none',
-        borderRadius: 100,
-        fontSize: 14,
-        fontWeight: 600,
+        justifyContent: 'center',
+        background: 'var(--surface)',
+        color: 'var(--accent-text)',
+        border: '1px solid var(--border-strong)',
+        borderRadius: '50%',
         cursor: 'pointer',
-        fontFamily: "'DM Sans', system-ui, sans-serif",
-        boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+        boxShadow: 'var(--shadow)',
       }}
     >
-      <Icon name="chat" size={17} />
-      Give feedback
+      <Icon name="chat" size={18} />
     </button>
   );
 }

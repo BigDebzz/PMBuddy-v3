@@ -4,6 +4,7 @@ import DocumentImport from './DocumentImport';
 import BroadcastEmail from './BroadcastEmail';
 import Icon from './Icon';
 import ThemeToggle from './ThemeToggle';
+import DocView from './DocView';
 import { downloadWord, downloadPDF } from '../lib/docExport';
 
 const BLUE = 'var(--accent)';
@@ -400,7 +401,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                         const project = projects.find(p => p.id === doc.project_id);
                         if (project) onOpenProject({ ...project, _openDoc: doc });
                         else setViewingDoc(doc);
-                      }}
+                      }}
                     />
                   ))}
                 </>
@@ -584,49 +585,24 @@ function ProjectCard({ p, onOpen, onDelete, isCampaign }) {
 
 function DocViewerModal({ doc, onClose, onUpdate }) {
   const [content, setContent] = useState(doc.content);
-  const [updateInput, setUpdateInput] = useState('');
-  const [updating, setUpdating] = useState(false);
-  const [updateMsg, setUpdateMsg] = useState('');
 
-  const updateDoc = async () => {
-    if (!updateInput.trim()) return;
-    setUpdating(true);
-    const prompt = `You are editing a professional document. The user has a specific change request.\n\nCURRENT DOCUMENT:\n${content}\n\nUSER'S REQUEST: "${updateInput}"\n\nReturn the COMPLETE document in HTML with your changes applied. No html/head/body tags. No markdown.`;
-    try {
-      const { data } = await supabase.auth.getSession();
-      const token = data?.session?.access_token;
-      const res = await fetch('/api/claude', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }, body: JSON.stringify({ prompt, mode: 'document' }) });
-      const result = await res.json();
-      const updated = (result.result || '').replace(/```html|```/g, '').trim();
-      if (updated && updated.length > 100) {
-        setContent(updated);
-        await supabase.from('documents').update({ content: updated, updated_at: new Date().toISOString() }).eq('id', doc.id);
-        onUpdate({ ...doc, content: updated });
-        setUpdateInput('');
-        setUpdateMsg('Updated.');
-      }
-    } catch { setUpdateMsg('Something went wrong. Try again.'); }
-    setUpdating(false);
+  const save = async (next) => {
+    const { error } = await supabase.from('documents').update({ content: next, updated_at: new Date().toISOString() }).eq('id', doc.id);
+    if (error) throw error;
+    setContent(next);
+    onUpdate({ ...doc, content: next });
   };
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px', overflowY: 'auto' }}>
       <div style={{ background: WH, borderRadius: 16, width: '100%', maxWidth: 800, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 28px', borderBottom: `1px solid ${RULE}` }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '20px 28px', borderBottom: `1px solid ${RULE}` }}>
           <p style={{ fontSize: 16, fontWeight: 700, color: BL }}>{doc.title}</p>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button style={{ padding: '7px 16px', background: WH, color: 'var(--accent-text)', border: `1px solid ${BLUE}`, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => { const blob = new Blob([content], { type: 'text/html' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${doc.title.replace(/\s+/g, '_')}.html`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); }}>Download</button>
-            <button style={{ padding: '7px 16px', background: 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={onClose}>Close</button>
-          </div>
+          <button style={{ padding: '7px 16px', background: 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={onClose}>Close</button>
         </div>
-        <div style={{ padding: '14px 28px', borderBottom: `1px solid ${RULE}`, background: GREY }}>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <input style={{ flex: 1, border: `1.5px solid ${RULE}`, borderRadius: 10, padding: '10px 14px', fontSize: 14, fontFamily: 'inherit', outline: 'none', background: WH }} placeholder="Want to change something? e.g. Add a budget section..." value={updateInput} onChange={e => setUpdateInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && updateDoc()} />
-            <button style={{ padding: '10px 20px', background: BLUE, color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: !updateInput.trim() || updating ? 0.5 : 1 }} onClick={updateDoc} disabled={!updateInput.trim() || updating}>{updating ? 'Updating...' : 'Update'}</button>
-          </div>
-          {updateMsg && <p style={{ fontSize: 13, color: 'var(--ok-text)', marginTop: 6 }}>{updateMsg}</p>}
+        <div style={{ padding: '20px 28px 28px' }}>
+          <DocView key={doc.id} html={content} title={doc.title} onSave={save} />
         </div>
-        <div style={{ padding: '32px 40px', fontSize: 15, lineHeight: 1.8, color: 'var(--text-2)', fontFamily: 'Georgia, serif', maxHeight: '65vh', overflowY: 'auto' }} dangerouslySetInnerHTML={{ __html: content }} />
       </div>
     </div>
   );
