@@ -6,6 +6,9 @@ import PMBuddyAssistant from './PMBuddyAssistant';
 import AiLoading from './AiLoading';
 import ProgressOverview from './ProgressOverview';
 import Icon from './Icon';
+import ReportBuilder from './ReportBuilder';
+import DocView from './DocView';
+import { downloadWord, downloadPDF } from '../lib/docExport';
 
 const BLUE = 'var(--accent)';
 const BL = 'var(--text)';
@@ -39,6 +42,20 @@ function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+// Records the date a task or milestone is finished, and clears it if the item is reopened.
+function stampCompletion(previous, next, sameItem) {
+  if (!Array.isArray(next)) return next;
+  const now = new Date().toISOString();
+  return next.map((item, idx) => {
+    const before = (previous || []).find((p, pi) => sameItem(p, item, pi, idx));
+    if (item.status === 'done') {
+      return !item.completedAt && (!before || before.status !== 'done') ? { ...item, completedAt: now } : item;
+    }
+    if (item.completedAt) { const copy = { ...item }; delete copy.completedAt; return copy; }
+    return item;
+  });
+}
+
 function isOverdue(dateStr) {
   if (!dateStr) return false;
   return new Date(dateStr) < new Date();
@@ -51,6 +68,8 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
   const [tab, setTab] = useState(project._openDoc ? 'Documents' : 'Overview');
   const [saveStatus, setSaveStatus] = useState('saved');
   const [acceptedMembers, setAcceptedMembers] = useState([]);
+  const [showReport, setShowReport] = useState(false);
+  const [docsVersion, setDocsVersion] = useState(0);
   const saveTimerRef = useRef(null);
 
   useEffect(() => {
@@ -65,11 +84,17 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
   const save = useCallback(async (updates, historyEntry) => {
     const by = project._currentUser?.user_metadata?.first_name || project._currentUser?.email || 'You';
     setData(prev => {
+      const stamped = { ...updates };
+      if (updates.tasks) stamped.tasks = stampCompletion(prev.tasks, updates.tasks, (p, i) => p.id === i.id);
+      if (updates.milestones) {
+        const sameLength = (prev.milestones || []).length === updates.milestones.length;
+        stamped.milestones = stampCompletion(prev.milestones, updates.milestones, sameLength ? (p, i, pi, idx) => pi === idx : (p, i) => p.title === i.title && p.date === i.date);
+      }
       const currentHistory = prev.history || [];
       const newHistory = historyEntry
         ? [...currentHistory, { ...historyEntry, timestamp: new Date().toISOString(), by }]
         : currentHistory;
-      const finalUpdates = historyEntry ? { ...updates, history: newHistory } : updates;
+      const finalUpdates = historyEntry ? { ...stamped, history: newHistory } : stamped;
       const updated = { ...prev, ...finalUpdates, updated_at: new Date().toISOString() };
       setSaveStatus('unsaved');
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -100,6 +125,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
             <span style={{ ...s.statusBadge, background: data.status === 'active' ? 'var(--ok-tint)' : 'var(--bad-tint)', color: data.status === 'active' ? 'var(--ok-text)' : 'var(--bad-text)' }}>
               {data.status === 'active' ? 'Active' : 'Completed'}
             </span>
+            <button type="button" style={s.reportBtn} onClick={() => setShowReport(true)}><Icon name="file" size={16} style={{ marginRight: 8 }} />Create a report</button>
           </div>
         </div>
 
@@ -115,9 +141,10 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
           {tab === 'Tasks' && <TasksTab data={data} onSave={save} />}
           {tab === 'Risks' && <RisksTab data={data} onSave={save} />}
           {tab === 'People' && <PeopleTab data={data} onSave={save} project={project} acceptedMembers={acceptedMembers} />}
-          {tab === 'Documents' && <DocumentsTab data={data} history={data.history || []} onSave={save} project={project} />}
+          {tab === 'Documents' && <DocumentsTab data={data} history={data.history || []} onSave={save} project={project} onCreateReport={() => setShowReport(true)} docsVersion={docsVersion} />}
         </div>
       </div>
+      {showReport && <ReportBuilder data={data} project={project} onClose={() => setShowReport(false)} onSaved={() => setDocsVersion(v => v + 1)} />}
       <PMBuddyAssistant project={data} />
     </div>
   );
@@ -910,12 +937,8 @@ function StakeholdersList({ data, onSave }) {
 
 // ─── DOCUMENTS TAB ────────────────────────────────────────────
 
-function DocumentsTab({ data, history, onSave, project }) {
+function DocumentsTab({ data, history, onSave, project, onCreateReport, docsVersion }) {
   const [section, setSection] = useState('reports');
-  const [reportType, setReportType] = useState('progress');
-  const [generating, setGenerating] = useState(false);
-  const [reportContent, setReportContent] = useState('');
-  const [additionalContext, setAdditionalContext] = useState('');
   const [savedDocs, setSavedDocs] = useState([]);
   const [loadingDocs, setLoadingDocs] = useState(true);
   const [viewingDoc, setViewingDoc] = useState(null);
@@ -951,7 +974,7 @@ function DocumentsTab({ data, history, onSave, project }) {
     setLoadingDocs(false);
   };
 
-  useEffect(() => { fetchDocs(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchDocs(); }, [docsVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const projectContext = `Project: ${data.name}\nIndustry: ${data.industry || 'Not specified'}\nGoal: ${data.scope?.goal || 'Not specified'}\nStart: ${data.timeline?.start ? formatDate(data.timeline.start) : 'Not set'}\nEnd: ${data.timeline?.end ? formatDate(data.timeline.end) : 'Not set'}\nTeam: ${(data.team || []).map(m => `${m.name} (${m.role})`).join(', ') || 'Not specified'}\nMilestones done: ${doneMilestones.map(m => m.title).join(', ') || 'None'}\nMilestones pending: ${pendingMilestones.map(m => m.title).join(', ') || 'None'}\nOpen risks: ${openRisks.map(r => `${r.title} (${r.level})`).join(', ') || 'None'}\nCurrent phase: ${data.scope?.currentPhase || 'Not specified'}\nDone so far: ${data.scope?.completedWork || 'Not specified'}\nRemaining: ${data.scope?.remainingWork || 'Not specified'}`;
 
@@ -963,30 +986,6 @@ function DocumentsTab({ data, history, onSave, project }) {
         fetchDocs();
       }
     } catch (err) { console.error(err); }
-  };
-
-  const generateReport = async () => {
-    setGenerating(true);
-    setReportContent('');
-    const prompts = {
-      progress: `You are a professional project manager writing a progress report. Write a clear HTML report.\n\n${projectContext}${additionalContext ? '\nAdditional context: ' + additionalContext : ''}\n\nSections: Executive Summary, Progress Against Objectives, Milestones Achieved, Milestones Remaining, Risks and Issues, Next Steps.\n\nUse h1 for title, h2 for sections, p for paragraphs. No html/head/body tags.`,
-      donor: `You are writing a funder report. Write a formal HTML report.\n\n${projectContext}${additionalContext ? '\nAdditional context: ' + additionalContext : ''}\n\nSections: Report Title and Period, Project Overview, Activities and Outputs, Outcomes and Results, Challenges and How They Were Addressed, Financial Summary, Upcoming Activities, Conclusion.\n\nUse h1 for title, h2 for sections, p for paragraphs. No html/head/body tags.`,
-    };
-    try {
-      const authHeader = await getAuthHeader();
-      const res = await fetch('/api/claude', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader }, body: JSON.stringify({ prompt: prompts[reportType], mode: 'document' }) });
-      const result = await res.json();
-      const html = (result.result || '').replace(/```html|```/g, '').trim();
-      if (html && html.length > 100) {
-        setReportContent(html);
-        const label = reportType === 'progress' ? 'Progress Update' : 'Funder Report';
-        await saveDoc(html, `${data.name} — ${label} — ${new Date().toLocaleDateString('en-GB')}`, 'report');
-      }
-    } catch (err) {
-      console.error('generateReport error:', err);
-      setReportContent('<p style="color:var(--bad-text);font-weight:600;">Could not generate. Please try again.</p>');
-    }
-    setGenerating(false);
   };
 
   const generateDoc = async (type) => {
@@ -1053,9 +1052,6 @@ function DocumentsTab({ data, history, onSave, project }) {
     setGeneratingMap(false);
   };
 
-  const buildHTML = (html, title) => `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title><style>body{font-family:Georgia,serif;max-width:800px;margin:40px auto;padding:0 40px;color:#1a1a1a;line-height:1.7;}h1{font-size:24px;}h2{font-size:16px;color:#1F57F0;text-transform:uppercase;border-bottom:1px solid #E3DED7;padding-bottom:6px;margin-top:28px;}p{font-size:14px;margin-bottom:12px;}@media print{body{margin:0;padding:20px;}}</style></head><body>${html}<p style="margin-top:40px;font-size:12px;color:#5F5852;border-top:1px solid #E3DED7;padding-top:16px;">Generated by PM Buddy · ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p></body></html>`;
-  const downloadPDF = (html, title) => { const w = window.open('', '_blank'); w.document.write(buildHTML(html, title)); w.document.close(); w.focus(); setTimeout(() => w.print(), 500); };
-  const downloadWord = (html, title) => { const blob = new Blob([buildHTML(html, title)], { type: 'application/msword' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${title.replace(/\s+/g, '_')}.doc`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); };
   const deleteDoc = async (id) => { await supabase.from('documents').delete().eq('id', id); fetchDocs(); };
 
   return (
@@ -1068,29 +1064,9 @@ function DocumentsTab({ data, history, onSave, project }) {
 
       {section === 'reports' && (
         <div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
-            {[{ id: 'progress', label: 'Progress Update', desc: 'What has been achieved and what comes next.' }, { id: 'donor', label: 'Funder or Grant Report', desc: 'Results against funded objectives. For donors or sponsors.' }].map(rt => (
-              <button key={rt.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 16px', background: reportType === rt.id ? 'var(--accent-tint)' : WH, border: `1.5px solid ${reportType === rt.id ? BLUE : RULE}`, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }} onClick={() => { setReportType(rt.id); setReportContent(''); }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: reportType === rt.id ? BLUE : 'var(--border-strong)', flexShrink: 0, marginTop: 5 }} />
-                <div><p style={{ fontSize: 15, fontWeight: 700, color: reportType === rt.id ? 'var(--accent-text)' : BL, marginBottom: 2 }}>{rt.label}</p><p style={{ fontSize: 14, color: 'var(--muted)' }}>{rt.desc}</p></div>
-              </button>
-            ))}
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text-2)', marginBottom: 6 }}>Extra context (optional)</label>
-            <textarea style={{ ...s.textarea, minHeight: 60 }} rows={2} placeholder="e.g. Reporting period April to June." value={additionalContext} onChange={e => setAdditionalContext(e.target.value)} />
-          </div>
-          <button style={{ padding: '12px 24px', background: BLUE, color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: generating ? 0.6 : 1 }} onClick={generateReport} disabled={generating}>{generating ? 'Generating...' : <><Icon name="spark" size={15} style={{ marginRight: 6 }} />Generate Report</>}</button>
-          {generating && <div style={{ marginTop: 20 }}><AiLoading kind="write" title="Writing your document" /></div>}
-          {reportContent && !generating && (
-            <div style={{ marginTop: 20 }}>
-              <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-                <button style={{ padding: '8px 16px', background: WH, color: 'var(--accent-text)', border: `1.5px solid ${BLUE}`, borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadWord(reportContent, `${data.name} Report`)}><Icon name="download" size={15} style={{ marginRight: 6 }} />Word</button>
-                <button style={{ padding: '8px 16px', background: 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadPDF(reportContent, `${data.name} Report`)}><Icon name="download" size={15} style={{ marginRight: 6 }} />PDF</button>
-              </div>
-              <div style={{ background: WH, border: `1px solid ${RULE}`, borderRadius: 16, padding: '28px 32px', fontSize: 15, lineHeight: 1.8, color: 'var(--text-2)', fontFamily: 'Georgia, serif', maxHeight: '55vh', overflowY: 'auto' }} dangerouslySetInnerHTML={{ __html: reportContent }} />
-            </div>
-          )}
+          <p style={{ fontSize: 15, color: 'var(--muted)', lineHeight: 1.7, marginBottom: 16 }}>Team updates, funder reports, investor updates and personal progress reports, written from your live project.</p>
+          <button type="button" style={s.reportBtn} onClick={onCreateReport}><Icon name="file" size={16} style={{ marginRight: 8 }} />Create a report</button>
+          <p style={{ fontSize: 14, color: 'var(--muted)', marginTop: 14 }}>Finished reports are saved under Saved Docs.</p>
         </div>
       )}
 
@@ -1186,17 +1162,20 @@ function DocumentsTab({ data, history, onSave, project }) {
       )}
 
       {viewingDoc && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px', overflowY: 'auto' }}>
-          <div style={{ background: WH, borderRadius: 16, width: '100%', maxWidth: 800, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: `1px solid ${RULE}` }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', zIndex: 10000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px', overflowY: 'auto' }}>
+          <div style={{ background: WH, borderRadius: 16, width: '100%', maxWidth: 800, boxShadow: 'var(--shadow-lg)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: `1px solid ${RULE}`, gap: 12 }}>
               <p style={{ fontSize: 15, fontWeight: 700, color: BL }}>{viewingDoc.title}</p>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button style={{ padding: '7px 14px', background: WH, color: 'var(--accent-text)', border: `1px solid ${BLUE}`, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadWord(viewingDoc.content, viewingDoc.title)}><Icon name="download" size={15} style={{ marginRight: 6 }} />Word</button>
-                <button style={{ padding: '7px 14px', background: 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => downloadPDF(viewingDoc.content, viewingDoc.title)}><Icon name="download" size={15} style={{ marginRight: 6 }} />PDF</button>
-                <button style={{ padding: '7px 14px', background: WH, color: 'var(--muted)', border: `1px solid ${RULE}`, borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setViewingDoc(null)}>Close</button>
-              </div>
+              <button type="button" style={{ padding: '7px 14px', background: WH, color: 'var(--muted)', border: `1px solid ${RULE}`, borderRadius: 8, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setViewingDoc(null)}>Close</button>
             </div>
-            <div style={{ padding: '28px 36px', fontSize: 15, lineHeight: 1.8, color: 'var(--text-2)', fontFamily: 'Georgia, serif', maxHeight: '70vh', overflowY: 'auto' }} dangerouslySetInnerHTML={{ __html: viewingDoc.content }} />
+            <div style={{ padding: '20px 24px 24px' }}>
+              <DocView key={viewingDoc.id} html={viewingDoc.content} title={viewingDoc.title} onSave={async (next) => {
+                const { error: saveError } = await supabase.from('documents').update({ content: next, updated_at: new Date().toISOString() }).eq('id', viewingDoc.id);
+                if (saveError) throw saveError;
+                setViewingDoc({ ...viewingDoc, content: next });
+                fetchDocs();
+              }} />
+            </div>
           </div>
         </div>
       )}
@@ -1211,6 +1190,7 @@ const s = {
   backBtn: { background: 'none', border: 'none', color: 'var(--muted)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', padding: 0, marginBottom: 12, display: 'block' },
   title: { fontSize: 'clamp(20px, 3vw, 28px)', fontWeight: 900, color: BL, letterSpacing: '-0.8px', marginBottom: 8 },
   metaRow: { display: 'flex', gap: 8, flexWrap: 'wrap' },
+  reportBtn: { display: 'inline-flex', alignItems: 'center', marginLeft: 'auto', padding: '9px 18px', background: 'var(--accent)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
   industryBadge: { fontSize: 12, fontWeight: 700, background: 'var(--accent-tint)', color: 'var(--accent-text)', padding: '3px 10px', borderRadius: 100 },
   statusBadge: { fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 100 },
   tabBar: { display: 'flex', borderBottom: `1.5px solid ${RULE}`, marginBottom: 20, overflowX: 'auto' },

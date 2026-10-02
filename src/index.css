@@ -296,3 +296,13 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .lp-plane, .lp-fbob, .lp-gyro { animation: none !important; }
   .lp-stage { transition: none; }
 }
+
+/* ---- Generated documents (DocView.js) ---- */
+.pmb-doc { font-family: Georgia, serif; font-size: 15px; line-height: 1.75; color: var(--text-2); }
+.pmb-doc h1 { font-family: var(--font-head); font-size: 22px; font-weight: 800; color: var(--text); margin-bottom: 14px; }
+.pmb-doc h2 { font-family: var(--font-head); font-size: 17px; font-weight: 700; color: var(--accent-text); margin: 22px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+.pmb-doc p, .pmb-doc li { margin-bottom: 10px; }
+.pmb-doc ul { padding-left: 22px; margin-bottom: 10px; }
+.pmb-doc table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+.pmb-doc th, .pmb-doc td { border: 1px solid var(--border-strong); padding: 8px 10px; text-align: left; vertical-align: top; }
+.pmb-doc th { background: var(--surface-2); color: var(--text); }
