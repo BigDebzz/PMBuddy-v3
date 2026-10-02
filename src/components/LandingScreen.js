@@ -73,8 +73,8 @@ function HeroWindow() {
         raf = 0;
         const r = el.getBoundingClientRect();
         const t = Math.max(-1.2, Math.min(1.2, (r.top + r.height / 2 - window.innerHeight / 2) / window.innerHeight));
-        el.style.setProperty('--sx', (-t * 14).toFixed(2));
-        el.style.setProperty('--sy', (t * 6).toFixed(2));
+        el.style.setProperty('--sx', (-t * 8).toFixed(2));
+        el.style.setProperty('--sy', (t * 3).toFixed(2));
         el.style.setProperty('--par', t.toFixed(3));
       });
     };
@@ -386,7 +386,7 @@ const s = {
   link: { background: 'none', border: 'none', padding: 0, color: 'var(--accent-text)', fontWeight: 700, textDecoration: 'underline', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', textAlign: 'left' },
   who: { fontSize: 'clamp(17px, 1.8vw, 21px)', lineHeight: 1.55, fontWeight: 600, letterSpacing: '-0.01em', maxWidth: 760 },
 
-  heroVis: { position: 'relative', borderRadius: 26, padding: '62px 26px 62px' },
+  heroVis: { position: 'relative', overflow: 'hidden', borderRadius: 26, padding: '96px 28px 96px' },
   floatCard: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, boxShadow: 'var(--shadow-lg)' },
   floatIcon: { width: 36, height: 36, borderRadius: 12, display: 'grid', placeItems: 'center', flexShrink: 0 },
   win: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, boxShadow: 'var(--shadow-lg)', overflow: 'hidden' },

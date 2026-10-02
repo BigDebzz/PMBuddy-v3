@@ -273,8 +273,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .lp-plane { transform-style: preserve-3d; animation: lp-enter 1.2s cubic-bezier(0.16, 1, 0.3, 1) both; filter: drop-shadow(0 40px 40px rgba(20, 30, 60, 0.28)); }
 @keyframes lp-enter { from { opacity: 0; transform: rotateX(30deg) rotateY(-18deg) translateY(40px) scale(0.92); } to { opacity: 1; transform: none; } }
 .lp-fcard { position: absolute; z-index: 3; transform-style: preserve-3d; }
-.lp-fa { top: -46px; right: 8px; transform: translateZ(110px) translateY(calc(var(--par, 0) * -34px)); }
-.lp-fb { bottom: -46px; left: 8px; transform: translateZ(140px) translateY(calc(var(--par, 0) * 34px)); }
+.lp-fa { top: -40px; right: 20px; transform: translateZ(70px) translateY(calc(var(--par, 0) * -12px)); }
+.lp-fb { bottom: -40px; left: 22px; transform: translateZ(90px) translateY(calc(var(--par, 0) * 12px)); }
 .lp-fbob { animation: lp-float 5.2s ease-in-out infinite; }
 .lp-fbob2 { animation-delay: -2.2s; }
 .lp-ficon { transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
