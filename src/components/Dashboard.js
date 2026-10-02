@@ -4,6 +4,7 @@ import DocumentImport from './DocumentImport';
 import BroadcastEmail from './BroadcastEmail';
 import Icon from './Icon';
 import ThemeToggle from './ThemeToggle';
+import { downloadWord, downloadPDF } from '../lib/docExport';
 
 const BLUE = 'var(--accent)';
 const BL = 'var(--text)';
@@ -386,7 +387,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
               {!loading && quickDocs.length > 0 && (
                 <>
                   <p style={{ ...s.sectionLabel, marginBottom: 12 }}>Quick Docs</p>
-                  {quickDocs.map(doc => <DocRow key={doc.id} doc={doc} type="Quick Doc" typeBg="var(--warn-tint)" typeColor="var(--warn-text)" onOpen={() => setViewingDoc(doc)} onDownload={() => downloadDoc(doc)} />)}
+                  {quickDocs.map(doc => <DocRow key={doc.id} doc={doc} type="Quick Doc" typeBg="var(--warn-tint)" typeColor="var(--warn-text)" onOpen={() => setViewingDoc(doc)} />)}
                 </>
               )}
 
@@ -399,8 +400,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                         const project = projects.find(p => p.id === doc.project_id);
                         if (project) onOpenProject({ ...project, _openDoc: doc });
                         else setViewingDoc(doc);
-                      }}
-                      onDownload={() => downloadDoc(doc)}
+                      }}
                     />
                   ))}
                 </>
@@ -528,7 +528,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   );
 }
 
-function DocRow({ doc, type, typeBg, typeColor, onOpen, onDownload }) {
+function DocRow({ doc, type, typeBg, typeColor, onOpen }) {
   return (
     <div style={s.docRow}>
       <div style={s.docRowLeft}>
@@ -538,19 +538,11 @@ function DocRow({ doc, type, typeBg, typeColor, onOpen, onDownload }) {
       </div>
       <div style={s.docRowActions}>
         <button style={s.openBtn} onClick={onOpen}>Open</button>
-        <button style={{ ...s.openBtn, background: WH, color: 'var(--accent-text)', border: `1px solid ${BLUE}` }} onClick={onDownload}>Download</button>
+        <button style={{ ...s.openBtn, background: WH, color: 'var(--accent-text)', border: `1px solid ${BLUE}` }} onClick={() => downloadWord(doc.content, doc.title)}>Word</button>
+        <button style={{ ...s.openBtn, background: WH, color: 'var(--accent-text)', border: `1px solid ${BLUE}` }} onClick={() => downloadPDF(doc.content, doc.title)}>PDF</button>
       </div>
     </div>
   );
-}
-
-function downloadDoc(doc) {
-  const blob = new Blob([doc.content], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${doc.title.replace(/\s+/g, '_')}.html`;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
 function ProjectCard({ p, onOpen, onDelete, isCampaign }) {

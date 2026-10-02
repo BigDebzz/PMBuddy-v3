@@ -8,6 +8,7 @@ export default function DocView({ html, title, onSave }) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [busy, setBusy] = useState('');
   const editRef = useRef(null);
 
   // Downloads use what is on screen, so edits that are not saved yet are included.
@@ -29,17 +30,23 @@ export default function DocView({ html, title, onSave }) {
     setSaving(false);
   };
 
-  const popupBlocked = () => setMessage('Your browser blocked the PDF window. Allow pop-ups for this site and try again.');
+  const run = async (kind) => {
+    setBusy(kind);
+    setMessage('');
+    const ok = kind === 'word' ? await downloadWord(current(), title) : await downloadPDF(current(), title);
+    setBusy('');
+    if (!ok) setMessage('Could not create the file. Please try again.');
+  };
 
   return (
     <div>
       <div style={s.toolbar}>
-        <button type="button" style={s.btnLight} onClick={() => downloadWord(current(), title)}><Icon name="download" size={15} style={{ marginRight: 6 }} />Word</button>
-        <button type="button" style={s.btnDark} onClick={() => { if (!downloadPDF(current(), title)) popupBlocked(); }}><Icon name="download" size={15} style={{ marginRight: 6 }} />PDF</button>
+        <button type="button" style={s.btnLight} onClick={() => run('word')} disabled={!!busy}><Icon name="download" size={15} style={{ marginRight: 6 }} />{busy === 'word' ? 'Preparing...' : 'Word'}</button>
+        <button type="button" style={s.btnDark} onClick={() => run('pdf')} disabled={!!busy}><Icon name="download" size={15} style={{ marginRight: 6 }} />{busy === 'pdf' ? 'Preparing...' : 'PDF'}</button>
         {!editing && <button type="button" style={s.btnLight} onClick={() => { setMessage(''); setEditing(true); }}><Icon name="edit" size={15} style={{ marginRight: 6 }} />Edit</button>}
         {editing && <button type="button" style={s.btnDark} onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save changes'}</button>}
         {editing && <button type="button" style={s.btnLight} onClick={() => { setEditing(false); setMessage(''); }}>Cancel</button>}
-        {message && <span style={{ fontSize: 14, color: message.startsWith('Could not') || message.startsWith('Your browser') ? 'var(--bad-text)' : 'var(--ok-text)', alignSelf: 'center' }}>{message}</span>}
+        {message && <span style={{ fontSize: 14, color: message.startsWith('Could not') ? 'var(--bad-text)' : 'var(--ok-text)', alignSelf: 'center' }}>{message}</span>}
       </div>
       {editing && <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 8 }}>You are editing. Click into the text to change it, then Save changes. Placeholders in [square brackets] are for you to fill in.</p>}
       {editing ? (
