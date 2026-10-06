@@ -8,6 +8,7 @@ import ProgressOverview from './ProgressOverview';
 import Icon from './Icon';
 import ReportBuilder from './ReportBuilder';
 import DocView from './DocView';
+import UpdateProject from './UpdateProject';
 import { DOC_LAYOUT_RULES } from '../lib/docStyle';
 import { downloadWord, downloadPDF } from '../lib/docExport';
 
@@ -70,6 +71,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
   const [saveStatus, setSaveStatus] = useState('saved');
   const [acceptedMembers, setAcceptedMembers] = useState([]);
   const [showReport, setShowReport] = useState(false);
+  const [showUpdate, setShowUpdate] = useState(false);
   const [docsVersion, setDocsVersion] = useState(0);
   const saveTimerRef = useRef(null);
 
@@ -126,7 +128,8 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
             <span style={{ ...s.statusBadge, background: data.status === 'active' ? 'var(--ok-tint)' : 'var(--bad-tint)', color: data.status === 'active' ? 'var(--ok-text)' : 'var(--bad-text)' }}>
               {data.status === 'active' ? 'Active' : 'Completed'}
             </span>
-            <button type="button" style={s.reportBtn} onClick={() => setShowReport(true)}><Icon name="file" size={16} style={{ marginRight: 8 }} />Create a report</button>
+            <button type="button" style={{ ...s.reportBtn, background: 'var(--surface)', color: 'var(--text)', border: '1.5px solid var(--border-strong)' }} onClick={() => setShowUpdate(true)}><Icon name="plus" size={16} style={{ marginRight: 8 }} />Add new information</button>
+            <button type="button" style={{ ...s.reportBtn, marginLeft: 8 }} onClick={() => setShowReport(true)}><Icon name="file" size={16} style={{ marginRight: 8 }} />Create a report</button>
           </div>
         </div>
 
@@ -145,6 +148,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
           {tab === 'Documents' && <DocumentsTab data={data} history={data.history || []} onSave={save} project={project} onCreateReport={() => setShowReport(true)} docsVersion={docsVersion} />}
         </div>
       </div>
+      {showUpdate && <UpdateProject data={data} project={project} onApply={save} onClose={() => setShowUpdate(false)} />}
       {showReport && <ReportBuilder data={data} project={project} onClose={() => setShowReport(false)} onSaved={() => setDocsVersion(v => v + 1)} />}
       <PMBuddyAssistant project={data} />
     </div>
