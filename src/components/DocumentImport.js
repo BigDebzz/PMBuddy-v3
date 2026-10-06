@@ -4,6 +4,8 @@ import mammoth from 'mammoth';
 import { supabase } from '../lib/supabase';
 import AiLoading from './AiLoading';
 import Icon from './Icon';
+import { DOC_LAYOUT_RULES } from '../lib/docStyle';
+import { inviteToProject, looksLikeEmail } from '../lib/invite';
 
 const EXTRACTION_PROMPT = `You are PM Buddy, a project management assistant. Read the attached document and extract the following project information. Return ONLY a valid JSON object with this exact structure:
 
@@ -25,7 +27,7 @@ const EXTRACTION_PROMPT = `You are PM Buddy, a project management assistant. Rea
     { "description": "string — something that could go wrong", "impact": "High|Medium|Low", "mitigation": "string or null — how to handle it if it happens" }
   ],
   "stakeholders": [
-    { "name": "string", "role": "string", "interest": "High|Medium|Low" }
+    { "name": "string", "role": "string", "email": "string or null — only if an email address is written in the document, never guess one", "interest": "High|Medium|Low" }
   ],
   "budget_description": "string — any budget or funding info mentioned, or null",
   "communication_approach": "string — how the team plans to stay in touch (meetings, tools, frequency)",
@@ -54,6 +56,7 @@ export default function DocumentImport({ user, onComplete, onBack, onCancel }) {
   const [extractedData, setExtractedData] = useState(null);
   const [step, setStep] = useState('input'); // 'input' | 'review'
   const fileInputRef = useRef(null);
+  const [invites, setInvites] = useState({}); // person index -> { email, on }
 
   const handleFileSelect = useCallback((e) => {
     const selected = e.target.files[0];
@@ -299,7 +302,7 @@ Methodology: ${projectPayload.methodology}
 Risks: ${(extractedData.risks || []).map(r => r.description).join(', ') || 'None listed'}
 Milestones: ${(extractedData.milestones || []).map(m => m.title).join(', ') || 'None set'}
 
-Write a professional project brief in HTML (h1 for title, h2 for sections, p for paragraphs). No html/head/body tags. Include: Project Overview, Objectives, Scope, Team and Roles, Timeline, Key Risks, Success Metrics. Minimum 400 words.`;
+Write a concise project brief of about 450 words with these sections: Project Overview, Objectives, Scope, Team and Roles, Timeline, Key Risks, Success Metrics. ${DOC_LAYOUT_RULES} Do not use emoji.`;
 
         const { data: briefSession } = await supabase.auth.getSession();
         const briefToken = briefSession?.session?.access_token;
@@ -328,6 +331,13 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
         }
       } catch (briefErr) {
         console.error('[PM Buddy] Brief generation failed (non-blocking):', briefErr);
+      }
+
+      const wanted = (extractedData.stakeholders || [])
+        .map((p, i) => ({ p, i, inv: invites[i] }))
+        .filter(x => x.inv && x.inv.on && looksLikeEmail(x.inv.email));
+      for (const x of wanted) {
+        await inviteToProject({ project: data, email: x.inv.email, role: 'editor', currentUser: user });
       }
 
       setLoading(false);
@@ -414,6 +424,29 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
               { key: 'interest', label: 'How involved?', width: '25%', type: 'select', options: ['High', 'Medium', 'Low'] },
             ]}
           />
+
+          {(extractedData.stakeholders || []).some(p => p.name) && (
+            <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px' }}>
+              <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Invite these people to the project?</p>
+              <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 12 }}>Tick the people you want to invite and check their email. They get an invitation to join as editors once your project is created. Nobody is emailed unless you tick them.</p>
+              {(extractedData.stakeholders || []).map((p, i) => {
+                if (!p.name) return null;
+                const inv = invites[i] || { email: p.email || '', on: false };
+                const setInv = (patch) => setInvites(prev => ({ ...prev, [i]: { ...inv, ...patch } }));
+                const bad = inv.on && !looksLikeEmail(inv.email);
+                return (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 160px', fontSize: 15, fontWeight: 600 }}>
+                      <input type="checkbox" checked={inv.on} onChange={e => setInv({ on: e.target.checked })} style={{ width: 18, height: 18 }} />
+                      <span>{p.name}{p.role ? <span style={{ fontWeight: 400, color: 'var(--muted)' }}> ({p.role})</span> : null}</span>
+                    </label>
+                    <input type="email" placeholder="Email address" value={inv.email} onChange={e => setInv({ email: e.target.value })} aria-label={'Email for ' + p.name}
+                      style={{ flex: '2 1 220px', padding: '8px 10px', borderRadius: 8, border: '1px solid ' + (bad ? 'var(--bad-border)' : 'var(--border-strong)'), fontSize: 15, background: 'var(--surface)', color: 'var(--text)' }} />
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           <ArrayEditor
             label="What You Will Deliver"
@@ -579,7 +612,7 @@ function ArrayEditor({ label, items, onChange, fields, simple = false }) {
     <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <span style={{ fontWeight: 600, fontSize: 15 }}>{label}</span>
-        <button onClick={addItem} style={{ fontSize: 20, lineHeight: 1, padding: '2px 8px', borderRadius: 4, border: '1px solid var(--border-strong)', background: '#fff', cursor: 'pointer' }}>+</button>
+        <button onClick={addItem} style={{ fontSize: 20, lineHeight: 1, padding: '2px 8px', borderRadius: 4, border: '1px solid var(--border-strong)', background: 'var(--surface)', color: 'var(--text)', cursor: 'pointer' }}>+</button>
       </div>
       {items.length === 0 && (
         <div style={{ color: 'var(--muted)', fontSize: 14, fontStyle: 'italic' }}>None found. Click + to add.</div>
@@ -590,19 +623,19 @@ function ArrayEditor({ label, items, onChange, fields, simple = false }) {
             <input
               value={item}
               onChange={e => updateItem(i, null, e.target.value)}
-              style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 15 }}
+              style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 15, background: 'var(--surface)', color: 'var(--text)' }}
               placeholder="Add another..."
             />
           ) : (
             fields.map(f => (
               f.type === 'select' ? (
-                <select key={f.key} value={item[f.key] || ''} onChange={e => updateItem(i, f.key, e.target.value)} style={{ width: f.width, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 15 }}>
+                <select key={f.key} value={item[f.key] || ''} onChange={e => updateItem(i, f.key, e.target.value)} style={{ width: f.width, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 15, background: 'var(--surface)', color: 'var(--text)' }}>
                   {f.options.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
               ) : f.textarea ? (
-                <textarea key={f.key} value={item[f.key] || ''} onChange={e => updateItem(i, f.key, e.target.value)} placeholder={f.label} rows={2} style={{ width: f.width, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 15, resize: 'vertical' }} />
+                <textarea key={f.key} value={item[f.key] || ''} onChange={e => updateItem(i, f.key, e.target.value)} placeholder={f.label} rows={2} style={{ width: f.width, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 15, resize: 'vertical', background: 'var(--surface)', color: 'var(--text)' }} />
               ) : (
-                <input key={f.key} type={f.type || 'text'} value={item[f.key] || ''} onChange={e => updateItem(i, f.key, e.target.value)} placeholder={f.label} style={{ width: f.width, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 15 }} />
+                <input key={f.key} type={f.type || 'text'} value={item[f.key] || ''} onChange={e => updateItem(i, f.key, e.target.value)} placeholder={f.label} style={{ width: f.width, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 15, background: 'var(--surface)', color: 'var(--text)' }} />
               )
             ))
           )}
@@ -627,6 +660,7 @@ const btnSecondary = {
   padding: '10px 20px',
   borderRadius: 10,
   border: '1px solid var(--border-strong)',
-  background: '#fff',
+  background: 'var(--surface)',
+  color: 'var(--text)',
   cursor: 'pointer',
 };

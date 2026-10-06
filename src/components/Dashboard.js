@@ -5,6 +5,7 @@ import BroadcastEmail from './BroadcastEmail';
 import Icon from './Icon';
 import ThemeToggle from './ThemeToggle';
 import DocView from './DocView';
+import ProfileForm from './ProfileForm';
 import { downloadWord, downloadPDF } from '../lib/docExport';
 
 const BLUE = 'var(--accent)';
@@ -47,6 +48,8 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [showImport, setShowImport] = useState(false);
   const [showBroadcast, setShowBroadcast] = useState(false);
+  const [profile, setProfile] = useState(user?.user_metadata || {});
+  const [profileSkipped, setProfileSkipped] = useState(() => { try { return localStorage.getItem('pmb-profile-skipped') === '1'; } catch (e) { return false; } });
   const isAdmin = ADMIN_EMAILS.includes(user?.email);
 
   useEffect(() => {
@@ -58,7 +61,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   const [installPrompt, setInstallPrompt] = useState(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
 
-  const firstName = user?.user_metadata?.first_name || user?.email?.split('@')[0] || 'there';
+  const firstName = profile.first_name || user?.user_metadata?.first_name || user?.email?.split('@')[0] || 'there';
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
@@ -167,11 +170,7 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
       {/* Sidebar */}
       <aside style={{ ...s.sidebar, transform: isMobile && !sidebarOpen ? 'translateX(-100%)' : 'translateX(0)' }}>
         <div style={s.sidebarTop}>
-          <div style={s.brand}>
-            <Icon name="logo" size={24} style={{ color: 'var(--accent)' }} />
-            <span style={s.brandName}>PM Buddy</span>
-          </div>
-          <div style={s.userCard}>
+          <div style={{ ...s.userCard, cursor: 'pointer' }} role="button" tabIndex={0} onClick={() => setNav('settings')} onKeyDown={e => { if (e.key === 'Enter') setNav('settings'); }}>
             <div style={s.avatar}>{(firstName[0] || '?').toUpperCase()}</div>
             <div style={{ overflow: 'hidden' }}>
               <p style={s.userName}>{firstName}</p>
@@ -263,6 +262,14 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                       );
                     })}
                   </div>
+                </div>
+              )}
+
+              {!profile.use_case && !profileSkipped && (
+                <div style={s.checklistCard}>
+                  <p style={s.checklistTitle}>Tell us a little about you</p>
+                  <p style={{ ...s.checklistSub, marginBottom: 16 }}>It helps PM Buddy suggest the right things. You can change it any time in Settings.</p>
+                  <ProfileForm compact meta={profile} onSaved={(p) => setProfile(prev => ({ ...prev, ...p }))} onSkip={() => { setProfileSkipped(true); try { localStorage.setItem('pmb-profile-skipped', '1'); } catch (e) { /* ignore */ } }} />
                 </div>
               )}
 
@@ -421,24 +428,17 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                     <p style={s.pageSub}>Manage your account and preferences.</p>
                   </div>
 
+                  <div style={{ ...s.settingsCard, padding: '20px', marginBottom: 20 }}>
+                    <p style={{ ...s.settingsSection, padding: 0, marginBottom: 14 }}>Your profile</p>
+                    <ProfileForm meta={profile} onSaved={(p) => setProfile(prev => ({ ...prev, ...p }))} />
+                  </div>
+
                   <div style={s.settingsCard}>
                     <p style={s.settingsSection}>Account</p>
                     <div style={s.settingsRow}>
                       <div>
-                        <p style={s.settingsLabel}>Name</p>
-                        <p style={s.settingsValue}>{user?.user_metadata?.first_name} {user?.user_metadata?.last_name}</p>
-                      </div>
-                    </div>
-                    <div style={s.settingsRow}>
-                      <div>
                         <p style={s.settingsLabel}>Email</p>
                         <p style={s.settingsValue}>{user?.email}</p>
-                      </div>
-                    </div>
-                    <div style={s.settingsRow}>
-                      <div>
-                        <p style={s.settingsLabel}>Role</p>
-                        <p style={s.settingsValue}>{user?.user_metadata?.role || 'Not set'}</p>
                       </div>
                     </div>
                     <div style={{ ...s.settingsRow, borderBottom: 'none' }}>
@@ -611,7 +611,7 @@ function DocViewerModal({ doc, onClose, onUpdate }) {
 const s = {
   shell: { display: 'flex', minHeight: '100vh', background: 'var(--bg)', fontFamily: "'DM Sans', system-ui, sans-serif" },
   overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 40 },
-  sidebar: { width: SIDEBAR_W, flexShrink: 0, background: WH, borderRight: `1px solid ${RULE}`, display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, height: '100vh', zIndex: 50, transition: 'transform 0.25s ease' },
+  sidebar: { width: SIDEBAR_W, flexShrink: 0, background: WH, borderRight: `1px solid ${RULE}`, display: 'flex', flexDirection: 'column', position: 'fixed', top: 64, left: 0, height: 'calc(100vh - 64px)', zIndex: 50, transition: 'transform 0.25s ease' },
   sidebarTop: { padding: '20px 16px 16px' },
   brand: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 },
   brandDot: { width: 8, height: 8, borderRadius: '50%', background: BLUE },
@@ -630,7 +630,7 @@ const s = {
   miniBarFill: { height: '100%', background: BLUE, borderRadius: 2, transition: 'width 0.4s' },
   logoutBtn: { width: '100%', padding: '9px', background: 'none', border: `1px solid ${RULE}`, borderRadius: 10, fontSize: 14, color: 'var(--muted)', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center' },
   main: { flex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column', transition: 'margin-left 0.25s' },
-  topBar: { position: 'sticky', top: 0, background: WH, borderBottom: `1px solid ${RULE}`, padding: '0 28px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 30 },
+  topBar: { position: 'sticky', top: 64, background: WH, borderBottom: `1px solid ${RULE}`, padding: '0 28px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 30 },
   menuBtn: { background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--muted)', fontFamily: 'inherit' },
   topActions: { display: 'flex', alignItems: 'center', gap: 10 },
   installChip: { display: 'flex', alignItems: 'center', gap: 4, background: 'var(--color-primary)', borderRadius: 10, padding: '4px 4px 4px 12px' },
