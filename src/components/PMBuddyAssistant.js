@@ -336,8 +336,8 @@ export default function PMBuddyAssistant({ project, context }) {
         onClick: handleOpen,
         title: 'PM Buddy Assistant',
         style: {
-          position: 'fixed', bottom: 28, right: 28, zIndex: 9999,
-          width: 52, height: 52, borderRadius: '50%',
+          position: 'fixed', bottom: 20, right: 16, zIndex: 9999,
+          width: 48, height: 48, borderRadius: '50%',
           background: BLUE, color: '#FFFFFF', border: 'none',
           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: '0 4px 20px rgba(2,132,199,0.45)',
@@ -350,7 +350,7 @@ export default function PMBuddyAssistant({ project, context }) {
             background: 'var(--bad)', color: '#FFFFFF', fontSize: 12, fontWeight: 700,
             borderRadius: '50%', width: 18, height: 18,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            border: '2px solid #fff',
+            border: '2px solid var(--surface)',
           }
         }, unread)
       )
@@ -360,8 +360,8 @@ export default function PMBuddyAssistant({ project, context }) {
   return (
     React.createElement('div', {
       style: {
-        position: 'fixed', bottom: 28, right: 28, zIndex: 9999,
-        width: 360, maxHeight: 520,
+        position: 'fixed', bottom: 16, right: 16, zIndex: 9999,
+        width: 'min(330px, calc(100vw - 24px))', maxHeight: 'min(440px, calc(100vh - 96px))',
         background: WH, borderRadius: 20,
         boxShadow: '0 8px 40px rgba(43,42,40,0.15)',
         border: '1px solid var(--border)',
@@ -373,7 +373,7 @@ export default function PMBuddyAssistant({ project, context }) {
       React.createElement('div', {
         style: {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '14px 16px', background: 'var(--color-primary)', borderRadius: '20px 20px 0 0',
+          padding: '10px 12px 10px 14px', background: 'var(--color-primary)', flexShrink: 0,
         }
       },
         React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
@@ -386,26 +386,29 @@ export default function PMBuddyAssistant({ project, context }) {
           }, React.createElement(BuddyIcon, { size: 16 })),
           React.createElement('div', null,
             React.createElement('p', { style: { fontSize: 14, fontWeight: 700, color: '#FFFFFF', margin: 0 } }, 'PM Buddy'),
-            React.createElement('p', { style: { fontSize: 12, color: 'rgba(255,255,255,0.88)', margin: 0 } }, 'Your personal project manager')
+            React.createElement('p', { style: { fontSize: 12, color: 'rgba(255,255,255,0.88)', margin: 0 } }, 'Ask about this project')
           )
         ),
-        React.createElement('div', { style: { display: 'flex', gap: 6 } },
+        React.createElement('div', { style: { display: 'flex', gap: 6, flexShrink: 0 } },
           React.createElement('button', {
             onClick: handleClear,
             title: 'Clear conversation',
-            style: { background: 'none', border: 'none', color: 'var(--muted)', fontSize: 16, cursor: 'pointer', padding: '2px 6px', borderRadius: 8, fontFamily: 'inherit' }
-          }, icon('refresh', 16)),
+            'aria-label': 'Clear conversation',
+            style: { background: 'rgba(255,255,255,0.18)', border: 'none', color: '#FFFFFF', cursor: 'pointer', width: 32, height: 32, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, fontFamily: 'inherit' }
+          }, icon('refresh', 17)),
           React.createElement('button', {
             onClick: handleClose,
-            style: { background: 'none', border: 'none', color: 'var(--muted)', fontSize: 15, cursor: 'pointer', padding: '2px 6px', borderRadius: 8, fontFamily: 'inherit' }
-          }, icon('x', 16))
+            title: 'Close',
+            'aria-label': 'Close chat',
+            style: { background: 'rgba(255,255,255,0.18)', border: 'none', color: '#FFFFFF', cursor: 'pointer', width: 32, height: 32, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, fontFamily: 'inherit' }
+          }, icon('x', 18))
         )
       ),
       React.createElement('div', {
         style: {
-          flex: 1, overflowY: 'auto', padding: '16px',
+          flex: 1, overflowY: 'auto', padding: '14px',
           display: 'flex', flexDirection: 'column',
-          maxHeight: 340,
+          minHeight: 120,
         }
       },
         messages.length === 0 && React.createElement('p', {
