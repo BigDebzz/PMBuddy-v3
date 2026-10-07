@@ -19,7 +19,7 @@ function openFeedback() {
 }
 
 // A small round chat button. It opens the feedback form without covering the page.
-export default function FeedbackButton() {
+export default function FeedbackButton({ raised }) {
   return (
     <button
       type="button"
@@ -28,8 +28,8 @@ export default function FeedbackButton() {
       aria-label="Give feedback"
       style={{
         position: 'fixed',
-        bottom: 20,
-        left: 20,
+        bottom: raised ? 76 : 20,
+        right: 16,
         zIndex: 9998,
         width: 40,
         height: 40,

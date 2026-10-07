@@ -325,10 +325,6 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                   <h1 style={s.pageTitle}>Projects</h1>
                   <p style={s.pageSub}>{projects.length} project{projects.length !== 1 ? 's' : ''}</p>
                 </div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button style={{ ...s.primaryBtn, background: WH, color: BL, border: `1.5px solid ${RULE}` }} onClick={() => setShowImport(true)}><Icon name="upload" size={15} style={{ marginRight: 6 }} />Import Doc</button>
-                  <button style={s.primaryBtn} onClick={onNewProject}>+ New project</button>
-                </div>
               </div>
 
               {loading && <p style={s.emptyText}>Loading...</p>}

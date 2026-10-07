@@ -386,7 +386,7 @@ export default function App() {
       {screen === S.PROJECT_NEW && user && <ProjectWizard user={user} onComplete={(p) => { setActiveProject({ ...p, _currentUser: user }); setScreen(S.PROJECT_OPEN); }} onBack={() => setScreen(S.DASHBOARD)} onImport={() => { try { sessionStorage.setItem('pmb-open-import', '1'); } catch (e) { /* ignore */ } setScreen(S.DASHBOARD); }} />}
       {screen === S.QUICK_DOC && user && <QuickDoc user={user} onBack={() => setScreen(S.DASHBOARD)} onStartProject={() => setScreen(S.PROJECT_NEW)} onStartCampaign={() => setScreen(S.CAMPAIGN_NEW)} />}
       {screen === S.PROJECT_OPEN && activeProject && activeProject.id && <ProjectWorkspace project={activeProject} onBack={() => setScreen(S.DASHBOARD)} onUpdate={(p) => setActiveProject({ ...p, _currentUser: user })} />}
-      {user && <FeedbackButton />}
+      {user && <FeedbackButton raised={screen === S.PROJECT_OPEN} />}
       <CookieBanner />
       {showValidationModal && <ValidationModeModal onSelect={selectMode} onClose={() => setShowValidationModal(false)} />}
     </div>
