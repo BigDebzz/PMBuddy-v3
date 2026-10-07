@@ -9,6 +9,7 @@ import Icon from './Icon';
 import ReportBuilder from './ReportBuilder';
 import DocView from './DocView';
 import UpdateProject from './UpdateProject';
+import NextSteps from './NextSteps';
 import { DOC_LAYOUT_RULES } from '../lib/docStyle';
 import { downloadWord, downloadPDF } from '../lib/docExport';
 
@@ -141,6 +142,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
         </div>
 
         <div style={s.content}>
+          {tab === 'Overview' && <NextSteps data={data} project={project} version={docsVersion} onTab={setTab} onReport={() => setShowReport(true)} />}
           {tab === 'Overview' && <OverviewTab data={data} onSave={save} acceptedMembers={acceptedMembers} />}
           {tab === 'Tasks' && <TasksTab data={data} onSave={save} />}
           {tab === 'Risks' && <RisksTab data={data} onSave={save} />}
