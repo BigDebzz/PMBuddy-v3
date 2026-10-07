@@ -76,7 +76,7 @@ function buildMilestoneEmail(project, milestone, daysUntil) {
         <p style="margin:0;font-size:15px;font-weight:700;color:${color};">This milestone is ${urgency}.</p>
       </div>
       <p style="margin:0 0 24px;font-size:14px;color:#6B7280;line-height:1.7;">Log in to PM Buddy to update your progress or mark this milestone complete.</p>
-      <a href="https://pmbuddy-v3.vercel.app" style="display:inline-block;background:#0284C7;color:#ffffff;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;">Open PM Buddy</a>
+      <a href="https://pmbuddy.app" style="display:inline-block;background:#0284C7;color:#ffffff;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;">Open PM Buddy</a>
     </div>
     <div style="padding:20px 32px;border-top:1px solid #F3F4F6;">
       <p style="margin:0;font-size:12px;color:#9CA3AF;">PM Buddy — Think, Plan and Execute Like a Professional PM</p>
@@ -107,7 +107,7 @@ function buildTimelineEmail(project, daysUntil) {
         <p style="margin:0;font-size:16px;font-weight:700;color:${color};">${endDate}</p>
       </div>
       <p style="margin:0 0 24px;font-size:14px;color:#6B7280;line-height:1.7;">Your project is approaching its end date. Log in to review your progress, update your milestones or adjust your timeline if needed.</p>
-      <a href="https://pmbuddy-v3.vercel.app" style="display:inline-block;background:#0284C7;color:#ffffff;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;">Open PM Buddy</a>
+      <a href="https://pmbuddy.app" style="display:inline-block;background:#0284C7;color:#ffffff;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;">Open PM Buddy</a>
     </div>
     <div style="padding:20px 32px;border-top:1px solid #F3F4F6;">
       <p style="margin:0;font-size:12px;color:#9CA3AF;">PM Buddy — Think, Plan and Execute Like a Professional PM</p>
@@ -149,7 +149,7 @@ function buildWeeklyEmail(project, upcomingMilestones) {
         </thead>
         <tbody>${milestoneRows}</tbody>
       </table>
-      <a href="https://pmbuddy-v3.vercel.app" style="display:inline-block;background:#0284C7;color:#ffffff;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;">Open PM Buddy</a>
+      <a href="https://pmbuddy.app" style="display:inline-block;background:#0284C7;color:#ffffff;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;">Open PM Buddy</a>
     </div>
     <div style="padding:20px 32px;border-top:1px solid #F3F4F6;">
       <p style="margin:0;font-size:12px;color:#9CA3AF;">Weekly summaries are sent every Monday. PM Buddy — Think, Plan and Execute Like a Professional PM</p>
@@ -209,7 +209,7 @@ function buildTaskDigestEmail(project, groups) {
       ${section('Overdue', '#DC2626', groups.overdue)}
       ${section('Due today', '#D97706', groups.today)}
       ${section('Coming up', '#35709A', groups.soon)}
-      <p style="margin:28px 0 0;"><a href="https://pmbuddy-v3.vercel.app" style="display:inline-block;background:#35709A;color:#ffffff;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;">Open PM Buddy</a></p>
+      <p style="margin:28px 0 0;"><a href="https://pmbuddy.app" style="display:inline-block;background:#35709A;color:#ffffff;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;">Open PM Buddy</a></p>
     </div>
     <div style="padding:20px 32px;border-top:1px solid #E7E2DA;">
       <p style="margin:0;font-size:12px;color:#6B665F;">You get this because task reminders are on for this project. Mark tasks done in PM Buddy and they stop appearing here.</p>

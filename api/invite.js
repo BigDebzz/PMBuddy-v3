@@ -36,7 +36,7 @@ export default async function handler(request, response) {
 
     if (!BREVO_API_KEY) return response.status(500).json({ error: 'Email service not configured' });
 
-    const inviteUrl = `https://pmbuddy-v3.vercel.app?invite=${token}`;
+    const inviteUrl = `https://pmbuddy.app?invite=${token}`;
 
     const emailHtml = `
 <!DOCTYPE html>

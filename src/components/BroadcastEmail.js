@@ -49,7 +49,7 @@ const DEFAULT_BODY = `<p style="font-size:15px;color:#3F3A36;line-height:1.9;mar
 <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
   <tr>
     <td align="center">
-      <a href="https://pmbuddy-v3.vercel.app" style="display:inline-block;background:#1E1919;color:#FFFFFF;font-size:14px;font-weight:700;padding:14px 32px;border-radius:8px;text-decoration:none;">
+      <a href="https://pmbuddy.app" style="display:inline-block;background:#1E1919;color:#FFFFFF;font-size:14px;font-weight:700;padding:14px 32px;border-radius:8px;text-decoration:none;">
         Open PM Buddy
       </a>
     </td>

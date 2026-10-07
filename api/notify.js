@@ -67,7 +67,7 @@ function buildUpdateEmail(projectName, eventTitle, eventDetail, actionLabel) {
         <p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#374151;">${eventTitle}</p>
         <p style="margin:0;font-size:14px;color:#6B7280;line-height:1.6;">${eventDetail}</p>
       </div>
-      <a href="https://pmbuddy-v3.vercel.app" style="display:inline-block;background:#0284C7;color:#ffffff;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;">${actionLabel || 'Open PM Buddy'}</a>
+      <a href="https://pmbuddy.app" style="display:inline-block;background:#0284C7;color:#ffffff;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;">${actionLabel || 'Open PM Buddy'}</a>
     </div>
     <div style="padding:20px 32px;border-top:1px solid #F3F4F6;">
       <p style="margin:0;font-size:12px;color:#9CA3AF;">PM Buddy. Think, Plan and Execute Like a Professional PM</p>
@@ -115,12 +115,12 @@ function buildWelcomeEmail(firstName) {
         </div>
       </div>
 
-      <a href="https://pmbuddy-v3.vercel.app" style="display:inline-block;background:#0284C7;color:#ffffff;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;margin-bottom:24px;">Start my first project</a>
+      <a href="https://pmbuddy.app" style="display:inline-block;background:#0284C7;color:#ffffff;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;margin-bottom:24px;">Start my first project</a>
 
       <p style="margin:0;font-size:13px;color:#9CA3AF;line-height:1.7;">Takes less than 3 minutes. If you get stuck or have feedback, just reply to this email.</p>
     </div>
     <div style="padding:20px 32px;border-top:1px solid #F3F4F6;">
-      <p style="margin:0;font-size:12px;color:#9CA3AF;">PM Buddy. Think, Plan and Execute Like a Professional PM. <a href="https://pmbuddy-v3.vercel.app" style="color:#9CA3AF;">pmbuddy-v3.vercel.app</a></p>
+      <p style="margin:0;font-size:12px;color:#9CA3AF;">PM Buddy. Think, Plan and Execute Like a Professional PM. <a href="https://pmbuddy.app" style="color:#9CA3AF;">pmbuddy.app</a></p>
     </div>
   </div>
 </body>

@@ -120,7 +120,7 @@ Set these in Vercel (Settings → Environment Variables):
 
 | Branch | Purpose |
 |---|---|
-| `main` | Production — `pmbuddy-v3.vercel.app` |
+| `main` | Production — `pmbuddy.app` |
 | `dev` | Active development — auto-deploys to preview URL |
 
 All new work goes to `dev`. Test on the Vercel preview URL. Merge to `main` when confirmed working.
@@ -157,10 +157,10 @@ PM Buddy is built by a non-developer using a chat-based coding workflow: describ
 
 ## Links
 
-- **Production:** https://pmbuddy-v3.vercel.app
-- **About:** https://pmbuddy-v3.vercel.app/about.html
-- **Privacy Policy:** https://pmbuddy-v3.vercel.app/privacy.html
-- **Terms of Service:** https://pmbuddy-v3.vercel.app/terms.html
+- **Production:** https://pmbuddy.app
+- **About:** https://pmbuddy.app/about.html
+- **Privacy Policy:** https://pmbuddy.app/privacy.html
+- **Terms of Service:** https://pmbuddy.app/terms.html
 
 ---
 

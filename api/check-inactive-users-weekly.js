@@ -26,12 +26,12 @@ async function sendEmail(email, firstName) {
         <p style="margin:0;font-size:14px;color:#374151;line-height:1.6;">Professional project documents generated automatically when you need them.</p>
       </div>
 
-      <a href="https://pmbuddy-v3.vercel.app" style="display:inline-block;background:#0284C7;color:#ffffff;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;margin-bottom:24px;">Start my first project</a>
+      <a href="https://pmbuddy.app" style="display:inline-block;background:#0284C7;color:#ffffff;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;margin-bottom:24px;">Start my first project</a>
 
       <p style="margin:0;font-size:13px;color:#9CA3AF;line-height:1.7;">If you have any questions or need help getting started, just reply to this email.</p>
     </div>
     <div style="padding:20px 32px;border-top:1px solid #F3F4F6;">
-      <p style="margin:0;font-size:12px;color:#9CA3AF;">PM Buddy. Think, Plan and Execute Like a Professional PM. <a href="https://pmbuddy-v3.vercel.app" style="color:#9CA3AF;">pmbuddy-v3.vercel.app</a></p>
+      <p style="margin:0;font-size:12px;color:#9CA3AF;">PM Buddy. Think, Plan and Execute Like a Professional PM. <a href="https://pmbuddy.app" style="color:#9CA3AF;">pmbuddy.app</a></p>
     </div>
   </div>
 </body>

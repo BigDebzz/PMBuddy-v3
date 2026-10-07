@@ -63,7 +63,7 @@ export default function RemindersPanel({ project, onUpdate }) {
         <li style="font-size:14px;color:#3F3A36;line-height:1.8;margin-bottom:4px;">A daily note when tasks are due today, due in 3 days, or overdue</li>
         <li style="font-size:14px;color:#3F3A36;line-height:1.8;">A weekly summary every Monday with what is coming up</li>
       </ul>
-      <a href="https://pmbuddy-v3.vercel.app" style="display:inline-block;background:#1E1919;color:#ffffff;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;">Open PM Buddy</a>
+      <a href="https://pmbuddy.app" style="display:inline-block;background:#1E1919;color:#ffffff;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;">Open PM Buddy</a>
     </div>
   </div>
 </body>
