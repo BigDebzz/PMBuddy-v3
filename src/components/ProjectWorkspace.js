@@ -10,6 +10,8 @@ import ReportBuilder from './ReportBuilder';
 import DocView from './DocView';
 import UpdateProject from './UpdateProject';
 import NextSteps from './NextSteps';
+import InfoTip from './InfoTip';
+import ProjectNotes from './ProjectNotes';
 import { DOC_LAYOUT_RULES } from '../lib/docStyle';
 import { downloadWord, downloadPDF } from '../lib/docExport';
 
@@ -190,7 +192,7 @@ function OverviewTab({ data, onSave, acceptedMembers }) {
       {/* Goal */}
       <div style={{ ...s.card, marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <p style={s.cardLabel}>What success looks like</p>
+          <p style={s.cardLabel}>What success looks like<InfoTip term="success" /></p>
           <div style={{ display: 'flex', gap: 6 }}>
             {!editingGoal && <button style={s.smallBtn} onClick={() => { setEditingGoal(true); setGoalDraft(data.scope?.goal || ''); }}>Edit</button>}
             {!editingGoal && <button style={{ ...s.smallBtn, color: 'var(--ok-text)', borderColor: 'var(--ok-border)', background: 'var(--ok-tint)' }} onClick={() => { setEditingGoal(true); setGoalDraft(data.scope?.goal || ''); setTimeout(refineGoal, 100); }}>AI Refine</button>}
@@ -218,7 +220,7 @@ function OverviewTab({ data, onSave, acceptedMembers }) {
 
       {/* Milestones snapshot */}
       <div style={{ ...s.card, marginBottom: 16 }}>
-        <p style={s.cardLabel}>Milestones</p>
+        <p style={s.cardLabel}>Milestones<InfoTip term="milestones" /></p>
         {milestones.length === 0 && <p style={s.emptyText}>No milestones yet. Add them in the Tasks tab.</p>}
         {milestones.slice(0, 5).map((m, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: i < Math.min(milestones.length, 5) - 1 ? `1px solid ${RULE}` : 'none' }}>
@@ -275,7 +277,7 @@ function CurrentStatus({ data, onSave }) {
   return (
     <div style={{ background: 'var(--accent-tint)', border: '1px solid var(--accent-border)', borderRadius: 16, padding: 16, marginBottom: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: hasContent || editing ? 12 : 0 }}>
-        <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent-text)', }}>Current Status</p>
+        <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent-text)', }}>Current Status<InfoTip term="currentStatus" /></p>
         <div style={{ display: 'flex', gap: 6 }}>
           {!editing && <button style={s.smallBtn} onClick={() => setEditing(true)}>Edit</button>}
           {!editing && hasContent && <button style={{ ...s.smallBtn, background: BLUE, color: '#FFFFFF', borderColor: BLUE }} onClick={getAiReview} disabled={reviewing}>{reviewing ? 'Reviewing...' : 'AI Review'}</button>}
@@ -463,10 +465,12 @@ function TasksTab({ data, onSave }) {
 
   return (
     <div>
+      <ProjectNotes data={data} onSave={onSave} author={(data._currentUser && ((data._currentUser.user_metadata && data._currentUser.user_metadata.first_name) || data._currentUser.email)) || 'Someone'} />
+
       {/* KANBAN BOARD */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div>
-          <h3 style={{ fontSize: 17, fontWeight: 800, color: BL, marginBottom: 2 }}>Task Board</h3>
+          <h3 style={{ fontSize: 17, fontWeight: 800, color: BL, marginBottom: 2 }}>Task Board<InfoTip term="taskBoard" /></h3>
           <p style={{ fontSize: 14, color: 'var(--muted)' }}>Move tasks between columns as work progresses.</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -568,11 +572,11 @@ function TasksTab({ data, onSave }) {
                       <p style={{ fontSize: 14, fontWeight: 600, color: BL, marginBottom: 4, lineHeight: 1.4 }}>{task.title}</p>
                       {task.assignee && <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}><Icon name="user" size={12} style={{ marginRight: 4 }} />{task.assignee}</p>}
                       {task.dueDate && <p style={{ fontSize: 12, color: overdue ? 'var(--bad-text)' : 'var(--muted)', fontWeight: overdue ? 700 : 400 }}>{overdue ? <><Icon name="alert" size={12} style={{ marginRight: 4 }} />Overdue · </> : ''}{formatDate(task.dueDate)}</p>}
-                      {task.notes && !isExpanded && <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><Icon name="file" size={12} style={{ marginRight: 4 }} />{task.notes}</p>}
+                      {task.notes && !isExpanded && <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, fontStyle: 'italic', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }}><Icon name="file" size={12} style={{ marginRight: 4 }} />{task.notes}</p>}
 
                       {isExpanded && (
                         <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${RULE}` }}>
-                          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--muted)', marginBottom: 4 }}>Notes / Updates</label>
+                          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--muted)', marginBottom: 4 }}>Notes / Updates<InfoTip term="taskNotes" /></label>
                           <textarea
                             style={{ width: '100%', border: `1px solid ${RULE}`, borderRadius: 8, padding: '7px 9px', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', minHeight: 60, boxSizing: 'border-box', outline: 'none', lineHeight: 1.6 }}
                             placeholder="Add a note, update, or describe the blocker..."
@@ -589,6 +593,7 @@ function TasksTab({ data, onSave }) {
                               />
                               <Icon name="blocked" size={13} style={{ marginRight: 6 }} />Mark as blocker
                             </label>
+                            <InfoTip term="blocker" />
                             <button style={{ ...s.miniBtn, background: BLUE, color: '#FFFFFF', borderColor: BLUE, marginLeft: 'auto' }} onClick={() => {
                               const updatedTask = tasks[taskIdx];
                               const wasBlocker = updatedTask?.isBlocker || false;
@@ -658,7 +663,7 @@ function TasksTab({ data, onSave }) {
       <div style={{ borderTop: `2px solid ${RULE}`, paddingTop: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>
-            <h3 style={{ fontSize: 17, fontWeight: 800, color: BL, marginBottom: 2 }}>Milestones</h3>
+            <h3 style={{ fontSize: 17, fontWeight: 800, color: BL, marginBottom: 2 }}>Milestones<InfoTip term="milestones" /></h3>
             <p style={{ fontSize: 14, color: 'var(--muted)' }}>Key checkpoints that show the project is on track.</p>
           </div>
           <button style={{ padding: '7px 14px', background: BLUE, color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setShowAddMilestone(p => !p)}>+ Add Milestone</button>
@@ -763,7 +768,7 @@ function RisksTab({ data, onSave }) {
       </div>
 
       <div style={{ marginBottom: 24 }}>
-        <h3 style={{ fontSize: 15, fontWeight: 800, color: BL, marginBottom: 4 }}>What could go wrong?</h3>
+        <h3 style={{ fontSize: 15, fontWeight: 800, color: BL, marginBottom: 4 }}>What could go wrong?<InfoTip term="risks" /></h3>
         <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 14 }}>Add anything that could delay, derail or affect this project.</p>
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
           <input style={{ ...s.input, flex: 1, marginBottom: 0, minWidth: 180 }} placeholder="Describe a risk..." value={newRisk} onChange={e => setNewRisk(e.target.value)} onKeyDown={e => e.key === 'Enter' && addRisk()} />
@@ -791,7 +796,7 @@ function RisksTab({ data, onSave }) {
 
       {/* Compliance */}
       <div style={{ borderTop: `2px solid ${RULE}`, paddingTop: 20 }}>
-        <h3 style={{ fontSize: 15, fontWeight: 800, color: BL, marginBottom: 4 }}>Rules and Compliance</h3>
+        <h3 style={{ fontSize: 15, fontWeight: 800, color: BL, marginBottom: 4 }}>Rules and Compliance<InfoTip term="compliance" /></h3>
         <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 16 }}>Legal, regulatory or internal rules this project must follow.</p>
 
         {data.compliance?.flags?.length > 0 && (
@@ -842,14 +847,14 @@ function PeopleTab({ data, onSave, project, acceptedMembers }) {
     <div>
       {/* Team */}
       <div style={{ marginBottom: 28 }}>
-        <h3 style={{ fontSize: 15, fontWeight: 800, color: BL, marginBottom: 4 }}>Your Team</h3>
+        <h3 style={{ fontSize: 15, fontWeight: 800, color: BL, marginBottom: 4 }}>Your Team<InfoTip term="yourTeam" /></h3>
         <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 16 }}>Manage who is working on this project and invite new members.</p>
         <TeamTab project={data} currentUser={project._currentUser} onSave={onSave} />
       </div>
 
       {/* Stakeholders */}
       <div style={{ borderTop: `2px solid ${RULE}`, paddingTop: 20, marginBottom: 28 }}>
-        <h3 style={{ fontSize: 15, fontWeight: 800, color: BL, marginBottom: 4 }}>People With an Interest</h3>
+        <h3 style={{ fontSize: 15, fontWeight: 800, color: BL, marginBottom: 4 }}>People With an Interest<InfoTip term="stakeholders" /></h3>
         <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 16 }}>Anyone outside the team who cares about this project — funders, leadership, beneficiaries.</p>
         <StakeholdersList data={data} onSave={onSave} />
       </div>
@@ -858,7 +863,7 @@ function PeopleTab({ data, onSave, project, acceptedMembers }) {
       <div style={{ borderTop: `2px solid ${RULE}`, paddingTop: 20, marginBottom: 28 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <div>
-            <h3 style={{ fontSize: 15, fontWeight: 800, color: BL, marginBottom: 2 }}>How we share updates</h3>
+            <h3 style={{ fontSize: 15, fontWeight: 800, color: BL, marginBottom: 2 }}>How we share updates<InfoTip term="updates" /></h3>
             <p style={{ fontSize: 14, color: 'var(--muted)' }}>Who gets updates, how often, and through what channel.</p>
           </div>
           {!editingComms && <button style={s.smallBtn} onClick={() => setEditingComms(true)}>Edit</button>}
@@ -875,7 +880,7 @@ function PeopleTab({ data, onSave, project, acceptedMembers }) {
 
       {/* Reminders */}
       <div style={{ borderTop: `2px solid ${RULE}`, paddingTop: 20 }}>
-        <h3 style={{ fontSize: 15, fontWeight: 800, color: BL, marginBottom: 4 }}>Reminders</h3>
+        <h3 style={{ fontSize: 15, fontWeight: 800, color: BL, marginBottom: 4 }}>Reminders<InfoTip term="reminders" /></h3>
         <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 16 }}>Set reminders for important dates and checkpoints.</p>
         <RemindersPanel project={data} onUpdate={(updated) => { onSave({}); }} />
       </div>
@@ -1083,7 +1088,7 @@ function DocumentsTab({ data, history, onSave, project, onCreateReport, docsVers
 
       {section === 'health' && (
         <div>
-          <p style={{ fontSize: 15, color: 'var(--muted)', lineHeight: 1.6, marginBottom: 16 }}>PM Buddy reads your project data and gives you an honest score.</p>
+          <p style={{ fontSize: 15, color: 'var(--muted)', lineHeight: 1.6, marginBottom: 16 }}>PM Buddy reads your project data and gives you an honest score.<InfoTip term="healthCheck" /></p>
           <button style={{ padding: '10px 20px', background: 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 20 }} onClick={runHealthCheck} disabled={aiReportLoading}>{aiReportLoading ? 'Checking...' : aiReport ? 'Run Again' : 'Run Health Check'}</button>
           {aiReportError && <div style={{ padding: '12px', background: 'var(--bad-tint)', border: '1px solid var(--bad-border)', borderRadius: 10, marginBottom: 16 }}><p style={{ fontSize: 14, color: 'var(--bad-text)' }}>{aiReportError}</p></div>}
           {aiReportLoading && <AiLoading kind="think" title="Running your health check" />}
@@ -1103,7 +1108,7 @@ function DocumentsTab({ data, history, onSave, project, onCreateReport, docsVers
 
       {section === 'pm_plan' && (
         <div>
-          <p style={{ fontSize: 15, color: 'var(--muted)', lineHeight: 1.7, marginBottom: 16 }}>Full project management plan generated from your live project data.</p>
+          <p style={{ fontSize: 15, color: 'var(--muted)', lineHeight: 1.7, marginBottom: 16 }}>Full project management plan generated from your live project data.<InfoTip term="pmPlan" /></p>
           <button style={{ padding: '12px 24px', background: BLUE, color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: docGenerating === 'pm' ? 0.6 : 1, marginBottom: 16 }} onClick={() => { setDocError(''); generateDoc('pm'); }} disabled={!!docGenerating}>{docGenerating === 'pm' ? 'Writing your plan...' : 'Generate PM Plan'}</button>
           {docError && <div style={{ padding: '12px 14px', background: 'var(--bad-tint)', border: '1px solid var(--bad-border)', borderRadius: 10, marginBottom: 16 }}><p style={{ fontSize: 14, color: 'var(--bad-text)' }}>{docError}</p></div>}
           {docPreview && docPreviewType === 'pm' && (
@@ -1122,7 +1127,7 @@ function DocumentsTab({ data, history, onSave, project, onCreateReport, docsVers
       {section === 'history' && (
         <div>
           <div style={{ background: 'var(--color-primary-tint)', border: '1px solid var(--color-primary-border)', borderRadius: 16, padding: '16px 20px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-            <div><p style={{ fontSize: 15, fontWeight: 700, color: BL, marginBottom: 2 }}>Progress Map</p><p style={{ fontSize: 14, color: 'var(--muted)' }}>PM Buddy reads your history and tells you where things stand.</p></div>
+            <div><p style={{ fontSize: 15, fontWeight: 700, color: BL, marginBottom: 2 }}>Progress Map<InfoTip term="progressMap" /></p><p style={{ fontSize: 14, color: 'var(--muted)' }}>PM Buddy reads your history and tells you where things stand.</p></div>
             <button style={{ padding: '9px 18px', background: BLUE, color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: generatingMap ? 0.6 : 1 }} onClick={generateProgressMap} disabled={generatingMap}>{generatingMap ? 'Generating...' : <><Icon name="spark" size={15} style={{ marginRight: 6 }} />Generate</>}</button>
           </div>
           {generatingMap && <div style={{ marginBottom: 20 }}><AiLoading compact kind="think" /></div>}

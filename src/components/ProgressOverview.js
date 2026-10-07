@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import InfoTip from './InfoTip';
 
 const RING_RADIUS = 52;
 const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
@@ -88,12 +89,12 @@ export default function ProgressOverview({ data, acceptedMembers = [] }) {
   };
 
   const chips = [
-    { label: 'Tasks', value: `${doneTasks}/${tasks.length}`, sub: 'done', color: 'var(--color-success)' },
-    { label: 'Milestones', value: `${doneMilestones}/${milestones.length}`, sub: 'reached', color: 'var(--color-primary)' },
-    { label: 'Overdue', value: overdueCount, sub: overdueCount === 1 ? 'task' : 'tasks', color: overdueCount > 0 ? 'var(--color-danger)' : 'var(--color-success)' },
-    { label: 'Due this week', value: dueThisWeek, sub: dueThisWeek === 1 ? 'task' : 'tasks', color: dueThisWeek > 0 ? 'var(--color-warning)' : 'var(--color-text-muted)' },
-    { label: 'Open risks', value: openRisks, sub: 'to watch', color: openRisks > 0 ? 'var(--color-warning)' : 'var(--color-success)' },
-    { label: 'Team', value: teamSize, sub: teamSize === 1 ? 'person' : 'people', color: 'var(--color-primary)' },
+    { tip: 'tasks', label: 'Tasks', value: `${doneTasks}/${tasks.length}`, sub: 'done', color: 'var(--color-success)' },
+    { tip: 'milestones', label: 'Milestones', value: `${doneMilestones}/${milestones.length}`, sub: 'reached', color: 'var(--color-primary)' },
+    { tip: 'overdue', label: 'Overdue', value: overdueCount, sub: overdueCount === 1 ? 'task' : 'tasks', color: overdueCount > 0 ? 'var(--color-danger)' : 'var(--color-success)' },
+    { tip: 'dueThisWeek', label: 'Due this week', value: dueThisWeek, sub: dueThisWeek === 1 ? 'task' : 'tasks', color: dueThisWeek > 0 ? 'var(--color-warning)' : 'var(--color-text-muted)' },
+    { tip: 'openRisks', label: 'Open risks', value: openRisks, sub: 'to watch', color: openRisks > 0 ? 'var(--color-warning)' : 'var(--color-success)' },
+    { tip: 'team', label: 'Team', value: teamSize, sub: teamSize === 1 ? 'person' : 'people', color: 'var(--color-primary)' },
   ];
 
   const timeLine = daysLeft === null
@@ -129,7 +130,7 @@ export default function ProgressOverview({ data, acceptedMembers = [] }) {
           </div>
 
           <div style={s.heroCopy}>
-            <p style={s.eyebrow}>Progress overview</p>
+            <p style={s.eyebrow}>Progress overview<InfoTip term="progress" /></p>
             <h3 style={s.headline}>
               {totalItems === 0
                 ? 'Add your first task to see progress here.'
@@ -149,7 +150,7 @@ export default function ProgressOverview({ data, acceptedMembers = [] }) {
         <div style={s.chipRow}>
           {chips.map((chip, i) => (
             <div key={chip.label} style={{ ...s.chip, animation: `pmb-float 4.5s ease-in-out ${i * 0.35}s infinite` }}>
-              <p style={s.chipLabel}>{chip.label}</p>
+              <p style={s.chipLabel}>{chip.label}<InfoTip term={chip.tip} /></p>
               <p style={{ ...s.chipValue, color: chip.color }}>{chip.value}</p>
               <p style={s.chipSub}>{chip.sub}</p>
             </div>
