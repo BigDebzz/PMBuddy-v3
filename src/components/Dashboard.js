@@ -46,7 +46,9 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [showImport, setShowImport] = useState(false);
+  const [showImport, setShowImport] = useState(() => {
+    try { const open = sessionStorage.getItem('pmb-open-import') === '1'; if (open) sessionStorage.removeItem('pmb-open-import'); return open; } catch (e) { return false; }
+  });
   const [showBroadcast, setShowBroadcast] = useState(false);
   const [profile, setProfile] = useState(user?.user_metadata || {});
   const [profileSkipped, setProfileSkipped] = useState(() => { try { return localStorage.getItem('pmb-profile-skipped') === '1'; } catch (e) { return false; } });

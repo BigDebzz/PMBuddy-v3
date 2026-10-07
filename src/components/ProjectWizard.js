@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import AiLoading from './AiLoading';
 import Icon from './Icon';
@@ -9,576 +9,361 @@ const BL = 'var(--text)';
 const WH = 'var(--surface)';
 const GREY = 'var(--surface-2)';
 
-const INDUSTRIES = [
-  'Fintech', 'Health', 'Education', 'Agriculture', 'Logistics',
-  'E-commerce', 'Real Estate', 'Media', 'Government', 'Other'
-];
+const FIELDS = ['Technology', 'Health', 'Education', 'Business', 'Community', 'Events', 'Creative', 'Other'];
+const STATUS_LABELS = { done: 'Done', in_progress: 'In progress', pending: 'To do' };
+const DRAFT_KEY = (userId) => `pmb_wizard_draft_v2_${userId || 'anon'}`;
 
 async function getAuthHeader() {
   try {
     const { data } = await supabase.auth.getSession();
     const token = data?.session?.access_token;
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
+    return token ? { Authorization: `Bearer ${token}` } : {};
   } catch { return {}; }
 }
 
-function VoiceTextarea({ value, onChange, placeholder, rows = 3 }) {
+function toInputDate(d) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+// ─── Voice fields ─────────────────────────────────────────────
+function VoiceField({ id, label, value, onChange, placeholder, rows, hint }) {
   const { listening, start, baseTextRef } = useSpeech('en-US');
   const handleChange = (e) => { baseTextRef.current = e.target.value; onChange(e.target.value); };
   const handleMic = useCallback(() => { start(value, onChange); }, [start, value, onChange]);
+  const multi = rows && rows > 1;
   return (
-    <div>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-        <textarea style={vs.textarea} placeholder={placeholder} value={value} onChange={handleChange} rows={rows} />
-        <button type="button" style={{ ...vs.micBtn, background: listening ? 'var(--bad)' : BLUE }} onClick={handleMic}>{listening ? <StopIcon /> : <MicIcon />}</button>
+    <div style={{ marginBottom: 22 }}>
+      <label htmlFor={id} style={s.label}>{label}</label>
+      {hint && <p id={`${id}-hint`} style={s.hint}>{hint}</p>}
+      <div style={{ display: 'flex', gap: 8, alignItems: multi ? 'flex-start' : 'center' }}>
+        {multi
+          ? <textarea id={id} style={s.textarea} placeholder={placeholder} value={value} onChange={handleChange} rows={rows} aria-describedby={hint ? `${id}-hint` : undefined} />
+          : <input id={id} style={s.input} placeholder={placeholder} value={value} onChange={handleChange} aria-describedby={hint ? `${id}-hint` : undefined} />}
+        <button type="button" style={{ ...s.micBtn, background: listening ? 'var(--bad)' : BLUE, height: 48 }}
+          onClick={handleMic} aria-label={listening ? 'Stop voice input' : 'Speak instead of typing'} aria-pressed={listening}>
+          {listening ? <StopIcon /> : <MicIcon />}
+        </button>
       </div>
-      {listening && <div style={vs.badge}><span style={vs.dot} />Listening... speak naturally. Click stop when done.</div>}
+      {listening && <div style={s.listening} role="status"><span style={s.dot} />Listening. Speak naturally and tap the red button when done.</div>}
     </div>
   );
 }
 
-function VoiceInput({ value, onChange, placeholder }) {
-  const { listening, start, baseTextRef } = useSpeech('en-US');
-  const handleChange = (e) => { baseTextRef.current = e.target.value; onChange(e.target.value); };
-  const handleMic = useCallback(() => { start(value, onChange); }, [start, value, onChange]);
-  return (
-    <div>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <input style={vs.input} placeholder={placeholder} value={value} onChange={handleChange} />
-        <button type="button" style={{ ...vs.micBtnSm, background: listening ? 'var(--bad)' : BLUE }} onClick={handleMic}>{listening ? <StopIcon /> : <MicIcon />}</button>
-      </div>
-      {listening && <div style={{ ...vs.badge, marginTop: 6 }}><span style={vs.dot} />Listening...</div>}
-    </div>
-  );
-}
+// ─── Wizard ───────────────────────────────────────────────────
+export default function ProjectWizard({ user, onComplete, onBack, onImport }) {
+  const userId = typeof user === 'string' ? user : user?.id;
+  const today = toInputDate(new Date());
 
-const vs = {
-  textarea: { width: '100%', border: '1.5px solid var(--border)', borderRadius: 10, padding: '12px 14px', fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', resize: 'vertical', lineHeight: 1.65, background: WH },
-  input: { flex: 1, border: '1.5px solid var(--border)', borderRadius: 10, padding: '12px 14px', fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', background: WH, width: '100%' },
-  micBtn: { width: 44, height: 80, border: 'none', borderRadius: 10, color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  micBtnSm: { width: 44, height: 44, border: 'none', borderRadius: 10, color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  badge: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--bad-text)', fontWeight: 600, padding: '6px 10px', background: 'var(--bad-tint)', borderRadius: 10, border: '1px solid var(--bad-border)', marginTop: 6 },
-  dot: { width: 8, height: 8, borderRadius: '50%', background: 'var(--bad)', flexShrink: 0 },
-};
-
-function MilestoneEditor({ milestones, onChange, industry, description, isOngoing }) {
-  const [suggesting, setSuggesting] = useState(false);
-
-  const addMilestone = () => onChange([...milestones, { title: '', date: '', status: isOngoing ? 'done' : 'pending' }]);
-
-  const updateMilestone = (i, field, val) => {
-    const updated = [...milestones];
-    updated[i] = { ...updated[i], [field]: val };
-    onChange(updated);
+  const blank = {
+    name: '', description: '', industry: '',
+    teamType: 'solo', teamMembers: [{ name: '', role: '' }],
+    startDate: today, endDate: '', noEnd: false,
+    doneSoFar: '', milestones: [],
   };
 
-  const removeMilestone = (i) => onChange(milestones.filter((_, idx) => idx !== i));
-
-  const suggestSteps = async () => {
-    setSuggesting(true);
-    const prompt = `List 5 project milestones for a ${industry || 'general'} project. ${description ? `Project: ${description}` : ''} ${isOngoing ? 'Project is in progress, mix done and upcoming.' : 'New project, all pending.'}
-
-Respond with ONLY a raw JSON array. No explanation. No markdown. No code blocks. Just the array:
-[{"title":"milestone name","status":"pending"},{"title":"milestone name","status":"pending"}]`;
-
+  const readDraft = () => {
     try {
-      const res = await fetch('/api/claude', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) },
-        body: JSON.stringify({ prompt }),
+      const saved = JSON.parse(localStorage.getItem(DRAFT_KEY(userId)) || 'null');
+      if (saved && saved.data && (saved.data.name || saved.data.description)) return saved.data;
+    } catch (e) { /* no draft */ }
+    return null;
+  };
+
+  const [draft] = useState(readDraft);
+  const [data, setData] = useState(() => ({ ...blank, ...(draft || {}) }));
+  const [showDraftNote, setShowDraftNote] = useState(!!draft);
+  const [step, setStep] = useState(1);
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState('');
+  const [suggesting, setSuggesting] = useState(false);
+  const [stepsNote, setStepsNote] = useState('');
+  const [refining, setRefining] = useState(false);
+  const [suggestion, setSuggestion] = useState('');
+  const autoTried = useRef(false);
+  const topRef = useRef(null);
+
+  const alreadyStarted = !!data.startDate && data.startDate < today;
+
+  // The draft is kept on this device so a closed tab does not lose the work.
+  useEffect(() => {
+    try { localStorage.setItem(DRAFT_KEY(userId), JSON.stringify({ data, savedAt: Date.now() })); } catch (e) { /* storage unavailable */ }
+  }, [data, userId]);
+
+  useEffect(() => { if (topRef.current) topRef.current.scrollIntoView({ block: 'start' }); }, [step]);
+
+  const update = (key, val) => setData(p => ({ ...p, [key]: val }));
+  const clearDraft = () => { try { localStorage.removeItem(DRAFT_KEY(userId)); } catch (e) { /* ignore */ } };
+
+  const startFresh = () => {
+    clearDraft();
+    setData(blank);
+    autoTried.current = false;
+    setShowDraftNote(false);
+  };
+
+  const endBeforeStart = !data.noEnd && data.endDate && data.startDate && data.endDate < data.startDate;
+
+  const problem = (() => {
+    if (step === 1 && (!data.name.trim() || !data.description.trim())) return 'Add a project name and a short description to continue.';
+    if (step === 2 && !data.startDate) return 'Choose a start date to continue.';
+    if (step === 2 && endBeforeStart) return 'The end date comes before the start date. Please check the dates.';
+    return '';
+  })();
+
+  // ── AI helpers ──
+  const callAi = async (prompt) => {
+    const res = await fetch('/api/claude', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) },
+      body: JSON.stringify({ prompt }),
+    });
+    if (!res.ok) throw new Error('AI error');
+    const result = await res.json();
+    return (result.result || '').trim();
+  };
+
+  const refineDescription = async () => {
+    setRefining(true);
+    try {
+      const out = await callAi(`Rewrite this as a clear, simple description of a project, in one or two plain sentences that say what it is, who it is for and what it will achieve. Keep the person's meaning. No jargon, no emoji.\n\n"${data.description}"\n\nReturn ONLY the rewritten text.`);
+      if (out) setSuggestion(out);
+    } catch (e) { /* the button simply does nothing, the original text stays */ }
+    setRefining(false);
+  };
+
+  const suggestSteps = async (append) => {
+    setSuggesting(true);
+    setStepsNote('');
+    const started = alreadyStarted
+      ? `It has already started. Done so far: ${data.doneSoFar.trim() || 'not said'}. Mark steps that are clearly finished "done", the current one "in_progress", and the rest "pending".`
+      : 'It is new, so mark every step "pending".';
+    const prompt = `Suggest 5 key steps (milestones) for this project, in the order they would happen.\nProject: ${data.name}\nWhat it is for: ${data.description}\n${data.industry ? `Field: ${data.industry}\n` : ''}${started}\nUse short plain words, 6 words or fewer each. No emoji.\nReturn ONLY a JSON array like [{"title":"...","status":"pending"}]`;
+    try {
+      const raw = await callAi(prompt);
+      const clean = raw.replace(/```json|```/g, '');
+      const a = clean.indexOf('[');
+      const b = clean.lastIndexOf(']');
+      if (a < 0 || b <= a) throw new Error('no list');
+      const list = JSON.parse(clean.slice(a, b + 1))
+        .filter(m => m && m.title)
+        .map(m => ({ title: String(m.title), date: '', status: STATUS_LABELS[m.status] ? m.status : 'pending' }));
+      if (!list.length) throw new Error('empty');
+      setData(p => {
+        if (!append) return { ...p, milestones: list };
+        const have = new Set(p.milestones.map(m => m.title.trim().toLowerCase()));
+        return { ...p, milestones: [...p.milestones, ...list.filter(m => !have.has(m.title.trim().toLowerCase()))] };
       });
-      if (!res.ok) throw new Error('API error');
-      const result = await res.json();
-      const raw = result.result || result.text || '';
-      if (!raw) throw new Error('Empty response');
-      const clean = raw.replace(/```json|```/g, '').trim();
-      const firstBracket = clean.indexOf('[');
-      const lastBracket = clean.lastIndexOf(']');
-      if (firstBracket === -1 || lastBracket === -1) throw new Error('No JSON array found');
-      const parsed = JSON.parse(clean.substring(firstBracket, lastBracket + 1));
-      if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('Empty array');
-      onChange(parsed.map(m => ({ title: m.title || '', date: '', status: m.status || 'pending' })));
-    } catch (err) {
-      console.error('Milestone suggest error:', err);
-      onChange([
-        { title: 'Project Kickoff', date: '', status: isOngoing ? 'done' : 'pending' },
-        { title: 'Planning Complete', date: '', status: isOngoing ? 'done' : 'pending' },
-        { title: 'First Deliverable', date: '', status: isOngoing ? 'in_progress' : 'pending' },
-        { title: 'Check Everything and Feedback', date: '', status: 'pending' },
-        { title: 'Project Complete', date: '', status: 'pending' },
-      ]);
+    } catch (e) {
+      setData(p => (p.milestones.length ? p : { ...p, milestones: [
+        { title: 'Get started', date: '', status: 'pending' },
+        { title: 'First result ready', date: '', status: 'pending' },
+        { title: 'Check progress and feedback', date: '', status: 'pending' },
+        { title: 'Finish and review', date: '', status: 'pending' },
+      ] }));
+      setStepsNote('PM Buddy could not suggest steps just now, so here is a simple starting set. Change them any way you like.');
     }
     setSuggesting(false);
   };
 
-  return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <label style={s.label}>Key Steps</label>
-        <button style={s.aiSuggestBtn} onClick={suggestSteps} disabled={suggesting}>{suggesting ? 'Suggesting...' : 'Suggest Steps for Me'}</button>
-      </div>
-      <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 14 }}>
-        {isOngoing ? 'Mark milestones as done, in progress or pending to show where you are now.' : 'Add your key project milestones. PM Buddy can suggest them based on your project.'}
-      </p>
-      {milestones.map((m, i) => (
-        <div key={i} style={s.milestoneRow}>
-          <input style={{ ...s.milestoneInput, flex: 2 }} placeholder={`Milestone ${i + 1} e.g. First version ready`} value={m.title} onChange={e => updateMilestone(i, 'title', e.target.value)} />
-          <input style={{ ...s.milestoneInput, flex: 1 }} type="date" value={m.date || ''} onChange={e => updateMilestone(i, 'date', e.target.value)} />
-          <select style={s.milestoneStatus} value={m.status} onChange={e => updateMilestone(i, 'status', e.target.value)}>
-            <option value="done">Done</option>
-            <option value="in_progress">In Progress</option>
-            <option value="pending">Pending</option>
-          </select>
-          <button style={s.removeBtn} onClick={() => removeMilestone(i)}><Icon name="x" size={14} /></button>
-        </div>
-      ))}
-      <button style={s.addBtn} onClick={addMilestone}>+ Add Milestone</button>
-    </div>
-  );
-}
-
-const DRAFT_KEY = 'pmb_wizard_draft';
-
-export default function ProjectWizard({ user, onComplete, onBack }) {
-  const [projectType, setProjectType] = useState(null);
-  const [step, setStep] = useState(0);
-  const [saving, setSaving] = useState(false);
-  const [saveMsg, setSaveMsg] = useState('');
-  const [generating, setGenerating] = useState(false);
-
-  const defaultData = {
-    name: '', description: '', goal: '', industry: '',
-    teamType: 'solo', teamMembers: [{ name: '', role: '' }],
-    startDate: '', endDate: '', topRisks: ['', '', ''],
-    milestones: [],
-    currentPhase: '', completedWork: '', remainingWork: '',
-    blockers: '', communicationFlow: '', methodology: '',
+  const next = () => {
+    if (problem) return;
+    const to = step + 1;
+    setStep(to);
+    if (to === 3 && !data.milestones.length && !autoTried.current) {
+      autoTried.current = true;
+      suggestSteps(false);
+    }
   };
 
-  const [data, setData] = useState(() => {
-    try {
-      const saved = localStorage.getItem(DRAFT_KEY);
-      if (saved) { const parsed = JSON.parse(saved); return { ...defaultData, ...parsed.data }; }
-    } catch {}
-    return defaultData;
-  });
+  const back = () => { if (step === 1) { onBack(); } else setStep(step - 1); };
 
-  useState(() => {
-    try {
-      const saved = localStorage.getItem(DRAFT_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.projectType) setProjectType(parsed.projectType);
-        if (parsed.step) setStep(parsed.step);
-      }
-    } catch {}
-  });
-
-  const saveDraft = useCallback((newData, newStep, newType) => {
-    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ data: newData, step: newStep, projectType: newType, savedAt: Date.now() })); } catch {}
-  }, []);
-
-  const clearDraft = () => { try { localStorage.removeItem(DRAFT_KEY); } catch {} };
-
-  const update = useCallback((key, val) => {
-    setData(p => { const updated = { ...p, [key]: val }; saveDraft(updated, step, projectType); return updated; });
-  }, [step, projectType, saveDraft]);
-
-  const progress = step === 0 ? 0 : ((step - 1) / 4) * 100;
-
-  const next = () => { const newStep = step + 1; setStep(newStep); saveDraft(data, newStep, projectType); };
-  const back = () => {
-    if (step === 0) { onBack(); return; }
-    if (step === 1) { setProjectType(null); setStep(0); saveDraft(data, 0, null); return; }
-    const newStep = step - 1; setStep(newStep); saveDraft(data, newStep, projectType);
-  };
-
+  // ── People and steps lists ──
+  const updateMember = (i, field, val) => setData(p => ({ ...p, teamMembers: p.teamMembers.map((m, idx) => (idx === i ? { ...m, [field]: val } : m)) }));
   const addMember = () => setData(p => ({ ...p, teamMembers: [...p.teamMembers, { name: '', role: '' }] }));
-  const updateMember = (i, field, val) => { const members = [...data.teamMembers]; members[i][field] = val; setData(p => ({ ...p, teamMembers: members })); };
   const removeMember = (i) => setData(p => ({ ...p, teamMembers: p.teamMembers.filter((_, idx) => idx !== i) }));
+  const updateStep = (i, field, val) => setData(p => ({ ...p, milestones: p.milestones.map((m, idx) => (idx === i ? { ...m, [field]: val } : m)) }));
+  const addStep = () => setData(p => ({ ...p, milestones: [...p.milestones, { title: '', date: '', status: 'pending' }] }));
+  const removeStep = (i) => setData(p => ({ ...p, milestones: p.milestones.filter((_, idx) => idx !== i) }));
 
-  const selectType = (type) => {
-    if (step !== 0) return;
-    setProjectType(type);
-    const milestones = type === 'ongoing'
-      ? [{ title: '', date: '', status: 'done' }, { title: '', date: '', status: 'in_progress' }, { title: '', date: '', status: 'pending' }]
-      : [{ title: 'Project Kickoff', date: '', status: 'pending' }, { title: 'First Deliverable', date: '', status: 'pending' }, { title: 'Midpoint Check Everything', date: '', status: 'pending' }];
-    setData(p => { const updated = { ...p, milestones }; saveDraft(updated, 1, type); return updated; });
-    setStep(1);
-  };
-
-  const [refining, setRefining] = useState({ description: false, goal: false });
-  const [suggestions, setSuggestions] = useState({ description: '', goal: '' });
-
-  const refineField = async (field, value) => {
-    if (!value.trim()) return;
-    setRefining(p => ({ ...p, [field]: true }));
-    const prompts = {
-      description: `You are PM Buddy, a friendly project management coach helping everyday people plan their projects better. Someone described their project like this: "${value}"
-
-Your job is to rewrite this as a clear, simple 2-3 sentence project description that anyone can understand. No jargon. No corporate speak. Just plain English that explains what the project is, who it is for, and what it will do. Keep the person's original idea — just make it cleaner and clearer.
-
-Return ONLY the rewritten description. Nothing else.`,
-
-      goal: `You are PM Buddy, a friendly project management coach. Someone was asked "what does success look like for your project?" and they wrote: "${value}"
-
-They may have described what done looks like rather than a proper goal. Turn this into a clear, measurable project goal that answers: WHO will benefit, WHAT will change or be achieved, and HOW they will know it worked.
-
-Use simple everyday language. No jargon. Write it as one or two sentences starting with "This project will succeed when..." or similar. Make it specific and realistic based on what they wrote.
-
-Return ONLY the rewritten goal. Nothing else.`,
-    };
-    try {
-      const res = await fetch('/api/claude', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) },
-        body: JSON.stringify({ prompt: prompts[field] }),
-      });
-      const result = await res.json();
-      const refined = (result.result || '').trim();
-      if (refined) setSuggestions(p => ({ ...p, [field]: refined }));
-    } catch (err) { console.error(err); }
-    setRefining(p => ({ ...p, [field]: false }));
-  };
-
-  const acceptSuggestion = (field) => {
-    update(field, suggestions[field]);
-    setSuggestions(p => ({ ...p, [field]: '' }));
-  };
-
-  const canProceed = () => {
-    if (step === 1) return data.name.trim() && data.description.trim() && data.goal.trim() && data.industry;
-    if (step === 3 && projectType === 'new') return data.startDate && data.endDate;
-    return true;
-  };
-
+  // ── Save ──
   const save = async () => {
     setSaving(true);
     setSaveMsg('');
-    const userId = typeof user === 'string' ? user : user?.id;
-    const userEmail = typeof user === 'string' ? '' : (user?.email || '');
-    if (!userId) { setSaveMsg('You must be logged in.'); setSaving(false); return; }
-    const methodology = data.methodology || deriveMethodology(data);
-
+    if (!userId) { setSaveMsg('You need to be logged in to create a project.'); setSaving(false); return; }
+    const withOthers = data.teamType === 'team';
     const { data: project, error } = await supabase.from('pm_projects').insert({
       user_id: userId,
-      owner_email: userEmail,
-      name: data.name,
-      description: data.description,
-      industry: data.industry,
-      team_type: data.teamType,
-      methodology,
+      owner_email: typeof user === 'string' ? '' : (user?.email || ''),
+      name: data.name.trim(),
+      description: data.description.trim(),
+      industry: data.industry || 'General',
+      team_type: withOthers ? 'team' : 'solo',
+      methodology: withOthers ? 'Hybrid' : 'Agile',
       status: 'active',
-      scope: { goal: data.goal, deliverables: [], currentPhase: data.currentPhase, completedWork: data.completedWork, remainingWork: data.remainingWork },
-      timeline: { start: data.startDate, end: data.endDate },
+      scope: { goal: data.description.trim(), deliverables: [], currentPhase: '', completedWork: data.doneSoFar.trim(), remainingWork: '' },
+      timeline: { start: data.startDate, end: data.noEnd ? '' : data.endDate },
       resources: { tools: [], budget: '' },
-      risks: data.topRisks.filter(r => r.trim()).map(r => ({ title: r, level: 'medium', status: 'open' })),
-      team: data.teamMembers.filter(m => m.name.trim()),
-      milestones: data.milestones.filter(m => m.title.trim()),
-      compliance: { industry: data.industry, flags: getComplianceFlags(data.industry) },
-      planning: { communications: data.communicationFlow, blockers: data.blockers },
+      risks: [],
+      team: withOthers ? data.teamMembers.filter(m => m.name.trim()).map(m => ({ name: m.name.trim(), role: m.role.trim() })) : [],
+      milestones: data.milestones.filter(m => m.title.trim()).map(m => ({ title: m.title.trim(), date: m.date || '', status: m.status || 'pending' })),
+      compliance: { industry: data.industry || 'General', flags: [] },
+      planning: { communications: '', blockers: '' },
     }).select().single();
 
     setSaving(false);
-    if (error) { setSaveMsg(`Could not save: ${error.message}`); return; }
+    if (error) { setSaveMsg(`Could not create the project: ${error.message}`); return; }
     if (!project) { setSaveMsg('Something went wrong. Please try again.'); return; }
-
     clearDraft();
-    setGenerating(true);
-
-    try {
-      const briefPrompt = `You are a professional project manager. Write a concise project brief for this project.
-
-Project: ${data.name}
-What field is this in?: ${data.industry}
-Type: ${projectType === 'ongoing' ? 'Already in progress' : 'New project'}
-Description: ${data.description}
-Goal: ${data.goal}
-Methodology: ${methodology}
-Who Is On This: ${data.teamType === 'solo' ? 'Solo project' : data.teamMembers.filter(m => m.name).map(m => `${m.name} (${m.role})`).join(', ')}
-When Does It Happen: ${data.startDate ? `${data.startDate} to ${data.endDate}` : 'Not set'}
-${projectType === 'ongoing' ? `Current Phase: ${data.currentPhase}\nCompleted: ${data.completedWork}\nRemaining: ${data.remainingWork}\nBlockers: ${data.blockers}` : ''}
-Risks: ${data.topRisks.filter(r => r.trim()).join(', ') || 'None listed'}
-Key Steps: ${data.milestones.filter(m => m.title).map(m => m.title).join(', ')}
-
-Write a professional project brief in HTML (h1 for title, h2 for sections, p for paragraphs). No html/head/body tags. Include: What This Project Is, What Success Looks Like, What Is Included, Who Is On This and Roles, When Does It Happen, What Could Go Wrong, How We Will Know It Worked. Make it specific to their actual inputs. Minimum 400 words.`;
-
-      const res = await fetch('/api/claude', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) },
-        body: JSON.stringify({ prompt: briefPrompt, mode: 'document' }),
-      });
-      if (res.ok) {
-        const result = await res.json();
-        const content = (result.result || '').replace(/```html|```/g, '').trim();
-        if (content && content.length > 100) {
-          await supabase.from('documents').insert({ user_id: userId, project_id: project.id, project_name: data.name, type: 'pm', title: `${data.name} Project Brief`, content });
-        }
-      }
-    } catch (err) { console.error('Brief generation error:', err); }
-
-    setGenerating(false);
     onComplete(project);
   };
 
-  if (step === 0) {
-    return (
-      <div style={s.page}>
-        <div style={s.wrap}>
-          <button style={s.backBtn} onClick={back}><Icon name="arrow-left" size={15} style={{ marginRight: 6 }} />Back</button>
-          <div style={s.card}>
-            <p style={s.stepTag}>New Project</p>
-            <h2 style={s.stepTitle}>Is this a new project or one already in progress?</h2>
-            <p style={s.stepSub}>This helps PM Buddy ask the right questions and set up your workspace correctly.</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
-              <button style={s.typeCard} onClick={() => selectType('new')}>
-                <div style={s.typeIcon}><Icon name="board" size={22} /></div>
-                <div><p style={s.typeName}>Starting from scratch</p><p style={s.typeDesc}>I am starting this from the beginning. Help me plan it step by step.</p></div>
-              </button>
-              <button style={s.typeCard} onClick={() => selectType('ongoing')}>
-                <div style={{ ...s.typeIcon, background: 'var(--accent-tint)', color: 'var(--accent-text)' }}><Icon name="refresh" size={22} /></div>
-                <div><p style={s.typeName}>Already started</p><p style={s.typeDesc}>This is already running. I want to organise it better inside PM Buddy.</p></div>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const STEPS_NEW = ['About Your Project', 'Who Is On This', 'When Does It Happen', 'Key Steps', 'Check Everything'];
-  const STEPS_ONGOING = ['About Your Project', 'Where You Are Now', 'Who Is On This', 'Key Steps', 'Check Everything'];
-  const stepLabels = projectType === 'new' ? STEPS_NEW : STEPS_ONGOING;
+  const titles = { 1: 'What are you working on?', 2: 'Who is on it, and when?', 3: 'What are the key steps?' };
+  const subs = {
+    1: 'Just the basics. You can change anything later.',
+    2: 'A rough idea is fine. You can change all of this later.',
+    3: 'PM Buddy suggests steps from what you told it. Change, add or remove any of them.',
+  };
 
   return (
     <div style={s.page}>
-      <div style={s.wrap}>
-        <button style={s.backBtn} onClick={back}><Icon name="arrow-left" size={15} style={{ marginRight: 6 }} />Back</button>
-        <div style={s.progressTrack}><div style={{ ...s.progressFill, width: `${progress}%` }} /></div>
-        <div style={s.steps}>
-          {stepLabels.map((label, i) => (
-            <div key={i} style={{ ...s.stepPill, background: step > i ? BLUE : step === i + 1 ? BLUE : 'var(--border)', color: step >= i + 1 ? '#FFFFFF' : 'var(--muted)' }}>{label}</div>
-          ))}
+      <div style={s.wrap} ref={topRef}>
+        <div style={s.topRow}>
+          <button type="button" style={s.backBtn} onClick={back}><Icon name="arrow-left" size={15} style={{ marginRight: 6 }} />{step === 1 ? 'Back to dashboard' : 'Back'}</button>
+          <span style={s.stepCount}>Step {step} of 3</span>
+        </div>
+        <div style={s.progressTrack} role="progressbar" aria-valuemin={0} aria-valuemax={3} aria-valuenow={step} aria-label={`Step ${step} of 3`}>
+          <div style={{ ...s.progressFill, width: `${(step / 3) * 100}%` }} />
         </div>
 
         <div style={s.card}>
+          {showDraftNote && step === 1 && (
+            <div style={s.note} role="status">
+              <span>You have an unfinished project{draft && draft.name ? `: “${draft.name}”` : ''}. We filled it back in.</span>
+              <button type="button" style={s.linkBtn} onClick={startFresh}>Start fresh</button>
+            </div>
+          )}
+          {step === 1 && onImport && (
+            <button type="button" style={s.importLink} onClick={onImport}><Icon name="upload" size={15} style={{ marginRight: 8 }} />Have a plan or proposal? Upload it instead</button>
+          )}
+
+          <h2 style={s.stepTitle}>{titles[step]}</h2>
+          <p style={s.stepSub}>{subs[step]}</p>
+
           {step === 1 && (
             <div>
-              <p style={s.stepTag}>{projectType === 'ongoing' ? 'Ongoing Project' : 'New Project'} · Step 1 of 5</p>
-              <h2 style={s.stepTitle}>Tell Us About Your Project</h2>
-              <p style={s.stepSub}>{projectType === 'ongoing' ? 'Start with what this project is about.' : 'The clearer you are here the better PM Buddy can support you.'}</p>
-              <label style={s.label}>What is this project called?</label>
-              <div style={{ marginBottom: 20 }}><VoiceInput value={data.name} onChange={v => update('name', v)} placeholder="e.g. Product Launch, Community Training, App Development" /></div>
-              <label style={s.label}>Tell us what this project is</label>
-              <div style={{ marginBottom: suggestions.description ? 8 : 20 }}>
-                <VoiceTextarea value={data.description} onChange={v => update('description', v)} placeholder="Describe what this project is and who it is for." rows={3} />
-              </div>
-              {data.description.trim().length > 20 && !suggestions.description && (
-                <button style={s.refineBtn} onClick={() => refineField('description', data.description)} disabled={refining.description}>
-                  {refining.description ? 'Refining...' : 'Make This Clearer'}
+              <VoiceField id="pw-name" label="Project name (required)" value={data.name} onChange={v => update('name', v)} placeholder="e.g. Community coding class" />
+              <VoiceField id="pw-desc" label="What is it for? (required)" hint="One or two sentences: what it is, who it helps, what it should achieve."
+                value={data.description} onChange={v => { update('description', v); if (suggestion) setSuggestion(''); }} placeholder="e.g. A free weekend coding class for 30 young people in our area" rows={3} />
+              {data.description.trim().length > 20 && !suggestion && (
+                <button type="button" style={s.aiBtn} onClick={refineDescription} disabled={refining}>
+                  <Icon name="spark" size={14} style={{ marginRight: 6 }} />{refining ? 'Working on it...' : 'Make this clearer'}
                 </button>
               )}
-              {suggestions.description && (
-                <div style={s.suggestionBox}>
-                  <p style={s.suggestionLabel}>Suggest Steps for Meion</p>
-                  <p style={s.suggestionText}>{suggestions.description}</p>
-                  <div style={s.suggestionActions}>
-                    <button style={s.acceptBtn} onClick={() => acceptSuggestion('description')}>Use this</button>
-                    <button style={s.dismissBtn} onClick={() => setSuggestions(p => ({ ...p, description: '' }))}>Keep mine</button>
+              {suggestion && (
+                <div style={s.suggestionBox} role="status">
+                  <p style={s.suggestionLabel}>A clearer version</p>
+                  <p style={s.suggestionText}>{suggestion}</p>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button type="button" style={s.acceptBtn} onClick={() => { update('description', suggestion); setSuggestion(''); }}>Use this</button>
+                    <button type="button" style={s.dismissBtn} onClick={() => setSuggestion('')}>Keep mine</button>
                   </div>
                 </div>
               )}
-              <div style={{ marginBottom: 20 }} />
-              <label style={s.label}>What will be different when this is done?</label>
-              <div style={{ marginBottom: suggestions.goal ? 8 : 20 }}>
-                <VoiceTextarea value={data.goal} onChange={v => update('goal', v)} placeholder="What will be different when this project is finished?" rows={3} />
-              </div>
-              {data.goal.trim().length > 20 && !suggestions.goal && (
-                <button style={s.refineBtn} onClick={() => refineField('goal', data.goal)} disabled={refining.goal}>
-                  {refining.goal ? 'Refining...' : 'Make This Clearer'}
-                </button>
-              )}
-              {suggestions.goal && (
-                <div style={s.suggestionBox}>
-                  <p style={s.suggestionLabel}>Suggest Steps for Meion</p>
-                  <p style={s.suggestionText}>{suggestions.goal}</p>
-                  <div style={s.suggestionActions}>
-                    <button style={s.acceptBtn} onClick={() => acceptSuggestion('goal')}>Use this</button>
-                    <button style={s.dismissBtn} onClick={() => setSuggestions(p => ({ ...p, goal: '' }))}>Keep mine</button>
-                  </div>
-                </div>
-              )}
-              <div style={{ marginBottom: 20 }} />
-              <label style={s.label}>What field is this in?</label>
-              <div style={s.industryGrid}>
-                {INDUSTRIES.map(ind => (
-                  <button key={ind} style={{ ...s.industryBtn, background: data.industry === ind ? BLUE : WH, color: data.industry === ind ? '#FFFFFF' : BL, borderColor: data.industry === ind ? BLUE : 'var(--border)' }} onClick={() => update('industry', ind)}>{ind}</button>
+              <p style={{ ...s.label, marginTop: 22 }} id="pw-field-label">Area of work (optional)</p>
+              <div style={s.chips} role="group" aria-labelledby="pw-field-label">
+                {FIELDS.map(f => (
+                  <button key={f} type="button" aria-pressed={data.industry === f} onClick={() => update('industry', data.industry === f ? '' : f)}
+                    style={{ ...s.chip, ...(data.industry === f ? s.chipOn : null) }}>{f}</button>
                 ))}
               </div>
             </div>
           )}
 
-          {step === 2 && projectType === 'new' && (
+          {step === 2 && (
             <div>
-              <p style={s.stepTag}>New Project · Step 2 of 5</p>
-              <h2 style={s.stepTitle}>Who is doing this?</h2>
-              <p style={s.stepSub}>Even if it is just you, defining roles prevents confusion later.</p>
-              <div style={s.teamTypeGrid}>
-                {[{ val: 'solo', label: 'Just me', desc: 'I am doing this alone' }, { val: 'small', label: 'Small Who Is On This', desc: '2 to 5 people' }, { val: 'large', label: 'Larger Who Is On This', desc: '6 or more people' }].map(t => (
-                  <button key={t.val} style={{ ...s.teamTypeBtn, borderColor: data.teamType === t.val ? BLUE : 'var(--border)', background: data.teamType === t.val ? 'var(--accent-tint)' : WH }} onClick={() => update('teamType', t.val)}>
-                    <p style={{ ...s.teamTypeName, color: data.teamType === t.val ? 'var(--accent-text)' : BL }}>{t.label}</p>
-                    <p style={s.teamTypeDesc}>{t.desc}</p>
-                  </button>
+              <p style={s.label} id="pw-who-label">Who is working on it?</p>
+              <div style={s.seg} role="group" aria-labelledby="pw-who-label">
+                {[{ v: 'solo', t: 'Just me' }, { v: 'team', t: 'Me and others' }].map(o => (
+                  <button key={o.v} type="button" aria-pressed={data.teamType === o.v} onClick={() => update('teamType', o.v)}
+                    style={{ ...s.segBtn, ...(data.teamType === o.v ? s.segOn : null) }}>{o.t}</button>
                 ))}
               </div>
-              {data.teamType !== 'solo' && (
-                <div style={{ marginTop: 24 }}>
-                  <label style={s.label}>Who Is On This Members</label>
+              {data.teamType === 'team' && (
+                <div style={{ marginBottom: 22 }}>
+                  <p style={s.hint}>Names are optional. You can also invite people by email from the People tab once the project is created.</p>
                   {data.teamMembers.map((m, i) => (
                     <div key={i} style={s.memberRow}>
-                      <input style={s.inputInline} placeholder="Name" value={m.name} onChange={e => updateMember(i, 'name', e.target.value)} />
-                      <input style={s.inputInline} placeholder="Role e.g. Developer" value={m.role} onChange={e => updateMember(i, 'role', e.target.value)} />
-                      {i > 0 && <button style={s.removeBtn} onClick={() => removeMember(i)}><Icon name="x" size={14} /></button>}
+                      <input style={s.inputInline} aria-label={`Person ${i + 1} name`} placeholder="Name" value={m.name} onChange={e => updateMember(i, 'name', e.target.value)} />
+                      <input style={s.inputInline} aria-label={`Person ${i + 1} role`} placeholder="Role (optional)" value={m.role} onChange={e => updateMember(i, 'role', e.target.value)} />
+                      {data.teamMembers.length > 1 && <button type="button" style={s.removeBtn} onClick={() => removeMember(i)} aria-label={`Remove person ${i + 1}`}><Icon name="x" size={16} /></button>}
                     </div>
                   ))}
-                  <button style={s.addBtn} onClick={addMember}>+ Add Member</button>
+                  <button type="button" style={s.addBtn} onClick={addMember}>+ Add another person</button>
+                </div>
+              )}
+
+              <div style={s.dateRow}>
+                <div style={{ flex: 1, minWidth: 150 }}>
+                  <label htmlFor="pw-start" style={s.label}>When does it start?</label>
+                  <input id="pw-start" style={s.dateInput} type="date" value={data.startDate} onChange={e => update('startDate', e.target.value)} />
+                </div>
+                <div style={{ flex: 1, minWidth: 150 }}>
+                  <label htmlFor="pw-end" style={s.label}>When should it end? (optional)</label>
+                  <input id="pw-end" style={{ ...s.dateInput, opacity: data.noEnd ? 0.5 : 1 }} type="date" value={data.noEnd ? '' : data.endDate} disabled={data.noEnd} onChange={e => update('endDate', e.target.value)} />
+                </div>
+              </div>
+              <label style={s.check}>
+                <input type="checkbox" checked={data.noEnd} onChange={e => update('noEnd', e.target.checked)} style={{ width: 20, height: 20 }} />
+                <span>No fixed end date</span>
+              </label>
+              {endBeforeStart && <div style={s.warn} role="alert">The end date comes before the start date.</div>}
+
+              {alreadyStarted && (
+                <div style={{ marginTop: 24 }}>
+                  <VoiceField id="pw-done" label="This has already started. What has been done so far? (optional)"
+                    value={data.doneSoFar} onChange={v => update('doneSoFar', v)} placeholder="e.g. Venue booked, 12 people signed up" rows={3} />
                 </div>
               )}
             </div>
           )}
 
-          {step === 2 && projectType === 'ongoing' && (
+          {step === 3 && (
             <div>
-              <p style={s.stepTag}>Ongoing Project · Step 2 of 5</p>
-              <h2 style={s.stepTitle}>Where are you right now?</h2>
-              <p style={s.stepSub}>Help PM Buddy understand what has already happened and what is still to come.</p>
-              <label style={s.label}>What stage is this at right now?</label>
-              <div style={{ marginBottom: 20 }}><VoiceInput value={data.currentPhase} onChange={v => update('currentPhase', v)} placeholder="e.g. Planning, Building, Testing, Launch" /></div>
-              <label style={s.label}>What have you already finished?</label>
-              <div style={{ marginBottom: 20 }}><VoiceTextarea value={data.completedWork} onChange={v => update('completedWork', v)} placeholder="List what you have already finished." rows={3} /></div>
-              <label style={s.label}>What is still left to do?</label>
-              <div style={{ marginBottom: 20 }}><VoiceTextarea value={data.remainingWork} onChange={v => update('remainingWork', v)} placeholder="What still needs to be done?" rows={3} /></div>
-              <label style={s.label}>What is slowing things down?</label>
-              <div style={{ marginBottom: 20 }}><VoiceTextarea value={data.blockers} onChange={v => update('blockers', v)} placeholder="What is making this harder than it should be?" rows={3} /></div>
-              <label style={s.label}>How does the team stay in touch?</label>
-              <div style={{ marginBottom: 20 }}><VoiceInput value={data.communicationFlow} onChange={v => update('communicationFlow', v)} placeholder="e.g. WhatsApp group, weekly catch-ups, email updates" /></div>
-              <label style={s.label}>How are you working on this?</label>
-              <div style={s.methodGrid}>
-                {[
-                  { val: 'Agile', desc: 'Try things, learn, adjust as you go' },
-                  { val: 'Predictive', desc: 'Plan everything upfront, follow steps in order' },
-                  { val: 'Hybrid', desc: 'Plan the big picture, stay flexible on the details' },
-                  { val: 'Not sure', desc: 'Not sure — PM Buddy will suggest the best way' },
-                ].map(m => (
-                  <button key={m.val} style={{ ...s.methodBtn, borderColor: data.methodology === m.val ? BLUE : 'var(--border)', background: data.methodology === m.val ? 'var(--accent-tint)' : WH }} onClick={() => update('methodology', m.val)}>
-                    <p style={{ ...s.methodName, color: data.methodology === m.val ? 'var(--accent-text)' : BL }}>{m.val}</p>
-                    <p style={s.methodDesc}>{m.desc}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {step === 3 && projectType === 'new' && (
-            <div>
-              <p style={s.stepTag}>New Project · Step 3 of 5</p>
-              <h2 style={s.stepTitle}>When does this start and end?</h2>
-              <p style={s.stepSub}>Set realistic dates. PM Buddy will flag if your timeline looks too tight.</p>
-              <label style={s.label}>Start Date</label>
-              <input style={s.input} type="date" value={data.startDate} onChange={e => update('startDate', e.target.value)} />
-              <label style={s.label}>Target End Date</label>
-              <input style={s.input} type="date" value={data.endDate} onChange={e => update('endDate', e.target.value)} />
-              {data.startDate && data.endDate && <TimelineCheck start={data.startDate} end={data.endDate} />}
-              <div style={{ marginTop: 24 }}>
-                <label style={s.label}>What Could Go Wrong</label>
-                <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 12 }}>What could go wrong? Name your top concerns.</p>
-                {[0, 1, 2].map(i => (
-                  <div key={i} style={{ marginBottom: 12 }}>
-                    <VoiceInput value={data.topRisks[i]} onChange={v => { const r = [...data.topRisks]; r[i] = v; update('topRisks', r); }} placeholder={getRiskPlaceholder(i, data.industry)} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {step === 3 && projectType === 'ongoing' && (
-            <div>
-              <p style={s.stepTag}>Ongoing Project · Step 3 of 5</p>
-              <h2 style={s.stepTitle}>Who is on this project?</h2>
-              <p style={s.stepSub}>Add the team members already working on this project and their roles.</p>
-              <label style={s.label}>Start Date</label>
-              <input style={s.input} type="date" value={data.startDate} onChange={e => update('startDate', e.target.value)} />
-              <label style={s.label}>Target End Date</label>
-              <input style={s.input} type="date" value={data.endDate} onChange={e => update('endDate', e.target.value)} />
-              <div style={{ marginTop: 20 }}>
-                <label style={s.label}>Who Is On This Members</label>
-                {data.teamMembers.map((m, i) => (
-                  <div key={i} style={s.memberRow}>
-                    <input style={s.inputInline} placeholder="Name" value={m.name} onChange={e => updateMember(i, 'name', e.target.value)} />
-                    <input style={s.inputInline} placeholder="Role e.g. Developer" value={m.role} onChange={e => updateMember(i, 'role', e.target.value)} />
-                    {i > 0 && <button style={s.removeBtn} onClick={() => removeMember(i)}><Icon name="x" size={14} /></button>}
-                  </div>
-                ))}
-                <button style={s.addBtn} onClick={addMember}>+ Add Member</button>
-              </div>
-              <div style={{ marginTop: 24 }}>
-                <label style={s.label}>What Could Go Wrong</label>
-                <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 12 }}>What are the biggest risks right now?</p>
-                {[0, 1, 2].map(i => (
-                  <div key={i} style={{ marginBottom: 12 }}>
-                    <VoiceInput value={data.topRisks[i]} onChange={v => { const r = [...data.topRisks]; r[i] = v; update('topRisks', r); }} placeholder={getRiskPlaceholder(i, data.industry)} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {step === 4 && (
-            <div>
-              <p style={s.stepTag}>{projectType === 'ongoing' ? 'Ongoing' : 'New'} Project · Step 4 of 5</p>
-              <h2 style={s.stepTitle}>Project Key Steps</h2>
-              <p style={s.stepSub}>{projectType === 'ongoing' ? 'Show where you are now. Mark completed milestones as done, current ones as in progress.' : 'Set the key checkpoints for your project. Use Suggest Steps for Me to get milestone ideas.'}</p>
-              <MilestoneEditor milestones={data.milestones} onChange={v => update('milestones', v)} industry={data.industry} description={data.description} isOngoing={projectType === 'ongoing'} />
-            </div>
-          )}
-
-          {step === 5 && (
-            <div>
-              <p style={s.stepTag}>Step 5 of 5</p>
-              <h2 style={s.stepTitle}>Check Everything Your Project</h2>
-              <p style={s.stepSub}>Everything can be updated later inside your project workspace.</p>
-              <div style={s.reviewGrid}>
-                <ReviewItem label="What is this project called?" value={data.name} />
-                <ReviewItem label="What field is this in?" value={data.industry} />
-                <ReviewItem label="Type" value={projectType === 'ongoing' ? 'Ongoing Project' : 'New Project'} />
-                <ReviewItem label="Goal" value={data.goal} />
-                <ReviewItem label="Who Is On This" value={data.teamType === 'solo' ? 'Solo' : `${data.teamMembers.filter(m => m.name).length} members`} />
-                <ReviewItem label="Key Steps" value={`${data.milestones.filter(m => m.title.trim()).length} set`} />
-                {projectType === 'ongoing' && <ReviewItem label="Current Phase" value={data.currentPhase || 'Not set'} />}
-                {projectType === 'ongoing' && <ReviewItem label="Blockers" value={data.blockers ? 'Noted' : 'None noted'} />}
-              </div>
-              {data.industry && (
-                <div style={s.complianceCard}>
-                  <p style={s.complianceLabel}>Important Rules to Know</p>
-                  <p style={s.complianceText}>{getComplianceText(data.industry)}</p>
+              {suggesting && <AiLoading compact kind="think" title="Suggesting steps for your project" />}
+              {stepsNote && <div style={s.note} role="status">{stepsNote}</div>}
+              {!suggesting && data.milestones.map((m, i) => (
+                <div key={i} style={s.stepRow}>
+                  <input style={{ ...s.inputInline, flex: '2 1 200px' }} aria-label={`Step ${i + 1}`} placeholder={`Step ${i + 1}, e.g. First version ready`} value={m.title} onChange={e => updateStep(i, 'title', e.target.value)} />
+                  <input style={{ ...s.inputInline, flex: '1 1 140px' }} type="date" aria-label={`Step ${i + 1} date (optional)`} value={m.date || ''} onChange={e => updateStep(i, 'date', e.target.value)} />
+                  {alreadyStarted && (
+                    <select style={s.select} aria-label={`Step ${i + 1} progress`} value={m.status} onChange={e => updateStep(i, 'status', e.target.value)}>
+                      {Object.keys(STATUS_LABELS).map(k => <option key={k} value={k}>{STATUS_LABELS[k]}</option>)}
+                    </select>
+                  )}
+                  <button type="button" style={s.removeBtn} onClick={() => removeStep(i)} aria-label={`Remove step ${i + 1}`}><Icon name="x" size={16} /></button>
+                </div>
+              ))}
+              {!suggesting && (
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 8 }}>
+                  <button type="button" style={s.addBtn} onClick={addStep}>+ Add a step</button>
+                  <button type="button" style={s.addBtn} onClick={() => suggestSteps(data.milestones.length > 0)}>{data.milestones.length ? 'Suggest more steps' : 'Suggest steps for me'}</button>
                 </div>
               )}
+              <p style={{ ...s.hint, marginTop: 18 }}>Dates are optional. Risks, tasks and your team can be added inside the project.</p>
             </div>
           )}
 
           <div style={s.footer}>
-            {generating && <div style={{ marginBottom: 12 }}><AiLoading compact kind="write" title="Creating your project summary" /></div>}
-            {saveMsg && <p style={{ fontSize: 14, color: 'var(--bad-text)', marginBottom: 12, textAlign: 'center' }}>{saveMsg}</p>}
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button style={s.backFooterBtn} onClick={back}><Icon name="arrow-left" size={15} style={{ marginRight: 6 }} />Back</button>
-              {step < 5 ? (
-                <button style={{ ...s.nextBtn, opacity: canProceed() ? 1 : 0.5, flex: 1 }} onClick={next} disabled={!canProceed()}>Continue</button>
-              ) : (
-                <button style={{ ...s.nextBtn, flex: 1 }} onClick={save} disabled={saving || generating}>
-                  {generating ? 'Creating your project summary...' : saving ? 'Saving...' : 'Save This Project'}
-                </button>
-              )}
-            </div>
+            {saveMsg && <p style={s.error} role="alert">{saveMsg}</p>}
+            {problem && <p style={s.problem} role="status">{problem}</p>}
+            {step < 3 ? (
+              <button type="button" style={{ ...s.nextBtn, opacity: problem ? 0.55 : 1 }} onClick={next} aria-disabled={!!problem}>Continue</button>
+            ) : (
+              <button type="button" style={{ ...s.nextBtn, opacity: saving || suggesting ? 0.6 : 1 }} onClick={save} disabled={saving || suggesting}>
+                {saving ? 'Creating your project...' : 'Create project'}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -586,105 +371,61 @@ Write a professional project brief in HTML (h1 for title, h2 for sections, p for
   );
 }
 
-function ReviewItem({ label, value }) {
-  return (
-    <div style={s.reviewItem}>
-      <p style={s.reviewLabel}>{label}</p>
-      <p style={s.reviewValue}>{value || 'Not set'}</p>
-    </div>
-  );
-}
-
-function TimelineCheck({ start, end }) {
-  const days = Math.ceil((new Date(end) - new Date(start)) / 86400000);
-  if (days < 0) return <div style={s.timelineWarn}>Your end date is earlier than your start date.</div>;
-  if (days < 14) return <div style={s.timelineWarn}>That is only {days} days. Keep your plans realistic.</div>;
-  return <div style={s.timelineOk}>You have {days} days. {days < 30 ? 'Focus on the most important parts.' : 'That is a reasonable amount of time.'}</div>;
-}
-
-function deriveMethodology(data) {
-  if (data.methodology && data.methodology !== 'Not sure') return data.methodology;
-  if (data.teamType === 'solo') return 'Agile';
-  if (data.industry === 'Government' || data.industry === 'Health') return 'Predictive';
-  return 'Hybrid';
-}
-
-function getComplianceFlags(industry) {
-  const flags = { Fintech: ['CBN regulatory compliance', 'NDPR', 'KYC'], Health: ['Patient data privacy', 'Medical regulations'], Education: ['Student data protection'], Government: ['Procurement regulations'] };
-  return flags[industry] || [];
-}
-
-function getComplianceText(industry) {
-  const texts = { Fintech: 'As a fintech project you need to be aware of CBN regulations, NDPR data protection requirements and KYC obligations.', Health: 'Health projects must handle patient data with strict privacy controls.', Education: 'Ensure any student data you collect is protected and content is properly licensed.', Government: 'Government projects require formal procurement processes and public data policies.' };
-  return texts[industry] || `Research regulatory requirements specific to ${industry} in your target market.`;
-}
-
-function getRiskPlaceholder(i, industry) {
-  const defaults = { Fintech: ['Waiting for approval from regulators', 'Payment system not working properly', 'Security weaknesses that could be exploited'], Health: ['Not following data privacy rules properly', 'People not wanting to use what we build', 'Waiting for official approvals'], default: ['When Does It Happen slipping', 'Who Is On This member unavailability', 'Spending more money than planned'] };
-  return (defaults[industry] || defaults.default)[i] || 'What could go wrong here?';
-}
-
 function MicIcon() {
-  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>;
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>;
 }
 
 function StopIcon() {
-  return <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>;
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2" /></svg>;
 }
 
+const field = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 12, padding: '12px 14px', fontSize: 16, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', background: WH, minHeight: 48 };
+
 const s = {
-  page: { minHeight: '100vh', background: 'var(--bg)', padding: '40px 24px 80px' },
-  wrap: { maxWidth: 640, margin: '0 auto' },
-  backBtn: { background: 'none', border: 'none', color: 'var(--muted)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 24, padding: '8px 0', display: 'block' },
-  progressTrack: { height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden', marginBottom: 16 },
-  progressFill: { height: '100%', background: BLUE, borderRadius: 2, transition: 'width 0.4s ease' },
-  steps: { display: 'flex', gap: 6, marginBottom: 28, flexWrap: 'wrap' },
-  stepPill: { padding: '4px 10px', borderRadius: 100, fontSize: 12, fontWeight: 600, },
-  card: { background: WH, borderRadius: 20, padding: '36px', boxShadow: '0 4px 20px rgba(43,42,40,0.06)', border: '1px solid var(--border)' },
-  stepTag: { fontSize: 12, fontWeight: 800, color: 'var(--accent-text)', marginBottom: 10 },
-  stepTitle: { fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 900, color: BL, marginBottom: 8, letterSpacing: '-0.5px' },
-  stepSub: { fontSize: 15, color: 'var(--muted)', lineHeight: 1.7, marginBottom: 28 },
-  label: { display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text-2)', marginBottom: 8, },
-  input: { width: '100%', border: '1.5px solid var(--border)', borderRadius: 10, padding: '12px 14px', fontSize: 15, fontFamily: 'inherit', marginBottom: 20, boxSizing: 'border-box', color: BL, outline: 'none', background: WH },
-  inputInline: { flex: 1, border: '1.5px solid var(--border)', borderRadius: 10, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', background: WH },
-  industryGrid: { display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
-  industryBtn: { padding: '9px 16px', border: '1.5px solid', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
-  teamTypeGrid: { display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 8 },
-  teamTypeBtn: { flex: 1, minWidth: 140, padding: '16px', border: '1.5px solid', borderRadius: 16, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' },
-  teamTypeName: { fontSize: 15, fontWeight: 800, marginBottom: 4 },
-  teamTypeDesc: { fontSize: 13, color: 'var(--muted)' },
-  methodGrid: { display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 },
-  methodBtn: { padding: '14px 16px', border: '1.5px solid', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' },
-  methodName: { fontSize: 15, fontWeight: 700, marginBottom: 3 },
-  methodDesc: { fontSize: 13, color: 'var(--muted)' },
-  memberRow: { display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10 },
-  removeBtn: { background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: 16, fontFamily: 'inherit', flexShrink: 0 },
-  addBtn: { background: 'none', border: 'none', color: 'var(--accent-text)', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', padding: 0, marginTop: 4 },
-  milestoneRow: { display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' },
-  milestoneInput: { border: '1.5px solid var(--border)', borderRadius: 10, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', color: BL, outline: 'none', background: WH, minWidth: 80 },
-  milestoneStatus: { border: '1.5px solid var(--border)', borderRadius: 10, padding: '10px 8px', fontSize: 13, fontFamily: 'inherit', color: BL, background: WH, cursor: 'pointer' },
-  aiSuggestBtn: { padding: '6px 14px', background: BLUE, color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
-  refineBtn: { padding: '6px 14px', background: 'var(--ok-tint)', color: 'var(--ok-text)', border: '1px solid var(--ok-border)', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 12, display: 'inline-block' },
-  suggestionBox: { background: 'var(--ok-tint)', border: '1px solid var(--ok-border)', borderRadius: 10, padding: '14px 16px', marginBottom: 12 },
-  suggestionLabel: { fontSize: 12, fontWeight: 700, color: 'var(--ok-text)', marginBottom: 8 },
-  suggestionText: { fontSize: 15, color: 'var(--ok-text)', lineHeight: 1.7, marginBottom: 12 },
-  suggestionActions: { display: 'flex', gap: 8 },
-  acceptBtn: { padding: '6px 16px', background: 'var(--ok)', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
-  dismissBtn: { padding: '6px 14px', background: 'none', color: 'var(--muted)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
-  timelineWarn: { background: 'var(--bad-tint)', border: '1px solid var(--bad-border)', borderRadius: 10, padding: '12px 16px', fontSize: 14, color: 'var(--bad-text)', lineHeight: 1.6, marginTop: 8 },
-  timelineOk: { background: 'var(--accent-tint)', border: '1px solid var(--accent-border)', borderRadius: 10, padding: '12px 16px', fontSize: 14, color: 'var(--accent-text)', lineHeight: 1.6, marginTop: 8 },
-  reviewGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 },
-  reviewItem: { background: GREY, borderRadius: 10, padding: '14px 16px' },
-  reviewLabel: { fontSize: 12, fontWeight: 700, color: 'var(--muted)', marginBottom: 4 },
-  reviewValue: { fontSize: 15, fontWeight: 700, color: BL },
-  complianceCard: { background: 'var(--warn-tint)', border: '1px solid var(--warn-border)', borderRadius: 16, padding: '16px' },
-  complianceLabel: { fontSize: 12, fontWeight: 800, color: 'var(--warn-text)', marginBottom: 6 },
-  complianceText: { fontSize: 15, color: 'var(--warn-text)', lineHeight: 1.7 },
-  footer: { marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--surface-2)' },
-  nextBtn: { width: '100%', padding: '14px', background: BLUE, color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
-  backFooterBtn: { padding: '14px 20px', background: 'none', color: 'var(--muted)', border: '1.5px solid var(--border)', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 },
-  typeCard: { display: 'flex', alignItems: 'flex-start', gap: 16, padding: '20px', border: '1.5px solid var(--border)', borderRadius: 16, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', background: WH, width: '100%' },
-  typeIcon: { width: 44, height: 44, borderRadius: 10, background: 'var(--color-primary)', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 },
-  typeName: { fontSize: 16, fontWeight: 700, color: BL, marginBottom: 6 },
-  typeDesc: { fontSize: 14, color: 'var(--muted)', lineHeight: 1.6 },
+  page: { minHeight: '100vh', background: 'var(--bg)', padding: '28px 16px 80px' },
+  wrap: { maxWidth: 620, margin: '0 auto' },
+  topRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 12 },
+  backBtn: { background: 'none', border: 'none', color: 'var(--text-2)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', padding: '10px 0', display: 'inline-flex', alignItems: 'center', minHeight: 44 },
+  stepCount: { fontSize: 15, fontWeight: 700, color: 'var(--text-2)' },
+  progressTrack: { height: 6, background: 'var(--border)', borderRadius: 3, overflow: 'hidden', marginBottom: 20 },
+  progressFill: { height: '100%', background: BLUE, borderRadius: 3, transition: 'width 0.3s ease' },
+  card: { background: WH, borderRadius: 20, padding: '28px 24px', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border)' },
+  stepTitle: { fontFamily: 'var(--font-head)', fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 800, color: BL, marginBottom: 6, letterSpacing: '-0.02em' },
+  stepSub: { fontSize: 16, color: 'var(--muted)', lineHeight: 1.6, marginBottom: 24 },
+  label: { display: 'block', fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 8 },
+  hint: { fontSize: 14, color: 'var(--muted)', lineHeight: 1.55, marginBottom: 10 },
+  input: { ...field, flex: 1 },
+  textarea: { ...field, flex: 1, resize: 'vertical', lineHeight: 1.6 },
+  inputInline: { ...field, flex: 1, minWidth: 0 },
+  dateInput: { ...field },
+  select: { ...field, width: 'auto', flex: '0 0 auto', padding: '10px 10px', cursor: 'pointer' },
+  micBtn: { width: 48, border: 'none', borderRadius: 12, color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  listening: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: 'var(--bad-text)', fontWeight: 600, padding: '8px 12px', background: 'var(--bad-tint)', borderRadius: 10, border: '1px solid var(--bad-border)', marginTop: 8 },
+  dot: { width: 8, height: 8, borderRadius: '50%', background: 'var(--bad)', flexShrink: 0 },
+  chips: { display: 'flex', flexWrap: 'wrap', gap: 8 },
+  chip: { padding: '10px 16px', border: '1.5px solid var(--border)', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', background: WH, color: 'var(--text-2)', minHeight: 44 },
+  chipOn: { background: 'var(--accent-tint)', color: 'var(--accent-text)', borderColor: 'var(--accent)' },
+  seg: { display: 'flex', gap: 10, marginBottom: 22, flexWrap: 'wrap' },
+  segBtn: { flex: 1, minWidth: 140, padding: '14px 16px', border: '1.5px solid var(--border)', borderRadius: 14, fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', background: WH, color: 'var(--text-2)', minHeight: 52 },
+  segOn: { background: 'var(--accent-tint)', color: 'var(--accent-text)', borderColor: 'var(--accent)' },
+  memberRow: { display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 },
+  stepRow: { display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' },
+  dateRow: { display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 12 },
+  check: { display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, color: 'var(--text-2)', cursor: 'pointer', minHeight: 44 },
+  removeBtn: { background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', flexShrink: 0, width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  addBtn: { background: 'none', border: 'none', color: 'var(--accent-text)', fontWeight: 700, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit', padding: '10px 0', minHeight: 44 },
+  aiBtn: { display: 'inline-flex', alignItems: 'center', padding: '9px 16px', background: GREY, color: 'var(--text)', border: '1.5px solid var(--border-strong)', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 6 },
+  suggestionBox: { background: 'var(--ok-tint)', border: '1px solid var(--ok-border)', borderRadius: 12, padding: '14px 16px', marginBottom: 6 },
+  suggestionLabel: { fontSize: 13, fontWeight: 700, color: 'var(--ok-text)', marginBottom: 6 },
+  suggestionText: { fontSize: 15, color: 'var(--text)', lineHeight: 1.65, marginBottom: 12 },
+  acceptBtn: { padding: '9px 18px', background: 'var(--ok)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
+  dismissBtn: { padding: '9px 16px', background: 'none', color: 'var(--text-2)', border: '1px solid var(--border-strong)', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  note: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', background: 'var(--accent-tint)', border: '1px solid var(--accent-border)', borderRadius: 12, padding: '12px 14px', fontSize: 15, color: 'var(--text)', marginBottom: 18, lineHeight: 1.5 },
+  linkBtn: { background: 'none', border: 'none', color: 'var(--accent-text)', fontWeight: 700, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit', padding: '6px 0', textDecoration: 'underline' },
+  importLink: { display: 'inline-flex', alignItems: 'center', textAlign: 'left', background: 'none', border: 'none', color: 'var(--accent-text)', fontWeight: 600, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit', padding: '8px 0', marginBottom: 14, minHeight: 44 },
+  warn: { background: 'var(--bad-tint)', border: '1px solid var(--bad-border)', borderRadius: 10, padding: '12px 14px', fontSize: 15, color: 'var(--bad-text)', lineHeight: 1.5, marginTop: 8 },
+  footer: { marginTop: 28, paddingTop: 22, borderTop: '1px solid var(--border)' },
+  problem: { fontSize: 15, color: 'var(--text-2)', marginBottom: 12, textAlign: 'center' },
+  error: { fontSize: 15, color: 'var(--bad-text)', marginBottom: 12, textAlign: 'center' },
+  nextBtn: { width: '100%', padding: '15px', background: BLUE, color: '#FFFFFF', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', minHeight: 52 },
 };
