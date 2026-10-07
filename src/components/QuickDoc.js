@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import Icon from './Icon';
 import { downloadWord, downloadPDF } from '../lib/docExport';
+import useSpeech from '../lib/useSpeech';
 
 async function getAuthHeader() {
   const { data } = await supabase.auth.getSession();
@@ -15,39 +16,6 @@ const WH = 'var(--surface)';
 const GREY = 'var(--surface-2)';
 
 const STAGES = { CHAT: 'chat', GENERATING: 'generating', DOCUMENT: 'document', NEXT: 'next' };
-
-function useVoice(onResult) {
-  const [listening, setListening] = useState(false);
-  const recognitionRef = useRef(null);
-  const lastResultIndexRef = useRef(0);
-
-  const toggle = () => {
-    if (listening) { recognitionRef.current?.stop(); setListening(false); return; }
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { alert('Voice input is not supported on this browser. Try Chrome on desktop or Android.'); return; }
-    const recognition = new SR();
-    recognitionRef.current = recognition;
-    lastResultIndexRef.current = 0;
-    recognition.continuous = true;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
-    recognition.onstart = () => setListening(true);
-    recognition.onresult = (e) => {
-      let transcript = '';
-      for (let i = lastResultIndexRef.current; i < e.results.length; i++) {
-        if (e.results[i].isFinal) {
-          transcript += e.results[i][0].transcript + ' ';
-          lastResultIndexRef.current = i + 1;
-        }
-      }
-      if (transcript.trim()) onResult(transcript.trim());
-    };
-    recognition.onerror = () => setListening(false);
-    recognition.onend = () => setListening(false);
-    try { recognition.start(); } catch { setListening(false); }
-  };
-  return { listening, toggle };
-}
 
 export default function QuickDoc({ user, onBack, onStartProject, onStartCampaign }) {
   const [stage, setStage] = useState(STAGES.CHAT);
@@ -67,9 +35,9 @@ export default function QuickDoc({ user, onBack, onStartProject, onStartCampaign
   const [genError, setGenError] = useState(null);
   const [saveStatus, setSaveStatus] = useState(''); // '', 'saving', 'saved', 'error'
   const [saveError, setSaveError] = useState('');
-  const { listening: isListening, toggle: toggleVoice } = useVoice((transcript) => {
-    setInput(prev => (prev + ' ' + transcript).trim());
-  });
+  const speech = useSpeech('en-US');
+  const isListening = speech.listening;
+  const toggleVoice = () => speech.start(input, setInput);
   const bottomRef = useRef(null);
   const conversationRef = useRef([]);
 

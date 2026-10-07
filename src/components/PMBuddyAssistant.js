@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { icon } from './Icon';
+import useSpeech from '../lib/useSpeech';
 
 const BLUE = 'var(--accent)';
 const BL = 'var(--text)';
@@ -13,55 +14,6 @@ function injectAnimation() {
   style.id = 'pmbuddy-anim';
   style.textContent = '@keyframes pmbuddy-bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } } @keyframes pmbuddy-spin { to { transform: rotate(360deg); } }';
   document.head.appendChild(style);
-}
-
-function useSpeech() {
-  const recognitionRef = useRef(null);
-  const baseTextRef = useRef('');
-  const onUpdateRef = useRef(null);
-  const [listening, setListening] = useState(false);
-
-  const stop = useCallback(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.onend = null;
-      recognitionRef.current.onerror = null;
-      recognitionRef.current.onresult = null;
-      recognitionRef.current.abort();
-      recognitionRef.current = null;
-    }
-    setListening(false);
-  }, []);
-
-  const start = useCallback((currentValue, onUpdate) => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { alert('Voice input requires Chrome.'); return; }
-    if (recognitionRef.current) { stop(); return; }
-    onUpdateRef.current = onUpdate;
-    const r = new SR();
-    r.lang = 'en-NG';
-    r.continuous = true;
-    r.interimResults = true;
-    r.maxAlternatives = 1;
-    recognitionRef.current = r;
-    baseTextRef.current = (currentValue || '').trim();
-
-    r.onstart = () => setListening(true);
-    r.onresult = (event) => {
-      let interim = '', final = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const t = event.results[i][0].transcript;
-        if (event.results[i].isFinal) final += t; else interim += t;
-      }
-      if (final) baseTextRef.current = baseTextRef.current ? baseTextRef.current + ' ' + final.trim() : final.trim();
-      const display = baseTextRef.current ? (interim ? baseTextRef.current + ' ' + interim : baseTextRef.current) : interim;
-      if (onUpdateRef.current) onUpdateRef.current(display);
-    };
-    r.onend = () => { if (onUpdateRef.current) onUpdateRef.current(baseTextRef.current); setListening(false); recognitionRef.current = null; };
-    r.onerror = (e) => { if (e.error !== 'no-speech' && e.error !== 'aborted') console.error('Voice:', e.error); setListening(false); recognitionRef.current = null; };
-    r.start();
-  }, [stop]);
-
-  return { listening, start, stop, baseTextRef };
 }
 
 // ── Local storage helpers (fast cache) ──────────────────────────────────────
@@ -188,7 +140,7 @@ export default function PMBuddyAssistant({ project, context }) {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const openRef = useRef(open);
-  const speech = useSpeech();
+  const speech = useSpeech('en-NG');
 
   useEffect(function() { openRef.current = open; }, [open]);
 

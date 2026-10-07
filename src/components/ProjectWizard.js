@@ -1,7 +1,8 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import AiLoading from './AiLoading';
 import Icon from './Icon';
+import useSpeech from '../lib/useSpeech';
 
 const BLUE = 'var(--accent)';
 const BL = 'var(--text)';
@@ -21,56 +22,8 @@ async function getAuthHeader() {
   } catch { return {}; }
 }
 
-function useSpeech() {
-  const recognitionRef = useRef(null);
-  const baseTextRef = useRef('');
-  const onUpdateRef = useRef(null);
-  const [listening, setListening] = useState(false);
-
-  const stop = useCallback(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.onend = null;
-      recognitionRef.current.onerror = null;
-      recognitionRef.current.onresult = null;
-      recognitionRef.current.abort();
-      recognitionRef.current = null;
-    }
-    setListening(false);
-  }, []);
-
-  const start = useCallback((currentValue, onUpdate) => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { alert('Voice input is not supported in this browser. Please use Chrome.'); return; }
-    if (recognitionRef.current) { stop(); return; }
-    onUpdateRef.current = onUpdate;
-    const recognition = new SR();
-    recognition.lang = 'en-US';
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognitionRef.current = recognition;
-    baseTextRef.current = (currentValue || '').trim();
-    recognition.onstart = () => setListening(true);
-    recognition.onresult = (event) => {
-      let interim = '';
-      let final = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const t = event.results[i][0].transcript;
-        if (event.results[i].isFinal) { final += t; } else { interim += t; }
-      }
-      if (final) { baseTextRef.current = baseTextRef.current ? baseTextRef.current + ' ' + final.trim() : final.trim(); }
-      const display = baseTextRef.current ? (interim ? baseTextRef.current + ' ' + interim : baseTextRef.current) : interim;
-      if (onUpdateRef.current) onUpdateRef.current(display);
-    };
-    recognition.onend = () => { if (onUpdateRef.current) onUpdateRef.current(baseTextRef.current); setListening(false); recognitionRef.current = null; };
-    recognition.onerror = () => { setListening(false); recognitionRef.current = null; };
-    recognition.start();
-  }, [stop]);
-
-  return { listening, start, stop, baseTextRef };
-}
-
 function VoiceTextarea({ value, onChange, placeholder, rows = 3 }) {
-  const { listening, start, baseTextRef } = useSpeech();
+  const { listening, start, baseTextRef } = useSpeech('en-US');
   const handleChange = (e) => { baseTextRef.current = e.target.value; onChange(e.target.value); };
   const handleMic = useCallback(() => { start(value, onChange); }, [start, value, onChange]);
   return (
@@ -85,7 +38,7 @@ function VoiceTextarea({ value, onChange, placeholder, rows = 3 }) {
 }
 
 function VoiceInput({ value, onChange, placeholder }) {
-  const { listening, start, baseTextRef } = useSpeech();
+  const { listening, start, baseTextRef } = useSpeech('en-US');
   const handleChange = (e) => { baseTextRef.current = e.target.value; onChange(e.target.value); };
   const handleMic = useCallback(() => { start(value, onChange); }, [start, value, onChange]);
   return (

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { getQuestions, modeConfig } from '../data/questions';
 import { ChevronLeftIcon, HelpIcon, CheckIcon, AlertIcon } from '../lib/icons';
 import { Analytics } from '../lib/analytics';
+import useSpeech from '../lib/useSpeech';
 
 export default function QuestionWizard({ mode, onComplete, onBack }) {
   const questions = getQuestions(mode);
@@ -13,10 +14,8 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
   const [error, setError] = useState('');
   const [tooltip, setTooltip] = useState(false);
   const [fading, setFading] = useState(false);
-  const [listening, setListening] = useState(false);
+  const { listening, start, stop, baseTextRef } = useSpeech('en-NG');
   const inputRef = useRef(null);
-  const recognitionRef = useRef(null);
-  const baseTextRef = useRef('');
 
   const q = questions[idx];
   const progress = ((idx + 1) / questions.length) * 100;
@@ -25,87 +24,18 @@ export default function QuestionWizard({ mode, onComplete, onBack }) {
   useEffect(() => {
     setTooltip(false);
     setError('');
-    stopVoice();
+    stop(true);
     setTimeout(() => inputRef.current && inputRef.current.focus(), 80);
-  }, [idx]);
-
-  useEffect(() => { return () => stopVoice(); }, []);
+  }, [idx, stop]);
 
   const change = (val) => { setAnswers(p => ({ ...p, [q.id]: val })); setError(''); };
 
-  const stopVoice = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.onend = null;
-      recognitionRef.current.onerror = null;
-      recognitionRef.current.onresult = null;
-      recognitionRef.current.abort();
-      recognitionRef.current = null;
-    }
-    setListening(false);
-  };
-
   const startVoice = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert('Voice input is not supported in this browser. Please use Chrome.');
-      return;
-    }
-    if (listening) { stopVoice(); return; }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'en-NG';
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
-    recognitionRef.current = recognition;
-
-    const existingText = (answers[q.id] || '').trim();
-    baseTextRef.current = existingText;
-
-    recognition.onstart = () => setListening(true);
-
-    recognition.onresult = (event) => {
-      let interim = '';
-      let final = '';
-
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          final += transcript;
-        } else {
-          interim += transcript;
-        }
-      }
-
-      if (final) {
-        baseTextRef.current = baseTextRef.current
-          ? baseTextRef.current + ' ' + final.trim()
-          : final.trim();
-      }
-
-      const display = baseTextRef.current
-        ? interim ? baseTextRef.current + ' ' + interim : baseTextRef.current
-        : interim;
-
-      setAnswers(prev => ({ ...prev, [q.id]: display }));
+    const forQuestion = q.id;
+    start(answers[forQuestion] || '', (text) => {
+      setAnswers(prev => ({ ...prev, [forQuestion]: text }));
       setError('');
-    };
-
-    recognition.onend = () => {
-      setAnswers(prev => ({ ...prev, [q.id]: baseTextRef.current }));
-      setListening(false);
-      recognitionRef.current = null;
-    };
-
-    recognition.onerror = (e) => {
-      if (e.error !== 'no-speech' && e.error !== 'aborted') {
-        console.error('Voice error:', e.error);
-      }
-      setListening(false);
-      recognitionRef.current = null;
-    };
-
-    recognition.start();
+    });
   };
 
   const selectAndAdvance = (val) => {
