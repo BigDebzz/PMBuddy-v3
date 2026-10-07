@@ -2,6 +2,10 @@
   "buildCommand": "npm run build",
   "outputDirectory": "build",
   "framework": "create-react-app",
+  "redirects": [
+    { "source": "/((?!api/).*)", "has": [{ "type": "host", "value": "pmbuddy-v3.vercel.app" }], "destination": "https://pmbuddy.app/$1", "permanent": true },
+    { "source": "/((?!api/).*)", "has": [{ "type": "host", "value": "www.pmbuddy.app" }], "destination": "https://pmbuddy.app/$1", "permanent": true }
+  ],
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
