@@ -43,7 +43,7 @@ async function sendEmail(emails, subject, html) {
     method: 'POST',
     headers: { 'api-key': BREVO_API_KEY, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      sender: { name: 'PM Buddy', email: 'pmbuddy1@gmail.com' },
+      sender: { name: 'PM Buddy', email: 'hello@pmbuddy.app' },
       to: emails.map(e => ({ email: e })),
       subject,
       htmlContent: html,

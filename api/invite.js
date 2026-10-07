@@ -70,7 +70,7 @@ export default async function handler(request, response) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        sender: { name: 'PM Buddy', email: 'pmbuddy1@gmail.com' },
+        sender: { name: 'PM Buddy', email: 'hello@pmbuddy.app' },
         to: [{ email }],
         subject: `You have been invited to ${projectName} on PM Buddy`,
         htmlContent: emailHtml,

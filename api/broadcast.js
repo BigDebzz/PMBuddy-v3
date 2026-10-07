@@ -6,7 +6,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
 
-const FROM_EMAIL = 'pmbuddy1@gmail.com';
+const FROM_EMAIL = 'hello@pmbuddy.app';
 const FROM_NAME = 'Debbie from PM Buddy';
 
 // Only allow admins to trigger this

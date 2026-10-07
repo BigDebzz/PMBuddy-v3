@@ -41,7 +41,7 @@ async function sendEmail(email, firstName) {
     method: 'POST',
     headers: { 'api-key': BREVO_API_KEY, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      sender: { name: 'PM Buddy', email: 'pmbuddy1@gmail.com' },
+      sender: { name: 'PM Buddy', email: 'hello@pmbuddy.app' },
       to: [{ email }],
       subject: 'Your first project is one click away',
       htmlContent: html,

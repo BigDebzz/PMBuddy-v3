@@ -3,7 +3,7 @@ export const config = {
 };
 
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
-const FROM_EMAIL = 'pmbuddy1@gmail.com';
+const FROM_EMAIL = 'hello@pmbuddy.app';
 const FROM_NAME = 'Debbie from PM Buddy';
 
 export default async function handler(request, response) {
