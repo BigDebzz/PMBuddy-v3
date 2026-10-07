@@ -455,10 +455,10 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                     <p style={s.settingsSection}>Emails</p>
                     <div style={{ ...s.settingsRow, borderBottom: 'none', gap: 16 }}>
                       <div>
-                        <p style={s.settingsLabel}>Tips and product updates</p>
-                        <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.5 }}>Occasional emails about new features and getting started. You always get emails about your own projects, such as invitations and reminders.</p>
+                        <p style={s.settingsLabel}>Weekly summary and tips</p>
+                        <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.5 }}>A short email each Monday with where your projects stand, plus one tip. You always get emails about your own projects, such as invitations and reminders.</p>
                       </div>
-                      <button type="button" role="switch" aria-checked={!profile.marketing_opt_out} aria-label="Tips and product updates by email"
+                      <button type="button" role="switch" aria-checked={!profile.marketing_opt_out} aria-label="Weekly summary and tips by email"
                         style={{ ...s.openBtn, minWidth: 74, background: profile.marketing_opt_out ? WH : BLUE, color: profile.marketing_opt_out ? 'var(--text)' : '#FFFFFF', border: '1.5px solid ' + (profile.marketing_opt_out ? 'var(--border-strong)' : BLUE) }}
                         onClick={async () => {
                           const next = !profile.marketing_opt_out;

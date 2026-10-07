@@ -35,7 +35,7 @@ export default async function handler(request, response) {
       body: JSON.stringify({ user_metadata: { marketing_opt_out: true } }),
     });
     if (!res.ok) throw new Error(`status ${res.status}`);
-    return response.status(200).send(page('You are unsubscribed', 'You will not get any more marketing emails from PM Buddy. You will still get emails about your own projects, such as invitations and reminders.'));
+    return response.status(200).send(page('You are unsubscribed', 'You will not get the weekly summary or other tips and product emails from PM Buddy. You will still get emails about your own projects, such as invitations and reminders.'));
   } catch (err) {
     console.error('unsubscribe error:', err.message);
     return response.status(500).send(page('Something went wrong', 'We could not unsubscribe you just now. Please try again in a minute, or turn these emails off in PM Buddy under Settings.'));
