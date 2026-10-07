@@ -451,6 +451,23 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                     </div>
                   </div>
 
+                  <div style={{ ...s.settingsCard, marginTop: 16 }}>
+                    <p style={s.settingsSection}>Emails</p>
+                    <div style={{ ...s.settingsRow, borderBottom: 'none', gap: 16 }}>
+                      <div>
+                        <p style={s.settingsLabel}>Tips and product updates</p>
+                        <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.5 }}>Occasional emails about new features and getting started. You always get emails about your own projects, such as invitations and reminders.</p>
+                      </div>
+                      <button type="button" role="switch" aria-checked={!profile.marketing_opt_out} aria-label="Tips and product updates by email"
+                        style={{ ...s.openBtn, minWidth: 74, background: profile.marketing_opt_out ? WH : BLUE, color: profile.marketing_opt_out ? 'var(--text)' : '#FFFFFF', border: '1.5px solid ' + (profile.marketing_opt_out ? 'var(--border-strong)' : BLUE) }}
+                        onClick={async () => {
+                          const next = !profile.marketing_opt_out;
+                          const { error } = await supabase.auth.updateUser({ data: { marketing_opt_out: next } });
+                          if (!error) setProfile(p => ({ ...p, marketing_opt_out: next }));
+                        }}>{profile.marketing_opt_out ? 'Off' : 'On'}</button>
+                    </div>
+                  </div>
+
                   {isAdmin && (
                     <div style={{ ...s.settingsCard, marginTop: 16 }}>
                       <p style={s.settingsSection}>Admin</p>
@@ -463,17 +480,6 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                       </div>
                     </div>
                   )}
-
-                  <div style={{ ...s.settingsCard, marginTop: 16 }}>
-                    <p style={s.settingsSection}>Email Users</p>
-                    <div style={{ ...s.settingsRow, borderBottom: 'none' }}>
-                      <div>
-                        <p style={s.settingsLabel}>Send newsletter</p>
-                        <p style={{ fontSize: 14, color: 'var(--muted)' }}>Send a feature update to all PM Buddy users.</p>
-                      </div>
-                      <button style={s.openBtn} onClick={() => setShowBroadcast(true)}>Compose</button>
-                    </div>
-                  </div>
 
                   <div style={{ ...s.settingsCard, marginTop: 16 }}>
                     <p style={s.settingsSection}>Danger zone</p>

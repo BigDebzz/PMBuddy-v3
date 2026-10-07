@@ -9,9 +9,7 @@
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F7F5F2" />
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#171412" />
   <script>(function(){try{var m=localStorage.getItem("pmb-theme");if(m==="light"||m==="dark"){document.documentElement.setAttribute("data-theme",m);}}catch(e){}})();</script>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600;700&family=Schibsted+Grotesk:wght@400..900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/fonts/fonts.css" />
   <link rel="stylesheet" href="/site.css" />
 </head>
 <body>
@@ -47,21 +45,26 @@
     <p>We do not sell your data. We share it only with the third-party services that power PM Buddy:</p>
     <ul>
       <li><strong>Supabase</strong> — database and authentication (supabase.com)</li>
-      <li><strong>Google Analytics</strong> — usage analytics (analytics.google.com)</li>
-      <li><strong>Brevo</strong> — transactional email delivery (brevo.com)</li>
+      <li><strong>Google Analytics</strong> — usage analytics, only if you accept cookies (analytics.google.com)</li>
+      <li><strong>Brevo</strong> — email delivery, for invitations, reminders and occasional product emails (brevo.com)</li>
       <li><strong>Anthropic (Claude AI)</strong> — AI-powered features including the PM Buddy Assistant and document generation</li>
       <li><strong>Vercel</strong> — hosting and infrastructure (vercel.com)</li>
+      <li><strong>Cloudflare</strong> — domain name and email forwarding (cloudflare.com)</li>
+      <li><strong>Tally</strong> — the feedback form, loaded only when you press the feedback button (tally.so)</li>
     </ul>
 
     <h2>4. Data Storage and Security</h2>
     <p>Your data is stored securely on Supabase servers with row-level security enabled, meaning only you can access your own data. We use HTTPS for all data transmission. We do not store payment information.</p>
 
-    <h2>5. Cookies</h2>
+    <p>Emails about your own projects, such as invitations and reminders, are sent as part of the service. Occasional product emails include an unsubscribe link, and you can also turn them off in Settings.</p>
+
+    <h2 id="cookies">5. Cookies</h2>
     <p>PM Buddy uses cookies for two purposes:</p>
     <ul>
       <li><strong>Session cookies</strong> — to keep you logged in (essential, cannot be disabled)</li>
-      <li><strong>Analytics cookies</strong> — Google Analytics 4 to understand usage patterns (can be blocked via browser settings)</li>
+      <li><strong>Analytics cookies</strong> — Google Analytics 4, to understand usage patterns. These are only used if you press Accept on the cookie bar. If you decline, no analytics cookies are set.</li>
     </ul>
+    <p>You can change your choice at any time with “Cookie settings” in the footer of the home page at pmbuddy.app. Fonts are hosted on our own servers, so your browser does not contact Google to load them. The feedback form is provided by Tally and is only loaded when you press the feedback button.</p>
 
     <h2>6. Your Rights</h2>
     <p>You have the right to:</p>

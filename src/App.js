@@ -9,6 +9,8 @@ import ProjectWorkspace from './components/ProjectWorkspace';
 import CampaignWizard from './components/CampaignWizard';
 import QuickDoc from './components/QuickDoc';
 import FeedbackButton from './components/FeedbackButton';
+import CookieBanner from './components/CookieBanner';
+import { initConsent } from './lib/consent';
 import { supabase } from './lib/supabase';
 import { Analytics } from './lib/analytics';
 import { analyze } from './data/analysis';
@@ -106,6 +108,7 @@ export default function App() {
   const modeRef = useRef(mode);
   const answersRef = useRef(answers);
   const analysisRef = useRef(analysis);
+  useEffect(() => { initConsent(); }, []);
   useEffect(() => { modeRef.current = mode; }, [mode]);
   useEffect(() => { answersRef.current = answers; }, [answers]);
   useEffect(() => { analysisRef.current = analysis; }, [analysis]);
@@ -384,6 +387,7 @@ export default function App() {
       {screen === S.QUICK_DOC && user && <QuickDoc user={user} onBack={() => setScreen(S.DASHBOARD)} onStartProject={() => setScreen(S.PROJECT_NEW)} onStartCampaign={() => setScreen(S.CAMPAIGN_NEW)} />}
       {screen === S.PROJECT_OPEN && activeProject && activeProject.id && <ProjectWorkspace project={activeProject} onBack={() => setScreen(S.DASHBOARD)} onUpdate={(p) => setActiveProject({ ...p, _currentUser: user })} />}
       {user && <FeedbackButton />}
+      <CookieBanner />
       {showValidationModal && <ValidationModeModal onSelect={selectMode} onClose={() => setShowValidationModal(false)} />}
     </div>
   );

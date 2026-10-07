@@ -1,10 +1,11 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
+import { marketingFooter, unsubscribeHeaders, isOptedOut } from './_shared.js';
 
 export const config = { api: { bodyParser: false } };
 
-async function sendEmail(email, firstName) {
+async function sendEmail(email, firstName, userId) {
   const name = firstName ? `, ${firstName}` : '';
   const html = `<!DOCTYPE html>
 <html>
@@ -32,6 +33,7 @@ async function sendEmail(email, firstName) {
     </div>
     <div style="padding:20px 32px;border-top:1px solid #F3F4F6;">
       <p style="margin:0;font-size:12px;color:#9CA3AF;">PM Buddy. Think, Plan and Execute Like a Professional PM. <a href="https://pmbuddy.app" style="color:#9CA3AF;">pmbuddy.app</a></p>
+      ${marketingFooter(userId)}
     </div>
   </div>
 </body>
@@ -43,6 +45,7 @@ async function sendEmail(email, firstName) {
     body: JSON.stringify({
       sender: { name: 'PM Buddy', email: 'hello@pmbuddy.app' },
       to: [{ email }],
+      headers: unsubscribeHeaders(userId),
       subject: 'Your first project is one click away',
       htmlContent: html,
     }),
@@ -90,6 +93,7 @@ export default async function handler(request, response) {
     let sent = 0;
     for (const user of users) {
       if (alreadySentIds.has(user.id)) continue;
+      if (isOptedOut(user)) continue;
 
       // Check if user has created any project or campaign
       const projectsRes = await fetch(
@@ -108,7 +112,7 @@ export default async function handler(request, response) {
         const email = user.email;
         const firstName = user.user_metadata?.first_name || '';
         if (email) {
-          await sendEmail(email, firstName);
+          await sendEmail(email, firstName, user.id);
           sent++;
 
           // Flag this user so we never send again

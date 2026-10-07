@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Analytics } from '../lib/analytics';
 import Icon from './Icon';
 import ThemeToggle from './ThemeToggle';
+import { clearConsent } from '../lib/consent';
 
 const RING_R = 46;
 const RING_LEN = 2 * Math.PI * RING_R;
@@ -365,6 +366,7 @@ export default function LandingScreen({ onSelectMode, onSignup, onDashboard, use
             <a href="/about.html" style={s.footLink}>About</a>
             <a href="/privacy.html" style={s.footLink}>Privacy</a>
             <a href="/terms.html" style={s.footLink}>Terms</a>
+            <button type="button" style={{ ...s.footLink, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }} onClick={clearConsent}>Cookie settings</button>
             <ThemeToggle />
           </div>
         </div>

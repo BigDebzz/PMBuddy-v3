@@ -5,6 +5,7 @@ export const config = {
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
+import { marketingFooter, unsubscribeHeaders, isOptedOut } from './_shared.js';
 
 const FROM_EMAIL = 'hello@pmbuddy.app';
 const FROM_NAME = 'Debbie from PM Buddy';
@@ -53,10 +54,10 @@ async function getAllUsers() {
     page++;
   }
 
-  return users.filter(u => u.email && u.email_confirmed_at);
+  return users.filter(u => u.email && u.email_confirmed_at && !isOptedOut(u));
 }
 
-async function sendEmail(toEmail, toName, subject, htmlContent) {
+async function sendEmail(toEmail, toName, subject, htmlContent, userId) {
   const res = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: {
@@ -68,12 +69,13 @@ async function sendEmail(toEmail, toName, subject, htmlContent) {
       to: [{ email: toEmail, name: toName || toEmail.split('@')[0] }],
       subject,
       htmlContent,
+      headers: unsubscribeHeaders(userId),
     }),
   });
   return res.ok;
 }
 
-function buildEmailHTML(firstName, subject, body) {
+function buildEmailHTML(firstName, subject, body, userId) {
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -118,6 +120,7 @@ function buildEmailHTML(firstName, subject, body) {
               <p style="font-size:12px;color:#9CA3AF;margin:0 0 4px;">
                 You're receiving this because you signed up for PM Buddy.
               </p>
+              ${marketingFooter(userId, '#9CA3AF')}
               <p style="font-size:12px;color:#9CA3AF;margin:0;">
                 <a href="https://pmbuddy.app" style="color:#0284C7;text-decoration:none;">pmbuddy.app</a>
                 &nbsp;·&nbsp;
@@ -171,7 +174,7 @@ export default async function handler(request, response) {
       const previewName = user.user_metadata?.first_name || user.email.split('@')[0];
       console.log('Preview: sending to', user.email, 'name:', previewName);
       console.log('BREVO_API_KEY exists:', !!BREVO_API_KEY);
-      const html = buildEmailHTML(previewName, subject, bodyHTML);
+      const html = buildEmailHTML(previewName, subject, bodyHTML, user.id);
       const res = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: {
@@ -183,6 +186,7 @@ export default async function handler(request, response) {
           to: [{ email: user.email, name: previewName }],
           subject: `[PREVIEW] ${subject}`,
           htmlContent: html,
+          headers: unsubscribeHeaders(user.id),
         }),
       });
       const resBody = await res.text();
@@ -204,12 +208,12 @@ export default async function handler(request, response) {
 
     for (const u of users) {
       const firstName = u.user_metadata?.first_name || u.email.split('@')[0];
-      const html = buildEmailHTML(firstName, subject, bodyHTML);
+      const html = buildEmailHTML(firstName, subject, bodyHTML, u.id);
 
       // Small delay between sends to respect rate limits
       await new Promise(r => setTimeout(r, 100));
 
-      const ok = await sendEmail(u.email, firstName, subject, html);
+      const ok = await sendEmail(u.email, firstName, subject, html, u.id);
       if (ok) sent++;
       else { failed++; console.error(`Failed to send to ${u.email}`); }
     }

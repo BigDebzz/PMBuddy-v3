@@ -1,14 +1,29 @@
 import React from 'react';
 import Icon from './Icon';
 
+const FORM_ID = 'mY6NzW';
+
+// Tally's script is only loaded when someone taps the button, so visitors who never give feedback
+// do not contact a third party.
+function openFeedback() {
+  const open = () => { if (window.Tally) window.Tally.openPopup(FORM_ID, { autoClose: 3000 }); };
+  if (window.Tally) { open(); return; }
+  const existing = document.getElementById('tally-script');
+  if (existing) { existing.addEventListener('load', open); return; }
+  const s = document.createElement('script');
+  s.id = 'tally-script';
+  s.src = 'https://tally.so/widgets/embed.js';
+  s.async = true;
+  s.onload = open;
+  document.body.appendChild(s);
+}
+
 // A small round chat button. It opens the feedback form without covering the page.
 export default function FeedbackButton() {
   return (
     <button
       type="button"
-      data-tally-open="mY6NzW"
-      data-tally-emoji-animation="wave"
-      data-tally-auto-close="3000"
+      onClick={openFeedback}
       title="Give feedback"
       aria-label="Give feedback"
       style={{

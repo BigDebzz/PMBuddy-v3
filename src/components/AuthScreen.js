@@ -11,6 +11,7 @@ export default function AuthScreen({ onAuth, onBack }) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [role, setRole] = useState('');
+  const [agreed, setAgreed] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -108,6 +109,7 @@ export default function AuthScreen({ onAuth, onBack }) {
     if (!email || !password) { setError('Please enter your email and password.'); return; }
     if (mode === 'signup' && !firstName.trim()) { setError('Please enter your first name.'); return; }
     if (mode === 'signup' && !role) { setError('Please select what describes you best.'); return; }
+    if (mode === 'signup' && !agreed) { setError('Please confirm that you are 16 or older and agree to the Terms and Privacy Policy.'); return; }
     if (mode === 'signup') { const pwError = validatePassword(password); if (pwError) { setError(pwError); return; } }
     setLoading(true);
     if (mode === 'login') {
@@ -124,6 +126,7 @@ export default function AuthScreen({ onAuth, onBack }) {
             last_name: lastName.trim(),
             role,
             consent_given: true,
+            age_confirmed: true,
             consent_date: new Date().toISOString(),
           }
         }
@@ -286,17 +289,19 @@ export default function AuthScreen({ onAuth, onBack }) {
         {mode === 'signup' && password && (() => { const st = getPasswordStrength(password); return st ? React.createElement('div', { style: { marginTop: 8, marginBottom: 8 } }, React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', marginBottom: 4 } }, React.createElement('span', { style: { fontSize: 12, color: 'var(--muted)' } }, 'Password strength'), React.createElement('span', { style: { fontSize: 12, fontWeight: 700, color: st.color } }, st.label)), React.createElement('div', { style: { height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' } }, React.createElement('div', { style: { height: '100%', width: st.width, background: st.color, borderRadius: 2, transition: 'width 0.3s' } }))) : null; })()}
         <div style={{ marginBottom: 8 }} />
 
+        {mode === 'signup' && (
+          <label style={s.agree}>
+            <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ width: 20, height: 20, flexShrink: 0, marginTop: 2 }} />
+            <span>I am 16 or older, and I agree to the{' '}
+              <a href="/terms.html" target="_blank" rel="noopener noreferrer" style={s.termsLink}>Terms</a> and{' '}
+              <a href="/privacy.html" target="_blank" rel="noopener noreferrer" style={s.termsLink}>Privacy Policy</a>.</span>
+          </label>
+        )}
+
         <button style={s.btn} onClick={handle} disabled={loading}>
           {loading ? 'Please wait...' : mode === 'login' ? 'Log in' : 'Create account'}
         </button>
 
-        {mode === 'signup' && (
-          <p style={s.termsNote}>
-            By creating an account you agree to our{' '}
-            <a href="/terms" style={s.termsLink}>Terms</a> and{' '}
-            <a href="/privacy" style={s.termsLink}>Privacy Policy</a>.
-          </p>
-        )}
 
         <p style={s.toggle}>
           {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
@@ -365,6 +370,7 @@ const s = {
   passwordRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   forgotLink: { background: 'none', border: 'none', color: 'var(--accent-text)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', padding: 0 },
   btn: { width: '100%', background: B, color: '#FFFFFF', border: 'none', borderRadius: 10, padding: '13px', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 12, marginTop: 4 },
+  agree: { display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14, color: 'var(--text-2)', lineHeight: 1.55, margin: '4px 0 14px', cursor: 'pointer' },
   termsNote: { fontSize: 13, color: 'var(--muted)', textAlign: 'center', marginBottom: 16, lineHeight: 1.6 },
   termsLink: { color: 'var(--muted)', textDecoration: 'underline', textUnderlineOffset: 2 },
   toggle: { fontSize: 14, color: 'var(--muted)', textAlign: 'center', marginBottom: 12 },
