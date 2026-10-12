@@ -74,6 +74,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
   const [tab, setTab] = useState(project._openDoc ? 'Documents' : 'Overview');
   const [saveStatus, setSaveStatus] = useState('saved');
   const [saveError, setSaveError] = useState('');
+  const [savedInfo, setSavedInfo] = useState(''); // what the database holds after the last save
   const [acceptedMembers, setAcceptedMembers] = useState([]);
   const [showReport, setShowReport] = useState(false);
   const [showUpdate, setShowUpdate] = useState(false);
@@ -110,7 +111,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
         const toSend = pendingRef.current;
         pendingRef.current = {};
         setSaveStatus('saving');
-        const { data: rows, error } = await supabase.from('pm_projects').update(toSend).eq('id', project.id).select('id');
+        const { data: rows, error } = await supabase.from('pm_projects').update(toSend).eq('id', project.id).select('id, tasks, history');
         if (error || !rows || rows.length === 0) {
           const why = error ? error.message : 'the database refused the change (no permission to edit this project)';
           console.error('Save failed:', why);
@@ -120,9 +121,11 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
           return;
         }
         setSaveError('');
+        const row = rows[0] || {};
+        setSavedInfo(`${(row.tasks || []).length} task${(row.tasks || []).length === 1 ? '' : 's'}, ${(row.history || []).length} history entr${(row.history || []).length === 1 ? 'y' : 'ies'} stored`);
         setSaveStatus('saved');
         if (onUpdate) onUpdate(updated);
-      }, 1500);
+      }, 600);
       return updated;
     });
   }, [project.id, onUpdate, project._currentUser]);
@@ -135,7 +138,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <button style={s.backBtn} onClick={onBack}><Icon name="arrow-left" size={15} style={{ marginRight: 6 }} />All Projects</button>
             <span style={{ fontSize: 13, color: saveStatus === 'saved' ? 'var(--ok-text)' : saveStatus === 'saving' ? 'var(--warn-text)' : saveStatus === 'error' ? 'var(--bad-text)' : 'var(--muted)' }}>
-              {saveStatus === 'saved' ? <><Icon name="check" size={14} style={{ marginRight: 4 }} />Saved</> : saveStatus === 'saving' ? 'Saving...' : saveStatus === 'error' ? `Could not save: ${saveError || 'unknown reason'}. Your change is not stored yet.` : 'Unsaved changes'}
+              {saveStatus === 'saved' ? <><Icon name="check" size={14} style={{ marginRight: 4 }} />Saved{savedInfo ? ` · ${savedInfo}` : ''}</> : saveStatus === 'saving' ? 'Saving...' : saveStatus === 'error' ? `Could not save: ${saveError || 'unknown reason'}. Your change is not stored yet.` : 'Unsaved changes'}
             </span>
           </div>
           <h1 style={s.title}>{data.name}</h1>
