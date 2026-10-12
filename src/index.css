@@ -14,11 +14,11 @@
   --text-2: #3F3A36;
   --muted: #5F5852;
   --faint: #77716A;
-  --accent: #1F57F0;
-  --accent-hover: #1744C9;
-  --accent-text: #1F57F0;
-  --accent-tint: #E9F0FE;
-  --accent-border: #BCD3FB;
+  --accent: #35709A;
+  --accent-hover: #2A5C80;
+  --accent-text: #35709A;
+  --accent-tint: #E8F0F6;
+  --accent-border: #B5CFE0;
   --ok: #15803D;
   --ok-text: #15803D;
   --ok-tint: #E8F7EE;
@@ -42,7 +42,7 @@
     --bg: #171412; --surface: #221E1B; --surface-2: #2A2521; --surface-3: #342E29;
     --border: rgba(255, 255, 255, 0.12); --border-strong: rgba(255, 255, 255, 0.22);
     --text: #F6F2EC; --text-2: #DDD6CD; --muted: #ABA39A; --faint: #857D74;
-    --accent: #356FEE; --accent-hover: #4C84F7; --accent-text: #8DB1FF; --accent-tint: rgba(79, 131, 255, 0.16); --accent-border: rgba(79, 131, 255, 0.42);
+    --accent: #35709A; --accent-hover: #4B86B0; --accent-text: #8FB8D6; --accent-tint: rgba(53, 112, 154, 0.22); --accent-border: rgba(109, 152, 182, 0.45);
     --ok: #3FBF8A; --ok-text: #4FD8A0; --ok-tint: rgba(79, 216, 160, 0.14); --ok-border: rgba(79, 216, 160, 0.35);
     --warn: #E59B1E; --warn-text: #FFC857; --warn-tint: rgba(255, 200, 87, 0.14); --warn-border: rgba(255, 200, 87, 0.35);
     --bad: #E5534B; --bad-text: #FF8B84; --bad-tint: rgba(255, 139, 132, 0.14); --bad-border: rgba(255, 139, 132, 0.35);
@@ -55,7 +55,7 @@
   --bg: #171412; --surface: #221E1B; --surface-2: #2A2521; --surface-3: #342E29;
   --border: rgba(255, 255, 255, 0.12); --border-strong: rgba(255, 255, 255, 0.22);
   --text: #F6F2EC; --text-2: #DDD6CD; --muted: #ABA39A; --faint: #857D74;
-  --accent: #356FEE; --accent-hover: #4C84F7; --accent-text: #8DB1FF; --accent-tint: rgba(79, 131, 255, 0.16); --accent-border: rgba(79, 131, 255, 0.42);
+  --accent: #35709A; --accent-hover: #4B86B0; --accent-text: #8FB8D6; --accent-tint: rgba(53, 112, 154, 0.22); --accent-border: rgba(109, 152, 182, 0.45);
   --ok: #3FBF8A; --ok-text: #4FD8A0; --ok-tint: rgba(79, 216, 160, 0.14); --ok-border: rgba(79, 216, 160, 0.35);
   --warn: #E59B1E; --warn-text: #FFC857; --warn-tint: rgba(255, 200, 87, 0.14); --warn-border: rgba(255, 200, 87, 0.35);
   --bad: #E5534B; --bad-text: #FF8B84; --bad-tint: rgba(255, 139, 132, 0.14); --bad-border: rgba(255, 139, 132, 0.35);

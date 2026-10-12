@@ -4,8 +4,8 @@ import { marketingFooter } from './_shared.js';
 
 const INK = '#1E1919';
 const MUTED = '#5F5852';
-const ACCENT = '#1F57F0';
-const TINT = '#E9F0FE';
+const ACCENT = '#35709A';
+const TINT = '#E8F0F6';
 const BORDER = '#E3DED7';
 const BAD = '#B42318';
 

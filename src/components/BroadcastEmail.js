@@ -18,8 +18,8 @@ const DEFAULT_BODY = `<p style="font-size:15px;color:#3F3A36;line-height:1.9;mar
 
 <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
   <tr>
-    <td style="background:#E9F0FE;border-radius:10px;padding:18px 20px;">
-      <p style="font-size:14px;font-weight:800;color:#1F57F0;margin:0 0 8px;">You no longer have to type everything in</p>
+    <td style="background:#E8F0F6;border-radius:10px;padding:18px 20px;">
+      <p style="font-size:14px;font-weight:800;color:#35709A;margin:0 0 8px;">You no longer have to type everything in</p>
       <p style="font-size:14px;color:#3F3A36;line-height:1.8;margin:0;">
         If you already have a project document, a proposal, a brief, or even something you wrote on Google Docs, just upload it. PM Buddy reads it and puts everything in the right place for you. Your milestones, your risks, your team, your timeline. No forms to fill.
       </p>

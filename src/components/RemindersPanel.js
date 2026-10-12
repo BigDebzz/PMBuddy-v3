@@ -51,10 +51,10 @@ export default function RemindersPanel({ project, onUpdate }) {
 <body style="margin:0;padding:0;background:#F2EFEA;font-family:system-ui,-apple-system,sans-serif;">
   <div style="max-width:560px;margin:40px auto;background:#FFFFFF;border-radius:12px;overflow:hidden;border:1px solid #E3DED7;">
     <div style="background:#1E1919;padding:24px 32px;">
-      <p style="margin:0;font-size:13px;font-weight:700;color:#1F57F0;letter-spacing:0.1em;text-transform:uppercase;">PM Buddy</p>
+      <p style="margin:0;font-size:13px;font-weight:700;color:#35709A;letter-spacing:0.1em;text-transform:uppercase;">PM Buddy</p>
     </div>
     <div style="padding:32px;">
-      <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#1F57F0;text-transform:uppercase;letter-spacing:0.1em;">Reminders Active</p>
+      <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#35709A;text-transform:uppercase;letter-spacing:0.1em;">Reminders Active</p>
       <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#1E1919;">You are all set.</h1>
       <p style="margin:0 0 16px;font-size:15px;color:#5F5852;line-height:1.7;">Reminders are now active for <strong style="color:#1E1919;">${project.name}</strong>. You will receive:</p>
       <ul style="margin:0 0 24px;padding-left:20px;">

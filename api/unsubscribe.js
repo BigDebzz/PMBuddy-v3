@@ -9,7 +9,7 @@ function page(title, message) {
 <body style="margin:0;font-family:system-ui,-apple-system,sans-serif;background:#F9FAFB;color:#1E1919;">
 <div style="max-width:480px;margin:80px auto;padding:32px;background:#fff;border:1px solid #E5E7EB;border-radius:12px;">
 <h1 style="font-size:22px;margin:0 0 12px;">${title}</h1><p style="font-size:16px;line-height:1.6;margin:0 0 20px;">${message}</p>
-<a href="https://pmbuddy.app" style="color:#1F57F0;font-weight:600;">Go to PM Buddy</a></div></body></html>`;
+<a href="https://pmbuddy.app" style="color:#35709A;font-weight:600;">Go to PM Buddy</a></div></body></html>`;
 }
 
 // Works from the link in an email (GET) and from the one-click button in Gmail (POST).
