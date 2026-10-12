@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import RemindersPanel from './RemindersPanel';
 import TeamTab from './TeamTab';
@@ -14,6 +14,7 @@ import InfoTip from './InfoTip';
 import ProjectNotes from './ProjectNotes';
 import { DOC_LAYOUT_RULES } from '../lib/docStyle';
 import { downloadWord, downloadPDF } from '../lib/docExport';
+import { entriesForSave, appendEntries, verifyHistory } from '../lib/historyLog';
 
 const BLUE = 'var(--accent)';
 const BL = 'var(--text)';
@@ -21,7 +22,7 @@ const WH = 'var(--surface)';
 const GREY = 'var(--surface-2)';
 const RULE = 'var(--border)';
 
-const TABS = ['Overview', 'Tasks', 'Risks', 'People', 'Documents'];
+const TABS = ['Overview', 'Tasks', 'Risks', 'People', 'History', 'Documents'];
 
 async function getAuthHeader() {
   try {
@@ -97,10 +98,8 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
         stamped.milestones = stampCompletion(prev.milestones, updates.milestones, sameLength ? (p, i, pi, idx) => pi === idx : (p, i) => p.title === i.title && p.date === i.date);
       }
       const currentHistory = prev.history || [];
-      const newHistory = historyEntry
-        ? [...currentHistory, { ...historyEntry, timestamp: new Date().toISOString(), by }]
-        : currentHistory;
-      const finalUpdates = historyEntry ? { ...stamped, history: newHistory } : stamped;
+      const entries = entriesForSave(prev, stamped, historyEntry);
+      const finalUpdates = entries.length ? { ...stamped, history: appendEntries(currentHistory, entries, by) } : stamped;
       const updated = { ...prev, ...finalUpdates, updated_at: new Date().toISOString() };
       setSaveStatus('unsaved');
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -149,6 +148,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
           {tab === 'Tasks' && <TasksTab data={data} onSave={save} />}
           {tab === 'Risks' && <RisksTab data={data} onSave={save} />}
           {tab === 'People' && <PeopleTab data={data} onSave={save} project={project} acceptedMembers={acceptedMembers} />}
+          {tab === 'History' && <HistoryTab data={data} project={project} />}
           {tab === 'Documents' && <DocumentsTab data={data} history={data.history || []} onSave={save} project={project} onCreateReport={() => setShowReport(true)} docsVersion={docsVersion} />}
         </div>
       </div>
@@ -983,6 +983,86 @@ function StakeholdersList({ data, onSave }) {
   );
 }
 
+// ─── HISTORY TAB ──────────────────────────────────────────────
+
+const HISTORY_FILTERS = [
+  { id: 'all', label: 'Everything', test: () => true },
+  { id: 'tasks', label: 'Tasks', test: e => /^task_/.test(e.type || '') },
+  { id: 'milestones', label: 'Milestones', test: e => /^milestone_/.test(e.type || '') },
+  { id: 'notes', label: 'Notes', test: e => /note/.test(e.type || '') },
+  { id: 'risks', label: 'Risks', test: e => /^risk_/.test(e.type || '') },
+];
+
+const NOTIFIED_TEXT = { team: 'Team notified', silent: 'Silent', earlier: 'Team told earlier' };
+
+function HistoryTab({ data, project }) {
+  const history = useMemo(() => data.history || [], [data.history]);
+  const me = (data._currentUser && (data._currentUser.id || data._currentUser.email)) || 'me';
+  const storeKey = `pmb-history-hidden-${project.id}-${me}`;
+  const [hidden, setHidden] = useState(() => { try { return JSON.parse(localStorage.getItem(storeKey) || '[]'); } catch (e) { return []; } });
+  const [showHidden, setShowHidden] = useState(false);
+  const [filter, setFilter] = useState('all');
+  const check = useMemo(() => verifyHistory(history), [history]);
+
+  const keyOf = (e, i) => e.id || `${e.timestamp || ''}-${e.label || ''}-${i}`;
+  const persist = (list) => { setHidden(list); try { localStorage.setItem(storeKey, JSON.stringify(list)); } catch (e) { /* storage unavailable */ } };
+  const hide = (k) => persist([...hidden, k]);
+  const hideAll = () => persist(history.map(keyOf));
+
+  const test = (HISTORY_FILTERS.find(f => f.id === filter) || HISTORY_FILTERS[0]).test;
+  const rows = history.map((e, i) => ({ e, k: keyOf(e, i), i })).filter(r => test(r.e)).reverse();
+  const visible = rows.filter(r => showHidden || !hidden.includes(r.k));
+  const hiddenCount = rows.filter(r => hidden.includes(r.k)).length;
+  const when = (iso) => { try { return new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
+  const iconFor = (t = '') => (/^goal/.test(t) ? 'flag' : /blocked/.test(t) ? 'blocked' : /^risk_/.test(t) ? 'alert' : /note/.test(t) ? 'file' : /done|moved|notified/.test(t) ? 'check' : /person|people/.test(t) ? 'users' : 'clock');
+
+  return (
+    <div>
+      <div role="status" style={{ border: `1px solid ${check.ok ? RULE : 'var(--bad-border)'}`, background: check.ok ? GREY : 'var(--bad-tint)', color: check.ok ? 'var(--text-2)' : 'var(--bad-text)', borderRadius: 10, padding: '12px 14px', fontSize: 14, lineHeight: 1.5, marginBottom: 16 }}>
+        {check.ok
+          ? <>Every change is recorded here with who made it and when. Entries cannot be edited or deleted for the team{check.checked ? `, and ${check.checked} ${check.checked === 1 ? 'entry is' : 'entries are'} fingerprinted so any later change shows up here.` : '.'}</>
+          : <><b>This history was changed after it was recorded.</b> {check.reason} It first shows at entry {check.brokenAt + 1}. Everyone on the project sees this warning.</>}
+      </div>
+
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14, alignItems: 'center' }}>
+        {HISTORY_FILTERS.map(f => (
+          <button key={f.id} type="button" style={{ padding: '6px 12px', background: filter === f.id ? 'var(--color-primary)' : WH, color: filter === f.id ? '#FFFFFF' : 'var(--text-2)', border: `1px solid ${filter === f.id ? BL : RULE}`, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setFilter(f.id)}>{f.label}</button>
+        ))}
+        <span style={{ marginLeft: 'auto', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {hiddenCount > 0 && <button type="button" style={s.miniBtn} onClick={() => setShowHidden(v => !v)}>{showHidden ? 'Hide again' : `Show ${hiddenCount} hidden`}</button>}
+          {history.length > 0 && hidden.length < history.length && <button type="button" style={s.miniBtn} onClick={hideAll}>Clear my view</button>}
+        </span>
+      </div>
+
+      {history.length === 0 && <p style={s.emptyText}>No history yet. Changes to tasks, milestones, risks, notes and people will appear here, with who made them and when.</p>}
+      {history.length > 0 && visible.length === 0 && <p style={s.emptyText}>Nothing to show here. {hiddenCount > 0 ? 'Entries you cleared are still in the team history.' : ''}</p>}
+
+      {visible.map(({ e, k, i }) => {
+        const isHidden = hidden.includes(k);
+        return (
+          <div key={k} style={{ display: 'flex', gap: 12, padding: '12px 0', borderBottom: `1px solid ${RULE}`, alignItems: 'flex-start', opacity: isHidden ? 0.55 : 1 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--accent-tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-text)', flexShrink: 0 }}>
+              <Icon name={iconFor(e.type)} size={14} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 14, fontWeight: 600, color: BL, margin: 0 }}>{e.label}</p>
+              {e.detail && <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2, wordBreak: 'break-word' }}>{e.detail}</p>}
+              <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
+                {e.by ? `${e.by} · ` : ''}{when(e.timestamp)}
+                {e.notified && NOTIFIED_TEXT[e.notified] ? ` · ${NOTIFIED_TEXT[e.notified]}` : ''}
+                {i === check.brokenAt && !check.ok ? ' · changed after recording' : ''}
+              </p>
+            </div>
+            {!isHidden && <button type="button" style={{ ...s.miniBtn, flexShrink: 0 }} onClick={() => hide(k)} aria-label="Hide this entry from my view">Hide</button>}
+          </div>
+        );
+      })}
+
+      <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 16, lineHeight: 1.5 }}>Hide and Clear my view only tidy what you see on this device. The team history is not changed.</p>
+    </div>
+  );
+}
+
 // ─── DOCUMENTS TAB ────────────────────────────────────────────
 
 function DocumentsTab({ data, history, onSave, project, onCreateReport, docsVersion }) {
@@ -1006,7 +1086,7 @@ function DocumentsTab({ data, history, onSave, project, onCreateReport, docsVers
     { id: 'reports', label: 'Reports' },
     { id: 'health', label: 'Health Check' },
     { id: 'pm_plan', label: 'PM Plan' },
-    { id: 'history', label: 'History' },
+    { id: 'history', label: 'Progress Map' },
     { id: 'saved', label: 'Saved Docs' },
   ];
 
@@ -1173,22 +1253,6 @@ function DocumentsTab({ data, history, onSave, project, onCreateReport, docsVers
               <button style={{ marginTop: 12, background: 'none', border: 'none', color: 'var(--muted)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setShowProgressMap(false)}>Close</button>
             </div>
           )}
-          <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', marginBottom: 16 }}>Activity Log</p>
-          {(history || []).length === 0 && <p style={s.emptyText}>No recorded history yet.</p>}
-          {(history || []).slice().reverse().map((entry, i) => (
-            <div key={i} style={{ display: 'flex', gap: 12, padding: '12px 0', borderBottom: `1px solid ${RULE}`, alignItems: 'flex-start' }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--accent-tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: 'var(--accent-text)', flexShrink: 0, fontWeight: 700 }}>
-                <Icon name={entry.type === 'goal_updated' ? 'flag' : entry.type === 'milestone_done' ? 'check' : entry.type === 'risk_added' ? 'alert' : 'clock'} size={14} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: BL }}>{entry.label}</p>
-                  <p style={{ fontSize: 12, color: 'var(--muted)', flexShrink: 0 }}>{entry.timestamp ? new Date(entry.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}</p>
-                </div>
-                {entry.detail && <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>{entry.detail}</p>}
-              </div>
-            </div>
-          ))}
         </div>
       )}
 
