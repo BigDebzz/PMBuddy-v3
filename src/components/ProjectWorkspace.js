@@ -391,6 +391,7 @@ function TasksTab({ data, onSave }) {
   const [editingMilestoneIdx, setEditingMilestoneIdx] = useState(null);
   const [editMilestoneDraft, setEditMilestoneDraft] = useState({});
   const [activeView, setActiveView] = useState('kanban'); // 'kanban' | 'list'
+  const [askTeam, setAskTeam] = useState(null); // { title, to } while the team question is showing
 
   const COLUMNS = [
     { id: 'todo', label: 'To Do', color: 'var(--muted)', bg: GREY },
@@ -429,7 +430,6 @@ function TasksTab({ data, onSave }) {
       detail: task?.title || '',
     };
     onSave({ tasks: updated }, historyEntry);
-    if (newStatus === 'done') notify('task_done', data, { task: task?.title });
   };
 
   const deleteTask = (taskId) => onSave({ tasks: tasks.filter(t => t.id !== taskId) });
@@ -447,18 +447,43 @@ function TasksTab({ data, onSave }) {
     setShowAddMilestone(false);
   };
 
+  // Moving a milestone is recorded in the History straight away, without telling anyone.
+  // For In Progress and Done the person is then asked once whether to email the team.
+  const NOTIFY_FLAG = { in_progress: 'notifiedStart', done: 'notifiedDone' };
+  const MOVE_LABEL = { pending: 'To Do', in_progress: 'In Progress', done: 'Done' };
+  const moveMilestone = (i, to) => {
+    const m = milestones[i];
+    if (!m || m.status === to) return;
+    const flag = NOTIFY_FLAG[to];
+    const ask = !!flag && !m[flag];
+    onSave({ milestones: milestones.map((ml, idx) => idx === i ? { ...ml, status: to } : ml) }, { type: 'milestone_moved', label: `Milestone moved to ${MOVE_LABEL[to]}`, detail: m.title, notified: flag && m[flag] ? 'earlier' : 'silent' });
+    if (ask) setAskTeam({ title: m.title, to });
+  };
+
+  const answerTeam = (tellTeam) => {
+    const a = askTeam;
+    setAskTeam(null);
+    if (!a || !tellTeam) return;
+    const k = milestones.findIndex(m => m.title === a.title);
+    if (k < 0) return;
+    onSave({ milestones: milestones.map((m, idx) => idx === k ? { ...m, [NOTIFY_FLAG[a.to]]: true } : m) },
+      { type: 'milestone_notified', label: `Team told: milestone moved to ${MOVE_LABEL[a.to]}`, detail: a.title });
+    notify(a.to === 'done' ? 'milestone_done' : 'milestone_in_progress', data, { milestone: a.title });
+  };
+
   const cycleMilestone = (i) => {
     const current = milestones[i].status;
-    const next = current === 'pending' ? 'in_progress' : current === 'in_progress' ? 'done' : 'pending';
-    onSave({ milestones: milestones.map((m, idx) => idx === i ? { ...m, status: next } : m) });
-    if (next === 'done') notify('milestone_done', data, { milestone: milestones[i].title });
+    moveMilestone(i, current === 'pending' ? 'in_progress' : current === 'in_progress' ? 'done' : 'pending');
   };
 
   const deleteMilestone = (i) => onSave({ milestones: milestones.filter((_, idx) => idx !== i) });
 
   const saveMilestoneEdit = () => {
-    onSave({ milestones: milestones.map((m, idx) => idx === editingMilestoneIdx ? { ...m, ...editMilestoneDraft } : m) });
+    const before = milestones[editingMilestoneIdx];
+    const to = editMilestoneDraft.status;
+    onSave({ milestones: milestones.map((m, idx) => idx === editingMilestoneIdx ? { ...m, ...editMilestoneDraft } : m) }, { type: 'milestone_moved', label: 'Milestone edited', detail: editMilestoneDraft.title || (before && before.title) || '', notified: 'silent' });
     setEditingMilestoneIdx(null);
+    if (before && to && to !== before.status && NOTIFY_FLAG[to] && !before[NOTIFY_FLAG[to]]) setAskTeam({ title: editMilestoneDraft.title || before.title, to });
   };
 
   const teamMembers = (data.team || []).map(m => m.name).filter(Boolean);
@@ -466,6 +491,14 @@ function TasksTab({ data, onSave }) {
 
   return (
     <div>
+      {askTeam && (
+        <div role="dialog" aria-label="Tell the team" style={{ position: 'fixed', left: '50%', bottom: 24, transform: 'translateX(-50%)', zIndex: 70, width: 'min(560px, 92vw)', boxSizing: 'border-box', background: 'var(--surface)', border: '1px solid var(--border-strong)', borderRadius: 12, boxShadow: 'var(--shadow-lg)', padding: '14px 16px', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <p style={{ flex: '1 1 220px', margin: 0, fontSize: 14, color: 'var(--text)', lineHeight: 1.45 }}><b>{askTeam.title}</b> moved to {MOVE_LABEL[askTeam.to]}. Tell the team?</p>
+          <button type="button" style={{ padding: '8px 14px', background: BLUE, color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => answerTeam(true)}>Notify team</button>
+          <button type="button" style={s.smallBtn} onClick={() => answerTeam(false)}>Silent move</button>
+        </div>
+      )}
+
       {/* KANBAN BOARD */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div>
@@ -536,9 +569,9 @@ function TasksTab({ data, onSave }) {
                         <p style={{ fontSize: 14, fontWeight: 700, color: BL, marginBottom: 4, lineHeight: 1.4 }}>{m.title}</p>
                         {m.date && <p style={{ fontSize: 12, color: overdue ? 'var(--bad-text)' : 'var(--muted)', fontWeight: overdue ? 700 : 400 }}>{overdue ? <><Icon name="alert" size={12} style={{ marginRight: 4 }} />Overdue · </> : ''}{formatDate(m.date)}</p>}
                         <div style={{ display: 'flex', gap: 4, marginTop: 8, flexWrap: 'wrap' }}>
-                          {m.status !== 'pending' && <button style={s.miniBtn} onClick={() => { const updated = milestones.map((ml, idx) => idx === mi ? { ...ml, status: 'pending' } : ml); onSave({ milestones: updated }); }}>To Do</button>}
-                          {m.status !== 'in_progress' && <button style={s.miniBtn} onClick={() => { const updated = milestones.map((ml, idx) => idx === mi ? { ...ml, status: 'in_progress' } : ml); onSave({ milestones: updated }); }}>In Progress</button>}
-                          {m.status !== 'done' && <button style={{ ...s.miniBtn, background: 'var(--ok-tint)', color: 'var(--ok-text)', borderColor: 'var(--ok-border)' }} onClick={() => { const updated = milestones.map((ml, idx) => idx === mi ? { ...ml, status: 'done' } : ml); onSave({ milestones: updated }); if (m.status !== 'done') notify('milestone_done', data, { milestone: m.title }); }}>Done</button>}
+                          {m.status !== 'pending' && <button style={s.miniBtn} onClick={() => moveMilestone(mi, 'pending')}>To Do</button>}
+                          {m.status !== 'in_progress' && <button style={s.miniBtn} onClick={() => moveMilestone(mi, 'in_progress')}>In Progress</button>}
+                          {m.status !== 'done' && <button style={{ ...s.miniBtn, background: 'var(--ok-tint)', color: 'var(--ok-text)', borderColor: 'var(--ok-border)' }} onClick={() => moveMilestone(mi, 'done')}>Done</button>}
                         </div>
                       </div>
                     );
