@@ -78,6 +78,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
   const [showUpdate, setShowUpdate] = useState(false);
   const [docsVersion, setDocsVersion] = useState(0);
   const saveTimerRef = useRef(null);
+  const pendingRef = useRef({}); // changes waiting to be written, so quick back-to-back changes are not lost
 
   useEffect(() => {
     supabase
@@ -103,9 +104,18 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
       const updated = { ...prev, ...finalUpdates, updated_at: new Date().toISOString() };
       setSaveStatus('unsaved');
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      pendingRef.current = { ...pendingRef.current, ...finalUpdates };
       saveTimerRef.current = setTimeout(async () => {
+        const toSend = pendingRef.current;
+        pendingRef.current = {};
         setSaveStatus('saving');
-        await supabase.from('pm_projects').update(finalUpdates).eq('id', project.id);
+        const { error } = await supabase.from('pm_projects').update(toSend).eq('id', project.id);
+        if (error) {
+          console.error('Save failed:', error.message);
+          pendingRef.current = { ...toSend, ...pendingRef.current };
+          setSaveStatus('error');
+          return;
+        }
         setSaveStatus('saved');
         if (onUpdate) onUpdate(updated);
       }, 1500);
@@ -120,8 +130,8 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
         <div style={s.header}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <button style={s.backBtn} onClick={onBack}><Icon name="arrow-left" size={15} style={{ marginRight: 6 }} />All Projects</button>
-            <span style={{ fontSize: 13, color: saveStatus === 'saved' ? 'var(--ok-text)' : saveStatus === 'saving' ? 'var(--warn-text)' : 'var(--muted)' }}>
-              {saveStatus === 'saved' ? <><Icon name="check" size={14} style={{ marginRight: 4 }} />Saved</> : saveStatus === 'saving' ? 'Saving...' : 'Unsaved changes'}
+            <span style={{ fontSize: 13, color: saveStatus === 'saved' ? 'var(--ok-text)' : saveStatus === 'saving' ? 'var(--warn-text)' : saveStatus === 'error' ? 'var(--bad-text)' : 'var(--muted)' }}>
+              {saveStatus === 'saved' ? <><Icon name="check" size={14} style={{ marginRight: 4 }} />Saved</> : saveStatus === 'saving' ? 'Saving...' : saveStatus === 'error' ? 'Could not save. Your change is not stored yet.' : 'Unsaved changes'}
             </span>
           </div>
           <h1 style={s.title}>{data.name}</h1>
