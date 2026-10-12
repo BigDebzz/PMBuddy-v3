@@ -416,18 +416,8 @@ function TasksTab({ data, onSave }) {
     { id: 'done', label: 'Done', color: 'var(--ok-text)', bg: 'var(--ok-tint)' },
   ];
 
-  // Milestones appear on the board as cards — status maps to column
-  const milestoneStatusToColumn = { pending: 'todo', in_progress: 'in_progress', done: 'done' };
-  const milestonesAsCards = milestones.map((m, i) => ({
-    ...m,
-    id: `milestone-${i}`,
-    isMilestone: true,
-    milestoneIdx: i,
-    status: milestoneStatusToColumn[m.status] || 'todo',
-  }));
-
-  // Combined board items: milestone cards + tasks
-  const allBoardItems = [...milestonesAsCards, ...tasks];
+  // The board holds tasks only. Milestones are checkpoints and have their own section below.
+  const allBoardItems = tasks;
 
   const addTask = () => {
     if (!newTask.title.trim()) return;
@@ -520,7 +510,7 @@ function TasksTab({ data, onSave }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div>
           <h3 style={{ fontSize: 17, fontWeight: 800, color: BL, marginBottom: 2 }}>Task Board<InfoTip term="taskBoard" /></h3>
-          <p style={{ fontSize: 14, color: 'var(--muted)' }}>Move tasks between columns as work progresses.</p>
+          <p style={{ fontSize: 14, color: 'var(--muted)' }}>Move tasks between columns as work progresses. Milestones are listed below the board.</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button style={{ ...s.smallBtn, background: activeView === 'kanban' ? 'var(--color-primary)' : WH, color: activeView === 'kanban' ? '#FFFFFF' : 'var(--text-2)', borderColor: activeView === 'kanban' ? 'var(--color-primary)' : RULE }} onClick={() => setActiveView('kanban')}>Board</button>
