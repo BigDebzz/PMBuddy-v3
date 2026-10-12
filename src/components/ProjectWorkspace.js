@@ -510,7 +510,7 @@ function TasksTab({ data, onSave }) {
 
       {/* KANBAN VIEW */}
       {activeView === 'kanban' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12, marginBottom: 32 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10, marginBottom: 32 }}>
           {COLUMNS.map(col => {
             const colTasks = allBoardItems.filter(t => t.status === col.id);
             return (
