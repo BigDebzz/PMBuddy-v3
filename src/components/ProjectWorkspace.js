@@ -462,11 +462,10 @@ function TasksTab({ data, onSave }) {
   };
 
   const teamMembers = (data.team || []).map(m => m.name).filter(Boolean);
+  const noteAuthor = (data._currentUser && ((data._currentUser.user_metadata && data._currentUser.user_metadata.first_name) || data._currentUser.email)) || 'Someone';
 
   return (
     <div>
-      <ProjectNotes data={data} onSave={onSave} author={(data._currentUser && ((data._currentUser.user_metadata && data._currentUser.user_metadata.first_name) || data._currentUser.email)) || 'Someone'} />
-
       {/* KANBAN BOARD */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div>
@@ -511,7 +510,7 @@ function TasksTab({ data, onSave }) {
 
       {/* KANBAN VIEW */}
       {activeView === 'kanban' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 32 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12, marginBottom: 32 }}>
           {COLUMNS.map(col => {
             const colTasks = allBoardItems.filter(t => t.status === col.id);
             return (
@@ -630,12 +629,14 @@ function TasksTab({ data, onSave }) {
               </div>
             );
           })}
+          <ProjectNotes data={data} onSave={onSave} author={noteAuthor} tasks={tasks} />
         </div>
       )}
 
       {/* LIST VIEW */}
       {activeView === 'list' && (
         <div style={{ marginBottom: 32 }}>
+          <div style={{ marginBottom: 16 }}><ProjectNotes data={data} onSave={onSave} author={noteAuthor} tasks={tasks} /></div>
           {tasks.length === 0 && <p style={s.emptyText}>No tasks yet. Click + Add Task to get started.</p>}
           {tasks.map((task, taskIdx) => {
             const overdue = task.status !== 'done' && isOverdue(task.dueDate);
