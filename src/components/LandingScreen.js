@@ -302,8 +302,8 @@ export default function LandingScreen({ onSelectMode, onSignup, onDashboard, use
       <div style={s.section}>
         <div className="lp-hero" style={s.inner}>
           <div>
-            <h1 style={s.h1}>Turn your project plan into a working project in minutes.</h1>
-            <p style={s.sub}>Upload the document you already have. PM Buddy sets up your tasks, milestones and reminders, so nothing slips.</p>
+            <h1 style={s.h1}>Upload your project document. Get a working project dashboard in minutes.</h1>
+            <p style={s.sub}>Built for coordinators and program managers who are done with scattered updates and last-minute reports.</p>
             <div style={s.ctas}>
               <button type="button" className="lp-btn lp-btn-primary" onClick={start}>{user ? 'Go to my projects' : 'Try it free'} <Icon name="arrow-right" size={18} /></button>
               <button type="button" className="lp-btn lp-btn-ghost" onClick={() => scrollTo('how-it-works')}>See how it works</button>
@@ -377,7 +377,7 @@ export default function LandingScreen({ onSelectMode, onSignup, onDashboard, use
 
 const s = {
   page: { background: 'var(--bg)', color: 'var(--text)', overflowX: 'hidden' },
-  rainbow: { height: 4, background: 'var(--rainbow)' },
+  rainbow: { height: 2, background: 'var(--accent)' },
   section: { padding: 'clamp(56px, 8vw, 96px) 24px' },
   inner: { maxWidth: 1200, margin: '0 auto' },
   h1: { fontSize: 'clamp(26px, 3.6vw, 46px)', lineHeight: 1.08, fontWeight: 600, letterSpacing: '-0.04em', margin: '0 0 20px' },
