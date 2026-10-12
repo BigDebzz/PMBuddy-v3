@@ -536,9 +536,9 @@ function TasksTab({ data, onSave }) {
                         <p style={{ fontSize: 14, fontWeight: 700, color: BL, marginBottom: 4, lineHeight: 1.4 }}>{m.title}</p>
                         {m.date && <p style={{ fontSize: 12, color: overdue ? 'var(--bad-text)' : 'var(--muted)', fontWeight: overdue ? 700 : 400 }}>{overdue ? <><Icon name="alert" size={12} style={{ marginRight: 4 }} />Overdue · </> : ''}{formatDate(m.date)}</p>}
                         <div style={{ display: 'flex', gap: 4, marginTop: 8, flexWrap: 'wrap' }}>
-                          {m.status !== 'pending' && <button style={s.miniBtn} onClick={() => { const updated = milestones.map((ml, idx) => idx === mi ? { ...ml, status: 'pending' } : ml); onSave({ milestones: updated }); }}><Icon name="arrow-left" size={15} style={{ marginRight: 6 }} />To Do</button>}
+                          {m.status !== 'pending' && <button style={s.miniBtn} onClick={() => { const updated = milestones.map((ml, idx) => idx === mi ? { ...ml, status: 'pending' } : ml); onSave({ milestones: updated }); }}>To Do</button>}
                           {m.status !== 'in_progress' && <button style={s.miniBtn} onClick={() => { const updated = milestones.map((ml, idx) => idx === mi ? { ...ml, status: 'in_progress' } : ml); onSave({ milestones: updated }); }}>In Progress</button>}
-                          {m.status !== 'done' && <button style={{ ...s.miniBtn, background: 'var(--ok-tint)', color: 'var(--ok-text)', borderColor: 'var(--ok-border)' }} onClick={() => { const updated = milestones.map((ml, idx) => idx === mi ? { ...ml, status: 'done' } : ml); onSave({ milestones: updated }); if (m.status !== 'done') notify('milestone_done', data, { milestone: m.title }); }}><Icon name="check" size={15} style={{ marginRight: 6 }} />Done</button>}
+                          {m.status !== 'done' && <button style={{ ...s.miniBtn, background: 'var(--ok-tint)', color: 'var(--ok-text)', borderColor: 'var(--ok-border)' }} onClick={() => { const updated = milestones.map((ml, idx) => idx === mi ? { ...ml, status: 'done' } : ml); onSave({ milestones: updated }); if (m.status !== 'done') notify('milestone_done', data, { milestone: m.title }); }}>Done</button>}
                         </div>
                       </div>
                     );
@@ -614,9 +614,11 @@ function TasksTab({ data, onSave }) {
                       )}
 
                       <div style={{ display: 'flex', gap: 4, marginTop: 8, flexWrap: 'wrap' }}>
-                        {col.id !== 'todo' && <button style={{ ...s.miniBtn }} onClick={() => moveTask(task.id, 'todo')}><Icon name="arrow-left" size={15} style={{ marginRight: 6 }} />To Do</button>}
+                        {col.id !== 'todo' && <button style={{ ...s.miniBtn }} onClick={() => moveTask(task.id, 'todo')}>To Do</button>}
                         {col.id !== 'in_progress' && <button style={{ ...s.miniBtn }} onClick={() => moveTask(task.id, 'in_progress')}>In Progress</button>}
-                        {col.id !== 'done' && <button style={{ ...s.miniBtn, background: 'var(--ok-tint)', color: 'var(--ok-text)', borderColor: 'var(--ok-border)' }} onClick={() => moveTask(task.id, 'done')}><Icon name="check" size={15} style={{ marginRight: 6 }} />Done</button>}
+                        {col.id !== 'done' && <button style={{ ...s.miniBtn, background: 'var(--ok-tint)', color: 'var(--ok-text)', borderColor: 'var(--ok-border)' }} onClick={() => moveTask(task.id, 'done')}>Done</button>}
+                        </div>
+                      <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
                         <button style={s.miniBtn} onClick={() => { setEditingTaskIdx(taskIdx); setEditTaskDraft({ ...task }); }}>Edit</button>
                         <button style={{ ...s.miniBtn, color: 'var(--accent-text)', borderColor: 'var(--accent-border)', background: 'var(--accent-tint)' }} onClick={() => { setExpandedTaskId(isExpanded ? null : task.id); setNoteDraft(task.notes || ''); setEditTaskDraft({ isBlocker: task.isBlocker || false }); }}>
                           {isExpanded ? 'Close' : <><Icon name="file" size={12} style={{ marginRight: 4 }} />Notes</>}
@@ -1224,7 +1226,7 @@ const s = {
   input: { width: '100%', border: `1.5px solid ${RULE}`, borderRadius: 10, padding: '10px 12px', fontSize: 15, fontFamily: 'inherit', marginBottom: 10, boxSizing: 'border-box', color: BL, outline: 'none', background: WH },
   textarea: { width: '100%', border: `1.5px solid ${RULE}`, borderRadius: 10, padding: '10px 12px', fontSize: 15, fontFamily: 'inherit', marginBottom: 0, boxSizing: 'border-box', color: BL, outline: 'none', resize: 'vertical', lineHeight: 1.65, background: WH },
   smallBtn: { padding: '5px 12px', background: WH, color: 'var(--text-2)', border: `1px solid ${RULE}`, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
-  miniBtn: { padding: '3px 8px', background: WH, color: 'var(--muted)', border: `1px solid ${RULE}`, borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  miniBtn: { padding: '2px 7px', background: WH, color: 'var(--muted)', border: `1px solid ${RULE}`, borderRadius: 4, fontSize: 11, fontWeight: 600, lineHeight: 1.5, whiteSpace: 'nowrap', cursor: 'pointer', fontFamily: 'inherit' },
   removeBtn: { background: 'none', border: 'none', color: 'var(--border-strong)', cursor: 'pointer', fontSize: 15, fontFamily: 'inherit', flexShrink: 0 },
   emptyText: { fontSize: 15, color: 'var(--muted)', textAlign: 'center', padding: '24px 0' },
 };
