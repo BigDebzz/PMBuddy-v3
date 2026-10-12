@@ -18,9 +18,9 @@ Chosen direction: **Studio**, built from techniques measured on Dropbox, Airtabl
 | `--text-2` | `#3F3A36` | `#DDD6CD` | Secondary strong text |
 | `--muted` | `#5F5852` | `#ABA39A` | Supporting text (always readable) |
 | `--faint` | `#77716A` | `#857D74` | Placeholders and disabled only |
-| `--accent` | `#1F57F0` | `#356FEE` | Buttons and fills. White text on it |
-| `--accent-text` | `#1F57F0` | `#8DB1FF` | Links and accent text |
-| `--accent-tint` / `--accent-border` | `#E9F0FE` / `#BCD3FB` | blue at 16% / 42% | Selected states, soft panels |
+| `--accent` | `#35709A` | `#35709A` | Buttons and fills. White text on it |
+| `--accent-text` | `#35709A` | `#8FB8D6` | Links and accent text |
+| `--accent-tint` / `--accent-border` | `#E8F0F6` / `#B5CFE0` | blue at 22% / 45% | Selected states, soft panels |
 | `--ok-*`, `--warn-*`, `--bad-*` | green, amber, red | lightened for dark | Status only: `-text`, `-tint`, `-border`, solid |
 
 Landing extras: `--sky-1/2/a/b/c` (the blended hero sky) and `--rainbow` (the thin four-colour line under the nav).

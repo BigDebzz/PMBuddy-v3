@@ -7,7 +7,7 @@ Warm, confident and clear. A capable guide for people who are not project manage
 
 ## Colour
 - A warm neutral base: page `#F7F5F2`, cards white, ink `#1E1919`. In dark: `#171412`, `#221E1B`, `#F6F2EC`.
-- One electric blue accent, `#1F57F0` (dark mode `#356FEE`, with `#8DB1FF` for text), used for actions and selection.
+- One steel blue accent taken from the logo, `#35709A` (the same in dark mode, with `#8FB8D6` for text), used for actions and selection.
 - Green, amber and red mean status only.
 - Colour is blended on the landing page: a soft sky behind the product, a horizon glow, and a thin four-colour line (`#E8501F`, `#FFB020`, `#1ED6A0`, `#2D6CF6`).
 

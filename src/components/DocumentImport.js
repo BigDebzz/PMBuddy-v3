@@ -20,8 +20,11 @@ const EXTRACTION_PROMPT = `You are PM Buddy, a project management assistant. Rea
     "end_date": "YYYY-MM-DD or null",
     "duration_description": "string — e.g., '3 months', '6 weeks', 'Ongoing'"
   },
+  "tasks": [
+    { "title": "string — one concrete piece of work that one person can finish, such as 'Book the venue'", "assignee": "string or null — only if a person is named for it", "due_date": "YYYY-MM-DD or null" }
+  ],
   "milestones": [
-    { "title": "string — a key step or checkpoint in the project", "description": "string", "due_date": "YYYY-MM-DD or null" }
+    { "title": "string — a checkpoint that shows the project is on the right track, reached after a stretch of regular work, such as 'Pilot completed' or 'Month 3 review'", "description": "string", "due_date": "YYYY-MM-DD or null" }
   ],
   "risks": [
     { "description": "string — something that could go wrong", "impact": "High|Medium|Low", "mitigation": "string or null — how to handle it if it happens" }
@@ -38,6 +41,7 @@ const EXTRACTION_PROMPT = `You are PM Buddy, a project management assistant. Rea
 }
 
 Rules:
+- Tasks are the everyday pieces of work. Milestones are the few checkpoints that show progress. Never put the same item in both lists, and never turn tasks into milestones.
 - If a field is not found in the document, use null or an empty array, never omit the key.
 - Infer reasonable values where the document implies them but does not state explicitly.
 - If the document contains no project-related content (e.g., it's a spreadsheet of random numbers, a poem, a blank file), return {"error": "This document does not appear to contain project information. Please upload a planning document, proposal, or project brief."}
@@ -272,6 +276,17 @@ export default function DocumentImport({ user, onComplete, onBack, onCancel }) {
           date: m.due_date || '',
           status: 'pending',
         })),
+        tasks: (extractedData.tasks || []).filter(t => t && String(t.title || '').trim()).map((t, i) => ({
+          id: `${Date.now()}${i}`,
+          title: String(t.title).trim(),
+          assignee: t.assignee || '',
+          dueDate: t.due_date || '',
+          status: 'todo',
+          milestoneId: '',
+          notes: '',
+          isBlocker: false,
+          createdAt: new Date().toISOString(),
+        })),
         compliance: {
           industry: extractedData.industry || '',
           flags: [],
@@ -393,7 +408,18 @@ Write a concise project brief of about 450 words with these sections: Project Ov
           <Field label="How will the team stay in touch?" value={extractedData.communication_approach || ''} onChange={v => updateField('communication_approach', v)} textarea />
 
           <ArrayEditor
-            label="Key Steps"
+            label="Tasks"
+            items={extractedData.tasks || []}
+            onChange={v => updateField('tasks', v)}
+            fields={[
+              { key: 'title', label: 'What needs doing', width: '50%' },
+              { key: 'assignee', label: 'Who', width: '25%' },
+              { key: 'due_date', label: 'Due Date', width: '25%', type: 'date' },
+            ]}
+          />
+
+          <ArrayEditor
+            label="Milestones (checkpoints)"
             items={extractedData.milestones || []}
             onChange={v => updateField('milestones', v)}
             fields={[

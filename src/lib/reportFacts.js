@@ -95,6 +95,7 @@ export function buildFacts(data, start, end, today = new Date()) {
     `TASKS OVERALL: ${done.length} of ${tasks.length} done, ${inProgress.length} in progress, ${overdue.length} overdue, ${blocked.length} blocked`,
     `MILESTONES OVERALL: ${msDone.length} of ${milestones.length} reached`,
     `TASKS COMPLETED IN THE PERIOD: ${list(doneInPeriod, taskLine)}`,
+    `TIME TAKEN, TASK ADDED TO DONE: ${list(doneInPeriod.filter(t => t.createdAt && t.completedAt), t => { const days = Math.max(0, Math.round((new Date(t.completedAt) - new Date(t.createdAt)) / 86400000)); return `${t.title} (${days === 0 ? 'the same day' : `${days} day${days === 1 ? '' : 's'}`})`; })}`,
     `TASKS COMPLETED, DATE NOT RECORDED: ${doneNoDate.length === 0 ? 'None' : `${doneNoDate.length} (${list(doneNoDate, t => t.title)})`}`,
     `TASKS IN PROGRESS: ${list(inProgress, taskLine)}`,
     `TASKS OVERDUE TODAY: ${list(overdue, taskLine)}`,

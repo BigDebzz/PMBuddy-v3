@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import RemindersPanel from './RemindersPanel';
 import TeamTab from './TeamTab';
@@ -14,6 +14,7 @@ import InfoTip from './InfoTip';
 import ProjectNotes from './ProjectNotes';
 import { DOC_LAYOUT_RULES } from '../lib/docStyle';
 import { downloadWord, downloadPDF } from '../lib/docExport';
+import { entriesForSave, appendEntries, verifyHistory } from '../lib/historyLog';
 
 const BLUE = 'var(--accent)';
 const BL = 'var(--text)';
@@ -21,7 +22,7 @@ const WH = 'var(--surface)';
 const GREY = 'var(--surface-2)';
 const RULE = 'var(--border)';
 
-const TABS = ['Overview', 'Tasks', 'Risks', 'People', 'Documents'];
+const TABS = ['Overview', 'Tasks', 'Risks', 'People', 'History', 'Documents'];
 
 async function getAuthHeader() {
   try {
@@ -72,11 +73,14 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
   const [data, setData] = useState(project);
   const [tab, setTab] = useState(project._openDoc ? 'Documents' : 'Overview');
   const [saveStatus, setSaveStatus] = useState('saved');
+  const [saveError, setSaveError] = useState('');
+  const [savedInfo, setSavedInfo] = useState(''); // what the database holds after the last save
   const [acceptedMembers, setAcceptedMembers] = useState([]);
   const [showReport, setShowReport] = useState(false);
   const [showUpdate, setShowUpdate] = useState(false);
   const [docsVersion, setDocsVersion] = useState(0);
   const saveTimerRef = useRef(null);
+  const pendingRef = useRef({}); // changes waiting to be written, so quick back-to-back changes are not lost
 
   useEffect(() => {
     supabase
@@ -97,19 +101,31 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
         stamped.milestones = stampCompletion(prev.milestones, updates.milestones, sameLength ? (p, i, pi, idx) => pi === idx : (p, i) => p.title === i.title && p.date === i.date);
       }
       const currentHistory = prev.history || [];
-      const newHistory = historyEntry
-        ? [...currentHistory, { ...historyEntry, timestamp: new Date().toISOString(), by }]
-        : currentHistory;
-      const finalUpdates = historyEntry ? { ...stamped, history: newHistory } : stamped;
+      const entries = entriesForSave(prev, stamped, historyEntry);
+      const finalUpdates = entries.length ? { ...stamped, history: appendEntries(currentHistory, entries, by) } : stamped;
       const updated = { ...prev, ...finalUpdates, updated_at: new Date().toISOString() };
       setSaveStatus('unsaved');
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      pendingRef.current = { ...pendingRef.current, ...finalUpdates };
       saveTimerRef.current = setTimeout(async () => {
+        const toSend = pendingRef.current;
+        pendingRef.current = {};
         setSaveStatus('saving');
-        await supabase.from('pm_projects').update(finalUpdates).eq('id', project.id);
+        const { data: rows, error } = await supabase.from('pm_projects').update(toSend).eq('id', project.id).select('id, tasks, history');
+        if (error || !rows || rows.length === 0) {
+          const why = error ? error.message : 'the database refused the change (no permission to edit this project)';
+          console.error('Save failed:', why);
+          pendingRef.current = { ...toSend, ...pendingRef.current };
+          setSaveError(why);
+          setSaveStatus('error');
+          return;
+        }
+        setSaveError('');
+        const row = rows[0] || {};
+        setSavedInfo(`${(row.tasks || []).length} task${(row.tasks || []).length === 1 ? '' : 's'}, ${(row.history || []).length} history entr${(row.history || []).length === 1 ? 'y' : 'ies'} stored`);
         setSaveStatus('saved');
         if (onUpdate) onUpdate(updated);
-      }, 1500);
+      }, 600);
       return updated;
     });
   }, [project.id, onUpdate, project._currentUser]);
@@ -121,8 +137,8 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
         <div style={s.header}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <button style={s.backBtn} onClick={onBack}><Icon name="arrow-left" size={15} style={{ marginRight: 6 }} />All Projects</button>
-            <span style={{ fontSize: 13, color: saveStatus === 'saved' ? 'var(--ok-text)' : saveStatus === 'saving' ? 'var(--warn-text)' : 'var(--muted)' }}>
-              {saveStatus === 'saved' ? <><Icon name="check" size={14} style={{ marginRight: 4 }} />Saved</> : saveStatus === 'saving' ? 'Saving...' : 'Unsaved changes'}
+            <span style={{ fontSize: 13, color: saveStatus === 'saved' ? 'var(--ok-text)' : saveStatus === 'saving' ? 'var(--warn-text)' : saveStatus === 'error' ? 'var(--bad-text)' : 'var(--muted)' }}>
+              {saveStatus === 'saved' ? <><Icon name="check" size={14} style={{ marginRight: 4 }} />Saved{savedInfo ? ` · ${savedInfo}` : ''}</> : saveStatus === 'saving' ? 'Saving...' : saveStatus === 'error' ? `Could not save: ${saveError || 'unknown reason'}. Your change is not stored yet.` : 'Unsaved changes'}
             </span>
           </div>
           <h1 style={s.title}>{data.name}</h1>
@@ -149,6 +165,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
           {tab === 'Tasks' && <TasksTab data={data} onSave={save} />}
           {tab === 'Risks' && <RisksTab data={data} onSave={save} />}
           {tab === 'People' && <PeopleTab data={data} onSave={save} project={project} acceptedMembers={acceptedMembers} />}
+          {tab === 'History' && <HistoryTab data={data} project={project} />}
           {tab === 'Documents' && <DocumentsTab data={data} history={data.history || []} onSave={save} project={project} onCreateReport={() => setShowReport(true)} docsVersion={docsVersion} />}
         </div>
       </div>
@@ -391,6 +408,7 @@ function TasksTab({ data, onSave }) {
   const [editingMilestoneIdx, setEditingMilestoneIdx] = useState(null);
   const [editMilestoneDraft, setEditMilestoneDraft] = useState({});
   const [activeView, setActiveView] = useState('kanban'); // 'kanban' | 'list'
+  const [askTeam, setAskTeam] = useState(null); // { title, to } while the team question is showing
 
   const COLUMNS = [
     { id: 'todo', label: 'To Do', color: 'var(--muted)', bg: GREY },
@@ -398,18 +416,8 @@ function TasksTab({ data, onSave }) {
     { id: 'done', label: 'Done', color: 'var(--ok-text)', bg: 'var(--ok-tint)' },
   ];
 
-  // Milestones appear on the board as cards — status maps to column
-  const milestoneStatusToColumn = { pending: 'todo', in_progress: 'in_progress', done: 'done' };
-  const milestonesAsCards = milestones.map((m, i) => ({
-    ...m,
-    id: `milestone-${i}`,
-    isMilestone: true,
-    milestoneIdx: i,
-    status: milestoneStatusToColumn[m.status] || 'todo',
-  }));
-
-  // Combined board items: milestone cards + tasks
-  const allBoardItems = [...milestonesAsCards, ...tasks];
+  // The board holds tasks only. Milestones are checkpoints and have their own section below.
+  const allBoardItems = tasks;
 
   const addTask = () => {
     if (!newTask.title.trim()) return;
@@ -429,7 +437,6 @@ function TasksTab({ data, onSave }) {
       detail: task?.title || '',
     };
     onSave({ tasks: updated }, historyEntry);
-    if (newStatus === 'done') notify('task_done', data, { task: task?.title });
   };
 
   const deleteTask = (taskId) => onSave({ tasks: tasks.filter(t => t.id !== taskId) });
@@ -447,31 +454,63 @@ function TasksTab({ data, onSave }) {
     setShowAddMilestone(false);
   };
 
+  // Moving a milestone is recorded in the History straight away, without telling anyone.
+  // For In Progress and Done the person is then asked once whether to email the team.
+  const NOTIFY_FLAG = { in_progress: 'notifiedStart', done: 'notifiedDone' };
+  const MOVE_LABEL = { pending: 'To Do', in_progress: 'In Progress', done: 'Done' };
+  const moveMilestone = (i, to) => {
+    const m = milestones[i];
+    if (!m || m.status === to) return;
+    const flag = NOTIFY_FLAG[to];
+    const ask = !!flag && !m[flag];
+    onSave({ milestones: milestones.map((ml, idx) => idx === i ? { ...ml, status: to } : ml) }, { type: 'milestone_moved', label: `Milestone moved to ${MOVE_LABEL[to]}`, detail: m.title, notified: flag && m[flag] ? 'earlier' : 'silent' });
+    if (ask) setAskTeam({ title: m.title, to });
+  };
+
+  const answerTeam = (tellTeam) => {
+    const a = askTeam;
+    setAskTeam(null);
+    if (!a || !tellTeam) return;
+    const k = milestones.findIndex(m => m.title === a.title);
+    if (k < 0) return;
+    onSave({ milestones: milestones.map((m, idx) => idx === k ? { ...m, [NOTIFY_FLAG[a.to]]: true } : m) },
+      { type: 'milestone_notified', label: `Team told: milestone moved to ${MOVE_LABEL[a.to]}`, detail: a.title });
+    notify(a.to === 'done' ? 'milestone_done' : 'milestone_in_progress', data, { milestone: a.title });
+  };
+
   const cycleMilestone = (i) => {
     const current = milestones[i].status;
-    const next = current === 'pending' ? 'in_progress' : current === 'in_progress' ? 'done' : 'pending';
-    onSave({ milestones: milestones.map((m, idx) => idx === i ? { ...m, status: next } : m) });
-    if (next === 'done') notify('milestone_done', data, { milestone: milestones[i].title });
+    moveMilestone(i, current === 'pending' ? 'in_progress' : current === 'in_progress' ? 'done' : 'pending');
   };
 
   const deleteMilestone = (i) => onSave({ milestones: milestones.filter((_, idx) => idx !== i) });
 
   const saveMilestoneEdit = () => {
-    onSave({ milestones: milestones.map((m, idx) => idx === editingMilestoneIdx ? { ...m, ...editMilestoneDraft } : m) });
+    const before = milestones[editingMilestoneIdx];
+    const to = editMilestoneDraft.status;
+    onSave({ milestones: milestones.map((m, idx) => idx === editingMilestoneIdx ? { ...m, ...editMilestoneDraft } : m) }, { type: 'milestone_moved', label: 'Milestone edited', detail: editMilestoneDraft.title || (before && before.title) || '', notified: 'silent' });
     setEditingMilestoneIdx(null);
+    if (before && to && to !== before.status && NOTIFY_FLAG[to] && !before[NOTIFY_FLAG[to]]) setAskTeam({ title: editMilestoneDraft.title || before.title, to });
   };
 
   const teamMembers = (data.team || []).map(m => m.name).filter(Boolean);
+  const noteAuthor = (data._currentUser && ((data._currentUser.user_metadata && data._currentUser.user_metadata.first_name) || data._currentUser.email)) || 'Someone';
 
   return (
     <div>
-      <ProjectNotes data={data} onSave={onSave} author={(data._currentUser && ((data._currentUser.user_metadata && data._currentUser.user_metadata.first_name) || data._currentUser.email)) || 'Someone'} />
+      {askTeam && (
+        <div role="dialog" aria-label="Tell the team" style={{ position: 'fixed', left: '50%', bottom: 24, transform: 'translateX(-50%)', zIndex: 70, width: 'min(560px, 92vw)', boxSizing: 'border-box', background: 'var(--surface)', border: '1px solid var(--border-strong)', borderRadius: 12, boxShadow: 'var(--shadow-lg)', padding: '14px 16px', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <p style={{ flex: '1 1 220px', margin: 0, fontSize: 14, color: 'var(--text)', lineHeight: 1.45 }}><b>{askTeam.title}</b> moved to {MOVE_LABEL[askTeam.to]}. Tell the team?</p>
+          <button type="button" style={{ padding: '8px 14px', background: BLUE, color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => answerTeam(true)}>Notify team</button>
+          <button type="button" style={s.smallBtn} onClick={() => answerTeam(false)}>Silent move</button>
+        </div>
+      )}
 
       {/* KANBAN BOARD */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div>
           <h3 style={{ fontSize: 17, fontWeight: 800, color: BL, marginBottom: 2 }}>Task Board<InfoTip term="taskBoard" /></h3>
-          <p style={{ fontSize: 14, color: 'var(--muted)' }}>Move tasks between columns as work progresses.</p>
+          <p style={{ fontSize: 14, color: 'var(--muted)' }}>Move tasks between columns as work progresses. Milestones are listed below the board.</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button style={{ ...s.smallBtn, background: activeView === 'kanban' ? 'var(--color-primary)' : WH, color: activeView === 'kanban' ? '#FFFFFF' : 'var(--text-2)', borderColor: activeView === 'kanban' ? 'var(--color-primary)' : RULE }} onClick={() => setActiveView('kanban')}>Board</button>
@@ -511,7 +550,7 @@ function TasksTab({ data, onSave }) {
 
       {/* KANBAN VIEW */}
       {activeView === 'kanban' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 32 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10, marginBottom: 32 }}>
           {COLUMNS.map(col => {
             const colTasks = allBoardItems.filter(t => t.status === col.id);
             return (
@@ -537,9 +576,9 @@ function TasksTab({ data, onSave }) {
                         <p style={{ fontSize: 14, fontWeight: 700, color: BL, marginBottom: 4, lineHeight: 1.4 }}>{m.title}</p>
                         {m.date && <p style={{ fontSize: 12, color: overdue ? 'var(--bad-text)' : 'var(--muted)', fontWeight: overdue ? 700 : 400 }}>{overdue ? <><Icon name="alert" size={12} style={{ marginRight: 4 }} />Overdue · </> : ''}{formatDate(m.date)}</p>}
                         <div style={{ display: 'flex', gap: 4, marginTop: 8, flexWrap: 'wrap' }}>
-                          {m.status !== 'pending' && <button style={s.miniBtn} onClick={() => { const updated = milestones.map((ml, idx) => idx === mi ? { ...ml, status: 'pending' } : ml); onSave({ milestones: updated }); }}><Icon name="arrow-left" size={15} style={{ marginRight: 6 }} />To Do</button>}
-                          {m.status !== 'in_progress' && <button style={s.miniBtn} onClick={() => { const updated = milestones.map((ml, idx) => idx === mi ? { ...ml, status: 'in_progress' } : ml); onSave({ milestones: updated }); }}>In Progress</button>}
-                          {m.status !== 'done' && <button style={{ ...s.miniBtn, background: 'var(--ok-tint)', color: 'var(--ok-text)', borderColor: 'var(--ok-border)' }} onClick={() => { const updated = milestones.map((ml, idx) => idx === mi ? { ...ml, status: 'done' } : ml); onSave({ milestones: updated }); if (m.status !== 'done') notify('milestone_done', data, { milestone: m.title }); }}><Icon name="check" size={15} style={{ marginRight: 6 }} />Done</button>}
+                          {m.status !== 'pending' && <button style={s.miniBtn} onClick={() => moveMilestone(mi, 'pending')}>To Do</button>}
+                          {m.status !== 'in_progress' && <button style={s.miniBtn} onClick={() => moveMilestone(mi, 'in_progress')}>In Progress</button>}
+                          {m.status !== 'done' && <button style={{ ...s.miniBtn, background: 'var(--ok-tint)', color: 'var(--ok-text)', borderColor: 'var(--ok-border)' }} onClick={() => moveMilestone(mi, 'done')}>Done</button>}
                         </div>
                       </div>
                     );
@@ -615,9 +654,11 @@ function TasksTab({ data, onSave }) {
                       )}
 
                       <div style={{ display: 'flex', gap: 4, marginTop: 8, flexWrap: 'wrap' }}>
-                        {col.id !== 'todo' && <button style={{ ...s.miniBtn }} onClick={() => moveTask(task.id, 'todo')}><Icon name="arrow-left" size={15} style={{ marginRight: 6 }} />To Do</button>}
+                        {col.id !== 'todo' && <button style={{ ...s.miniBtn }} onClick={() => moveTask(task.id, 'todo')}>To Do</button>}
                         {col.id !== 'in_progress' && <button style={{ ...s.miniBtn }} onClick={() => moveTask(task.id, 'in_progress')}>In Progress</button>}
-                        {col.id !== 'done' && <button style={{ ...s.miniBtn, background: 'var(--ok-tint)', color: 'var(--ok-text)', borderColor: 'var(--ok-border)' }} onClick={() => moveTask(task.id, 'done')}><Icon name="check" size={15} style={{ marginRight: 6 }} />Done</button>}
+                        {col.id !== 'done' && <button style={{ ...s.miniBtn, background: 'var(--ok-tint)', color: 'var(--ok-text)', borderColor: 'var(--ok-border)' }} onClick={() => moveTask(task.id, 'done')}>Done</button>}
+                        </div>
+                      <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
                         <button style={s.miniBtn} onClick={() => { setEditingTaskIdx(taskIdx); setEditTaskDraft({ ...task }); }}>Edit</button>
                         <button style={{ ...s.miniBtn, color: 'var(--accent-text)', borderColor: 'var(--accent-border)', background: 'var(--accent-tint)' }} onClick={() => { setExpandedTaskId(isExpanded ? null : task.id); setNoteDraft(task.notes || ''); setEditTaskDraft({ isBlocker: task.isBlocker || false }); }}>
                           {isExpanded ? 'Close' : <><Icon name="file" size={12} style={{ marginRight: 4 }} />Notes</>}
@@ -630,12 +671,14 @@ function TasksTab({ data, onSave }) {
               </div>
             );
           })}
+          <ProjectNotes data={data} onSave={onSave} author={noteAuthor} tasks={tasks} />
         </div>
       )}
 
       {/* LIST VIEW */}
       {activeView === 'list' && (
         <div style={{ marginBottom: 32 }}>
+          <div style={{ marginBottom: 16 }}><ProjectNotes data={data} onSave={onSave} author={noteAuthor} tasks={tasks} /></div>
           {tasks.length === 0 && <p style={s.emptyText}>No tasks yet. Click + Add Task to get started.</p>}
           {tasks.map((task, taskIdx) => {
             const overdue = task.status !== 'done' && isOverdue(task.dueDate);
@@ -947,6 +990,86 @@ function StakeholdersList({ data, onSave }) {
   );
 }
 
+// ─── HISTORY TAB ──────────────────────────────────────────────
+
+const HISTORY_FILTERS = [
+  { id: 'all', label: 'Everything', test: () => true },
+  { id: 'tasks', label: 'Tasks', test: e => /^task_/.test(e.type || '') },
+  { id: 'milestones', label: 'Milestones', test: e => /^milestone_/.test(e.type || '') },
+  { id: 'notes', label: 'Notes', test: e => /note/.test(e.type || '') },
+  { id: 'risks', label: 'Risks', test: e => /^risk_/.test(e.type || '') },
+];
+
+const NOTIFIED_TEXT = { team: 'Team notified', silent: 'Silent', earlier: 'Team told earlier' };
+
+function HistoryTab({ data, project }) {
+  const history = useMemo(() => data.history || [], [data.history]);
+  const me = (data._currentUser && (data._currentUser.id || data._currentUser.email)) || 'me';
+  const storeKey = `pmb-history-hidden-${project.id}-${me}`;
+  const [hidden, setHidden] = useState(() => { try { return JSON.parse(localStorage.getItem(storeKey) || '[]'); } catch (e) { return []; } });
+  const [showHidden, setShowHidden] = useState(false);
+  const [filter, setFilter] = useState('all');
+  const check = useMemo(() => verifyHistory(history), [history]);
+
+  const keyOf = (e, i) => e.id || `${e.timestamp || ''}-${e.label || ''}-${i}`;
+  const persist = (list) => { setHidden(list); try { localStorage.setItem(storeKey, JSON.stringify(list)); } catch (e) { /* storage unavailable */ } };
+  const hide = (k) => persist([...hidden, k]);
+  const hideAll = () => persist(history.map(keyOf));
+
+  const test = (HISTORY_FILTERS.find(f => f.id === filter) || HISTORY_FILTERS[0]).test;
+  const rows = history.map((e, i) => ({ e, k: keyOf(e, i), i })).filter(r => test(r.e)).reverse();
+  const visible = rows.filter(r => showHidden || !hidden.includes(r.k));
+  const hiddenCount = rows.filter(r => hidden.includes(r.k)).length;
+  const when = (iso) => { try { return new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
+  const iconFor = (t = '') => (/^goal/.test(t) ? 'flag' : /blocked/.test(t) ? 'blocked' : /^risk_/.test(t) ? 'alert' : /note/.test(t) ? 'file' : /done|moved|notified/.test(t) ? 'check' : /person|people/.test(t) ? 'users' : 'clock');
+
+  return (
+    <div>
+      <div role="status" style={{ border: `1px solid ${check.ok ? RULE : 'var(--bad-border)'}`, background: check.ok ? GREY : 'var(--bad-tint)', color: check.ok ? 'var(--text-2)' : 'var(--bad-text)', borderRadius: 10, padding: '12px 14px', fontSize: 14, lineHeight: 1.5, marginBottom: 16 }}>
+        {check.ok
+          ? <>Every change is recorded here with who made it and when. Entries cannot be edited or deleted for the team{check.checked ? `, and ${check.checked} ${check.checked === 1 ? 'entry is' : 'entries are'} fingerprinted so any later change shows up here.` : '.'}</>
+          : <><b>This history was changed after it was recorded.</b> {check.reason} It first shows at entry {check.brokenAt + 1}. Everyone on the project sees this warning.</>}
+      </div>
+
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14, alignItems: 'center' }}>
+        {HISTORY_FILTERS.map(f => (
+          <button key={f.id} type="button" style={{ padding: '6px 12px', background: filter === f.id ? 'var(--color-primary)' : WH, color: filter === f.id ? '#FFFFFF' : 'var(--text-2)', border: `1px solid ${filter === f.id ? BL : RULE}`, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setFilter(f.id)}>{f.label}</button>
+        ))}
+        <span style={{ marginLeft: 'auto', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {hiddenCount > 0 && <button type="button" style={s.miniBtn} onClick={() => setShowHidden(v => !v)}>{showHidden ? 'Hide again' : `Show ${hiddenCount} hidden`}</button>}
+          {history.length > 0 && hidden.length < history.length && <button type="button" style={s.miniBtn} onClick={hideAll}>Clear my view</button>}
+        </span>
+      </div>
+
+      {history.length === 0 && <p style={s.emptyText}>No history yet. Changes to tasks, milestones, risks, notes and people will appear here, with who made them and when.</p>}
+      {history.length > 0 && visible.length === 0 && <p style={s.emptyText}>Nothing to show here. {hiddenCount > 0 ? 'Entries you cleared are still in the team history.' : ''}</p>}
+
+      {visible.map(({ e, k, i }) => {
+        const isHidden = hidden.includes(k);
+        return (
+          <div key={k} style={{ display: 'flex', gap: 12, padding: '12px 0', borderBottom: `1px solid ${RULE}`, alignItems: 'flex-start', opacity: isHidden ? 0.55 : 1 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--accent-tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-text)', flexShrink: 0 }}>
+              <Icon name={iconFor(e.type)} size={14} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 14, fontWeight: 600, color: BL, margin: 0 }}>{e.label}</p>
+              {e.detail && <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2, wordBreak: 'break-word' }}>{e.detail}</p>}
+              <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
+                {e.by ? `${e.by} · ` : ''}{when(e.timestamp)}
+                {e.notified && NOTIFIED_TEXT[e.notified] ? ` · ${NOTIFIED_TEXT[e.notified]}` : ''}
+                {i === check.brokenAt && !check.ok ? ' · changed after recording' : ''}
+              </p>
+            </div>
+            {!isHidden && <button type="button" style={{ ...s.miniBtn, flexShrink: 0 }} onClick={() => hide(k)} aria-label="Hide this entry from my view">Hide</button>}
+          </div>
+        );
+      })}
+
+      <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 16, lineHeight: 1.5 }}>Hide and Clear my view only tidy what you see on this device. The team history is not changed.</p>
+    </div>
+  );
+}
+
 // ─── DOCUMENTS TAB ────────────────────────────────────────────
 
 function DocumentsTab({ data, history, onSave, project, onCreateReport, docsVersion }) {
@@ -970,7 +1093,7 @@ function DocumentsTab({ data, history, onSave, project, onCreateReport, docsVers
     { id: 'reports', label: 'Reports' },
     { id: 'health', label: 'Health Check' },
     { id: 'pm_plan', label: 'PM Plan' },
-    { id: 'history', label: 'History' },
+    { id: 'history', label: 'Progress Map' },
     { id: 'saved', label: 'Saved Docs' },
   ];
 
@@ -1137,22 +1260,6 @@ function DocumentsTab({ data, history, onSave, project, onCreateReport, docsVers
               <button style={{ marginTop: 12, background: 'none', border: 'none', color: 'var(--muted)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setShowProgressMap(false)}>Close</button>
             </div>
           )}
-          <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', marginBottom: 16 }}>Activity Log</p>
-          {(history || []).length === 0 && <p style={s.emptyText}>No recorded history yet.</p>}
-          {(history || []).slice().reverse().map((entry, i) => (
-            <div key={i} style={{ display: 'flex', gap: 12, padding: '12px 0', borderBottom: `1px solid ${RULE}`, alignItems: 'flex-start' }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--accent-tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: 'var(--accent-text)', flexShrink: 0, fontWeight: 700 }}>
-                <Icon name={entry.type === 'goal_updated' ? 'flag' : entry.type === 'milestone_done' ? 'check' : entry.type === 'risk_added' ? 'alert' : 'clock'} size={14} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: BL }}>{entry.label}</p>
-                  <p style={{ fontSize: 12, color: 'var(--muted)', flexShrink: 0 }}>{entry.timestamp ? new Date(entry.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}</p>
-                </div>
-                {entry.detail && <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>{entry.detail}</p>}
-              </div>
-            </div>
-          ))}
         </div>
       )}
 
@@ -1223,7 +1330,7 @@ const s = {
   input: { width: '100%', border: `1.5px solid ${RULE}`, borderRadius: 10, padding: '10px 12px', fontSize: 15, fontFamily: 'inherit', marginBottom: 10, boxSizing: 'border-box', color: BL, outline: 'none', background: WH },
   textarea: { width: '100%', border: `1.5px solid ${RULE}`, borderRadius: 10, padding: '10px 12px', fontSize: 15, fontFamily: 'inherit', marginBottom: 0, boxSizing: 'border-box', color: BL, outline: 'none', resize: 'vertical', lineHeight: 1.65, background: WH },
   smallBtn: { padding: '5px 12px', background: WH, color: 'var(--text-2)', border: `1px solid ${RULE}`, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
-  miniBtn: { padding: '3px 8px', background: WH, color: 'var(--muted)', border: `1px solid ${RULE}`, borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  miniBtn: { padding: '2px 7px', background: WH, color: 'var(--muted)', border: `1px solid ${RULE}`, borderRadius: 4, fontSize: 11, fontWeight: 600, lineHeight: 1.5, whiteSpace: 'nowrap', cursor: 'pointer', fontFamily: 'inherit' },
   removeBtn: { background: 'none', border: 'none', color: 'var(--border-strong)', cursor: 'pointer', fontSize: 15, fontFamily: 'inherit', flexShrink: 0 },
   emptyText: { fontSize: 15, color: 'var(--muted)', textAlign: 'center', padding: '24px 0' },
 };

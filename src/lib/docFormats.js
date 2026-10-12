@@ -3,7 +3,7 @@
 
 const INK = '1E1919';
 const MUTED = '5F5852';
-const ACCENT = '1F57F0';
+const ACCENT = '35709A';
 const BORDER = 'CFC8BF';
 const HEADER_FILL = 'F2EFEA';
 const CALLOUT_FILL = 'EAF0FE';

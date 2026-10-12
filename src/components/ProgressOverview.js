@@ -45,8 +45,12 @@ export default function ProgressOverview({ data, acceptedMembers = [] }) {
 
   const doneTasks = tasks.filter(t => t.status === 'done').length;
   const doneMilestones = milestones.filter(m => m.status === 'done').length;
-  const totalItems = tasks.length + milestones.length;
-  const percent = totalItems > 0 ? Math.round(((doneTasks + doneMilestones) / totalItems) * 100) : 0;
+  // Progress follows the tasks. Milestones are checkpoints, so they only drive it while there are no tasks yet.
+  const useTasks = tasks.length > 0;
+  const totalItems = useTasks ? tasks.length : milestones.length;
+  const doneItems = useTasks ? doneTasks : doneMilestones;
+  const noun = useTasks ? 'tasks' : 'milestones';
+  const percent = totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0;
 
   const start = parseLocalDate(data.timeline?.start);
   const end = parseLocalDate(data.timeline?.end);
@@ -110,7 +114,7 @@ export default function ProgressOverview({ data, acceptedMembers = [] }) {
           <div
             style={s.ringWrap}
             role="img"
-            aria-label={`${percent} percent complete. ${doneTasks + doneMilestones} of ${totalItems} tasks and milestones done.`}
+            aria-label={`${percent} percent complete. ${doneItems} of ${totalItems} ${noun} done.`}
           >
             <svg width="132" height="132" viewBox="0 0 132 132" aria-hidden="true">
               <circle cx="66" cy="66" r={RING_RADIUS} fill="none" stroke="var(--color-primary-tint)" strokeWidth="12" />
@@ -136,7 +140,7 @@ export default function ProgressOverview({ data, acceptedMembers = [] }) {
                 ? 'Add your first task to see progress here.'
                 : percent === 100
                   ? 'Everything is done. Well done!'
-                  : `${doneTasks + doneMilestones} of ${totalItems} done so far.`}
+                  : `${doneItems} of ${totalItems} ${noun} done so far.`}
             </h3>
             <p style={{ ...s.timeLine, color: timeColor }}>{timeLine}</p>
             {totalDays > 0 && (

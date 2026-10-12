@@ -58,93 +58,28 @@ const BOARD = [
 ];
 
 function HeroWindow() {
-  const box = useRef(null);
-
-  // The board follows the cursor and leans back as you scroll. Touch and reduced-motion users get a still board.
-  useEffect(() => {
-    const el = box.current;
-    if (!el) return undefined;
-    let reduced = false;
-    try { reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { reduced = false; }
-    if (reduced) return undefined;
-    let raf = 0;
-    const onScroll = () => {
-      if (raf) return;
-      raf = requestAnimationFrame(() => {
-        raf = 0;
-        const r = el.getBoundingClientRect();
-        const t = Math.max(-1.2, Math.min(1.2, (r.top + r.height / 2 - window.innerHeight / 2) / window.innerHeight));
-        el.style.setProperty('--sx', (-t * 8).toFixed(2));
-        el.style.setProperty('--sy', (t * 3).toFixed(2));
-        el.style.setProperty('--par', t.toFixed(3));
-      });
-    };
-    const onMove = (e) => {
-      if (e.pointerType !== 'mouse') return;
-      const r = el.getBoundingClientRect();
-      el.style.setProperty('--px', (-((e.clientY - r.top) / r.height - 0.5) * 14).toFixed(2));
-      el.style.setProperty('--py', (((e.clientX - r.left) / r.width - 0.5) * 18).toFixed(2));
-    };
-    const onLeave = () => { el.style.setProperty('--px', '0'); el.style.setProperty('--py', '0'); };
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
-    el.addEventListener('pointermove', onMove);
-    el.addEventListener('pointerleave', onLeave);
-    return () => {
-      if (raf) cancelAnimationFrame(raf);
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-      el.removeEventListener('pointermove', onMove);
-      el.removeEventListener('pointerleave', onLeave);
-    };
-  }, []);
-
   return (
-    <div ref={box} className="lp-sky lp-herovis" style={s.heroVis}>
-      <div className="lp-stage">
-        <div className="lp-plane">
-          <div style={s.win}>
-            <div style={s.winBar}>
-              <span style={{ display: 'flex', gap: 6, marginRight: 8 }}>{[0, 1, 2].map(i => <i key={i} style={s.dotI} />)}</span>
-              Community Food Drive
-              <span style={{ marginLeft: 'auto' }}><Chip tone="ok" icon="check-circle">On track</Chip></span>
-            </div>
-            <div className="lp-kan" style={{ padding: 16 }}>
-              {BOARD.map(col => (
-                <div key={col.h} style={s.col}>
-                  <div style={s.colHead}><span>{col.h}</span><span>{col.cards.length}</span></div>
-                  {col.cards.map(c => (
-                    <div key={c.t} style={s.kcard}>
-                      <span>{c.t}</span>
-                      <div style={s.cardRow}>
-                        <Chip tone={c.tone} icon={c.tone === 'ok' ? 'check-circle' : 'clock'}>{c.due}</Chip>
-                        <Avatar tone={c.who[0]}>{c.who[1]}</Avatar>
-                      </div>
-                    </div>
-                  ))}
+    <div className="lp-sky lp-herovis" style={s.heroVis}>
+      <div style={s.win}>
+        <div style={s.winBar}>
+          Community Food Drive
+          <span style={{ marginLeft: 'auto' }}><Chip tone="ok" icon="check-circle">On track</Chip></span>
+        </div>
+        <div className="lp-kan" style={{ padding: 16 }}>
+          {BOARD.map(col => (
+            <div key={col.h} style={s.col}>
+              <div style={s.colHead}><span>{col.h}</span><span>{col.cards.length}</span></div>
+              {col.cards.map(c => (
+                <div key={c.t} style={s.kcard}>
+                  <span>{c.t}</span>
+                  <div style={s.cardRow}>
+                    <Chip tone={c.tone} icon={c.tone === 'ok' ? 'check-circle' : 'clock'}>{c.due}</Chip>
+                    <Avatar tone={c.who[0]}>{c.who[1]}</Avatar>
+                  </div>
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-
-        <div className="lp-fcard lp-fa" aria-hidden="true">
-          <div className="lp-fbob" style={s.floatCard}>
-            <span style={{ ...s.floatIcon, background: 'var(--warn-tint)', color: 'var(--warn-text)' }}><Icon name="bell" size={18} /></span>
-            <span><b style={{ display: 'block', fontSize: 14 }}>Due today</b><span style={{ fontSize: 13, color: 'var(--muted)' }}>Book venue</span></span>
-          </div>
-        </div>
-        <div className="lp-fcard lp-fb" aria-hidden="true">
-          <div className="lp-fbob lp-fbob2" style={s.floatCard}>
-            <span style={{ position: 'relative', width: 44, height: 44, flexShrink: 0 }}>
-              <svg viewBox="0 0 100 100" width="44" height="44" style={{ transform: 'rotate(-90deg)' }}>
-                <circle cx="50" cy="50" r="40" fill="none" stroke="var(--surface-3)" strokeWidth="14" />
-                <circle cx="50" cy="50" r="40" fill="none" stroke="var(--accent)" strokeWidth="14" strokeLinecap="round" strokeDasharray="251" strokeDashoffset="90" />
-              </svg>
-            </span>
-            <span><b style={{ display: 'block', fontSize: 16, fontFamily: 'var(--font-head)' }}>64%</b><span style={{ fontSize: 13, color: 'var(--muted)' }}>On track</span></span>
-          </div>
+          ))}
         </div>
       </div>
     </div>
@@ -165,9 +100,9 @@ const START_TASKS = [
 ];
 const COLS = ['To do', 'In progress', 'Done'];
 const STEPS = [
-  { tab: 'Upload', title: 'Upload', body: 'Drop in a plan, proposal or brief. PDF, Word, Excel or pasted text.' },
-  { tab: 'Read', title: 'PM Buddy reads it', body: 'It finds your goal, milestones, risks and the people involved.' },
-  { tab: 'Work', title: 'Start working', body: 'Your project board is ready. Move tasks forward, get reminded when things are due.' },
+  { tab: 'Upload', title: 'Upload', body: 'A plan, proposal or brief. PDF, Word, Excel or pasted text.' },
+  { tab: 'Read', title: 'Read', body: 'The goal, milestones, risks and people are pulled out of the document.' },
+  { tab: 'Work', title: 'Work', body: 'Move tasks across the board. Reminders go out when things are due.' },
 ];
 
 function Tour() {
@@ -217,7 +152,6 @@ function Tour() {
             </div>
             <div style={{ display: 'grid', gap: 8, justifyItems: 'center', width: '100%' }}>
               <span style={{ position: 'relative', display: 'inline-flex', maxWidth: '100%' }}>
-                <span style={s.cue} />
                 <button type="button" className="lp-btn lp-btn-primary" onClick={() => go(1)}>Try it with a sample plan <Icon name="arrow-right" size={18} /></button>
               </span>
               <span style={{ color: 'var(--muted)', fontSize: 14 }}>No sign-up</span>
@@ -231,7 +165,6 @@ function Tour() {
               {[54, 100, 92, 78, 54, 100, 85, 94, 60].map((w, i) => (
                 <div key={i} style={{ height: i === 0 || i === 4 ? 13 : 9, width: `${w}%`, borderRadius: 99, background: i === 0 || i === 4 ? 'var(--border-strong)' : 'var(--surface-3)', marginTop: i === 4 ? 10 : 0 }} />
               ))}
-              <span style={s.scan} />
             </div>
             <div style={{ display: 'grid', gap: 10, alignContent: 'start' }}>
               {FOUND.map((f, i) => (
@@ -290,9 +223,9 @@ export default function LandingScreen({ onSelectMode, onSignup, onDashboard, use
   const validate = () => { Analytics.modeSelected('startup'); onSelectMode('startup'); };
 
   const gets = [
-    { icon: 'board', title: 'Your plan, organised', body: 'Tasks, milestones and risks on one board your whole team understands.' },
-    { icon: 'bell', title: 'Reminders that keep you on track', body: 'One email each morning, only when something needs your attention.' },
-    { icon: 'download', title: 'Reports in one click', body: 'Team updates, funder reports and investor updates from your live project, ready as Word or PDF.' },
+    { icon: 'board', title: 'Tasks, milestones and risks', body: 'Kept on one board that the whole team can see.' },
+    { icon: 'bell', title: 'Daily reminders', body: 'One email each morning, only when something is due or overdue.' },
+    { icon: 'download', title: 'Status reports', body: 'Team updates, funder reports and investor updates drawn from the live project, as Word or PDF.' },
   ];
 
   return (
@@ -302,8 +235,8 @@ export default function LandingScreen({ onSelectMode, onSignup, onDashboard, use
       <div style={s.section}>
         <div className="lp-hero" style={s.inner}>
           <div>
-            <h1 style={s.h1}>Turn your project plan into a working project in minutes.</h1>
-            <p style={s.sub}>Upload the document you already have. PM Buddy sets up your tasks, milestones and reminders, so nothing slips.</p>
+            <h1 style={s.h1}>Upload your project document. Get a working project dashboard in minutes.</h1>
+            <p style={s.sub}>Built for coordinators and program managers who are done with scattered updates and last-minute reports.</p>
             <div style={s.ctas}>
               <button type="button" className="lp-btn lp-btn-primary" onClick={start}>{user ? 'Go to my projects' : 'Try it free'} <Icon name="arrow-right" size={18} /></button>
               <button type="button" className="lp-btn lp-btn-ghost" onClick={() => scrollTo('how-it-works')}>See how it works</button>
@@ -316,14 +249,14 @@ export default function LandingScreen({ onSelectMode, onSignup, onDashboard, use
 
       <div id="how-it-works" style={s.section}>
         <div style={s.inner}>
-          <Reveal><h2 style={{ ...s.h2, marginBottom: 32 }}>One document in. A full project out.</h2></Reveal>
+          <Reveal><h2 style={{ ...s.h2, marginBottom: 32 }}>From document to project board</h2></Reveal>
           <Tour />
         </div>
       </div>
 
       <div style={s.section}>
         <div style={s.inner}>
-          <Reveal><h2 style={s.h2}>Everything a project manager would do, done for you.</h2></Reveal>
+          <Reveal><h2 style={s.h2}>What you get</h2></Reveal>
           <div className="lp-grid lp-grid3" style={{ marginTop: 40 }}>
             {gets.map(f => (
               <div key={f.title} className="lp-feat">
@@ -333,22 +266,21 @@ export default function LandingScreen({ onSelectMode, onSignup, onDashboard, use
               </div>
             ))}
           </div>
-          <p style={{ color: 'var(--muted)', fontSize: 15, marginTop: 20 }}>Plus a project health check and an assistant you can ask anything.</p>
+          <p style={{ color: 'var(--muted)', fontSize: 15, marginTop: 20 }}>Also included: a project health check, and an assistant that answers questions about your project.</p>
         </div>
       </div>
 
       <div style={{ ...s.section, paddingTop: 0 }}>
         <div style={s.inner}>
-          <p style={s.who}>Built for founders, solo builders, nonprofits and teams who need to deliver projects without hiring a project manager.</p>
+          <p style={s.who}>For coordinators, program managers, nonprofits and small teams who deliver projects without a dedicated project manager.</p>
         </div>
       </div>
 
       <div style={{ ...s.section, paddingTop: 0 }}>
         <div style={s.inner}>
           <div className="lp-sky" style={s.finalCta}>
-            <div className="lp-gyro" aria-hidden="true"><span /><span /><span /></div>
-            <h2 style={{ ...s.h2, color: 'var(--text)', maxWidth: 560, marginBottom: 28 }}>Stop managing your project in your head.</h2>
-            <button type="button" className="lp-btn lp-btn-primary" style={{ width: 'auto' }} onClick={start}>{user ? 'Go to my projects' : 'Get started free'} <Icon name="arrow-right" size={18} /></button>
+            <h2 style={{ ...s.h2, color: 'var(--text)', maxWidth: 560, marginBottom: 28 }}>Set up your first project.</h2>
+            <button type="button" className="lp-btn lp-btn-primary" style={{ width: 'auto' }} onClick={start}>{user ? 'Go to my projects' : 'Try it free'} <Icon name="arrow-right" size={18} /></button>
             {!user && (
               <p style={{ color: 'var(--text-2)', fontSize: 15, marginTop: 20 }}>
                 Not sure your idea is worth building yet?{' '}
@@ -377,7 +309,7 @@ export default function LandingScreen({ onSelectMode, onSignup, onDashboard, use
 
 const s = {
   page: { background: 'var(--bg)', color: 'var(--text)', overflowX: 'hidden' },
-  rainbow: { height: 4, background: 'var(--rainbow)' },
+  rainbow: { height: 2, background: 'var(--accent)' },
   section: { padding: 'clamp(56px, 8vw, 96px) 24px' },
   inner: { maxWidth: 1200, margin: '0 auto' },
   h1: { fontSize: 'clamp(26px, 3.6vw, 46px)', lineHeight: 1.08, fontWeight: 600, letterSpacing: '-0.04em', margin: '0 0 20px' },
@@ -388,34 +320,32 @@ const s = {
   link: { background: 'none', border: 'none', padding: 0, color: 'var(--accent-text)', fontWeight: 700, textDecoration: 'underline', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', textAlign: 'left' },
   who: { fontSize: 'clamp(17px, 1.8vw, 21px)', lineHeight: 1.55, fontWeight: 600, letterSpacing: '-0.01em', maxWidth: 760 },
 
-  heroVis: { position: 'relative', overflow: 'hidden', borderRadius: 26, padding: '96px 28px 96px' },
+  heroVis: { position: 'relative', overflow: 'hidden', borderRadius: 12, padding: 'clamp(24px, 4vw, 40px)' },
   floatCard: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, boxShadow: 'var(--shadow-lg)' },
   floatIcon: { width: 36, height: 36, borderRadius: 12, display: 'grid', placeItems: 'center', flexShrink: 0 },
-  win: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, boxShadow: 'var(--shadow-lg)', overflow: 'hidden' },
+  win: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' },
   winBar: { display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 15 },
   dotI: { width: 11, height: 11, borderRadius: '50%', background: 'var(--surface-3)', display: 'inline-block' },
-  col: { background: 'var(--surface-2)', borderRadius: 14, padding: 12, display: 'grid', gap: 10, alignContent: 'start' },
+  col: { background: 'var(--surface-2)', borderRadius: 8, padding: 12, display: 'grid', gap: 10, alignContent: 'start' },
   colHead: { display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 700, color: 'var(--muted)' },
   kcard: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 14px', fontWeight: 600, fontSize: 14, lineHeight: 1.35, display: 'grid', gap: 10, alignContent: 'space-between', minHeight: 92 },
   cardRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
 
-  tour: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 24, boxShadow: 'var(--shadow)', overflow: 'hidden' },
+  tour: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' },
   tourSteps: { display: 'flex', alignItems: 'center', gap: 8, padding: '14px 20px', borderBottom: '1px solid var(--border)', flexWrap: 'wrap' },
   stepBtn: { display: 'inline-flex', alignItems: 'center', gap: 8, background: 'none', border: 0, color: 'var(--muted)', fontWeight: 700, fontSize: 15, padding: '8px 12px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit' },
   stepOn: { background: 'var(--surface-2)', color: 'var(--text)' },
-  dropzone: { width: '100%', border: '2px dashed var(--accent-border)', borderRadius: 22, padding: '36px 20px', display: 'grid', gap: 10, justifyItems: 'center', animation: 'lp-dash 3s ease-in-out infinite' },
-  cue: { position: 'absolute', inset: -6, borderRadius: 999, border: '2px solid var(--accent)', animation: 'lp-cue 1.8s ease-out infinite', pointerEvents: 'none' },
+  dropzone: { width: '100%', border: '1px dashed var(--border-strong)', borderRadius: 10, padding: '36px 20px', display: 'grid', gap: 10, justifyItems: 'center' },
   docpage: { position: 'relative', overflow: 'hidden', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 14, padding: 22, display: 'grid', gap: 10, alignContent: 'start' },
-  scan: { position: 'absolute', left: 0, right: 0, height: 60, background: 'linear-gradient(180deg, transparent, color-mix(in srgb, var(--accent) 28%, transparent), transparent)', animation: 'lp-scan 2.2s ease-in-out infinite' },
   found: { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 15, fontWeight: 600, transition: 'opacity 0.4s ease, transform 0.4s ease' },
   ringBox: { background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 18, padding: 18, display: 'grid', justifyItems: 'center', gap: 10 },
-  tcard: { textAlign: 'left', width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 14px', color: 'var(--text)', fontWeight: 600, fontSize: 14, lineHeight: 1.35, cursor: 'pointer', display: 'grid', gap: 8, fontFamily: 'inherit', animation: 'lp-pop 0.45s cubic-bezier(0.16,1,0.3,1) both' },
+  tcard: { textAlign: 'left', width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 14px', color: 'var(--text)', fontWeight: 600, fontSize: 14, lineHeight: 1.35, cursor: 'pointer', display: 'grid', gap: 8, fontFamily: 'inherit' },
   moveChip: { justifySelf: 'start', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, padding: '3px 9px', borderRadius: 999, background: 'var(--accent-tint)', color: 'var(--accent-text)' },
   tourFoot: { padding: '12px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, color: 'var(--muted)', fontSize: 14 },
   replay: { background: 'none', border: 0, color: 'var(--accent-text)', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' },
 
-  featIcon: { width: 44, height: 44, borderRadius: 14, display: 'grid', placeItems: 'center', background: 'var(--accent-tint)', color: 'var(--accent-text)' },
-  finalCta: { position: 'relative', overflow: 'hidden', borderRadius: 28, padding: 'clamp(32px, 6vw, 64px)', border: '1px solid var(--border)' },
+  featIcon: { width: 36, height: 36, borderRadius: 8, display: 'grid', placeItems: 'center', background: 'var(--surface-2)', color: 'var(--text-2)' },
+  finalCta: { position: 'relative', overflow: 'hidden', borderRadius: 12, padding: 'clamp(32px, 6vw, 64px)', border: '1px solid var(--border)' },
   footer: { borderTop: '1px solid var(--border)', padding: '32px 24px' },
   footLink: { fontSize: 15, color: 'var(--muted)', textDecoration: 'none', fontWeight: 600 },
 };
