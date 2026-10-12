@@ -1,7 +1,7 @@
 // Plain-English explanations for the (i) pointers. Keep each one short: what it is, and why it matters.
 export const GLOSSARY = {
   progress: { title: 'Progress overview', text: 'A quick picture of how far along the project is. The ring counts finished tasks and milestones out of everything in the project.' },
-  tasks: { title: 'Tasks', text: 'Small pieces of work that one person can finish, such as "Book the venue". Tick them off as you go.' },
+  tasks: { title: 'Task board', text: 'Everything on your task board: tasks and milestones. This counts the ones that are done out of the total.' },
   milestones: { title: 'Milestones', text: 'The big checkpoints on the way, such as "First draft ready" or "Launch day". They help you see progress without counting every small task.' },
   overdue: { title: 'Overdue', text: 'Tasks whose due date has passed and which are not marked done yet.' },
   dueThisWeek: { title: 'Due this week', text: 'Tasks that are due in the next 7 days and are not done yet.' },

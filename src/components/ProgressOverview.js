@@ -89,7 +89,7 @@ export default function ProgressOverview({ data, acceptedMembers = [] }) {
   };
 
   const chips = [
-    { tip: 'tasks', label: 'Tasks', value: `${doneTasks}/${tasks.length}`, sub: 'done', color: 'var(--color-success)' },
+    { tip: 'tasks', label: 'Task board', value: `${doneTasks + doneMilestones}/${totalItems}`, sub: 'done', color: 'var(--color-success)' },
     { tip: 'milestones', label: 'Milestones', value: `${doneMilestones}/${milestones.length}`, sub: 'reached', color: 'var(--color-primary)' },
     { tip: 'overdue', label: 'Overdue', value: overdueCount, sub: overdueCount === 1 ? 'task' : 'tasks', color: overdueCount > 0 ? 'var(--color-danger)' : 'var(--color-success)' },
     { tip: 'dueThisWeek', label: 'Due this week', value: dueThisWeek, sub: dueThisWeek === 1 ? 'task' : 'tasks', color: dueThisWeek > 0 ? 'var(--color-warning)' : 'var(--color-text-muted)' },
