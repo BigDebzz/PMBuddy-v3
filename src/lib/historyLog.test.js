@@ -65,6 +65,11 @@ describe('what changed', () => {
     expect(n[0].detail).toContain('Book venue');
   });
 
+  test('suggested tasks waiting for review are not history', () => {
+    const next = { scope: { ...prev.scope, suggestedTasks: [{ id: 's1', title: 'x' }] } };
+    expect(describeChanges(prev, next)).toHaveLength(0);
+  });
+
   test('nothing is recorded when nothing changed', () => {
     expect(describeChanges(prev, { tasks: prev.tasks, milestones: prev.milestones })).toHaveLength(0);
     expect(entriesForSave(prev, {}, null)).toHaveLength(0);

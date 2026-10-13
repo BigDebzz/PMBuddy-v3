@@ -195,7 +195,7 @@ function diffScope(prev, next, tasks) {
     out.push({ type: 'board_note', label: about ? 'Note added to a task' : 'Note added to the board', detail: `${about ? `${clip(about, 40)}: ` : ''}${clip(n.text, 60)}` });
   });
   oldNotes.forEach((n, id) => { if (!newNotes.has(id)) out.push({ type: 'board_note_deleted', label: 'Note deleted', detail: clip(n.text, 60) }); });
-  const rest = (s) => { const c = { ...s }; delete c.goal; delete c.boardNotes; return JSON.stringify(c); };
+  const rest = (s) => { const c = { ...s }; delete c.goal; delete c.boardNotes; delete c.suggestedTasks; return JSON.stringify(c); };
   if (rest(a) !== rest(b)) out.push({ type: 'scope_edited', label: 'Project details edited', detail: '' });
   return out;
 }
