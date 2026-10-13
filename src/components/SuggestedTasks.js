@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import AiLoading from './AiLoading';
 import { suggestTasks } from '../lib/suggestTasks';
-import { suggestionToTask } from '../lib/taskSuggestions';
+import { suggestionToTask, fillDates } from '../lib/taskSuggestions';
 
 function shortDate(iso) {
   try { return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return ''; }
@@ -9,11 +9,13 @@ function shortDate(iso) {
 
 // "Suggested by PM Buddy": tasks PM Buddy recommends for the project. Nothing reaches the board
 // until the owner adds it, and each one can be changed or dismissed first.
-export default function SuggestedTasks({ data, onSave }) {
+function SuggestedPanel({ data, onSave }) {
   const scope = data.scope || {};
-  const suggestions = Array.isArray(scope.suggestedTasks) ? scope.suggestedTasks : [];
+  const stored = Array.isArray(scope.suggestedTasks) ? scope.suggestedTasks : [];
   const tasks = data.tasks || [];
   const milestones = data.milestones || [];
+  // every suggestion shows a date: the AI's, or one worked out from the timeline and milestones
+  const suggestions = useMemo(() => fillDates(stored, data), [stored, data.timeline, data.milestones]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -117,6 +119,36 @@ export default function SuggestedTasks({ data, onSave }) {
   );
 }
 
+// Tasks without a due date cannot be tracked as overdue or reminded about, so offer to date them.
+export default function SuggestedTasks({ data, onSave }) {
+  const tasks = data.tasks || [];
+  const milestones = data.milestones || [];
+  const undated = tasks.filter(t => t.status !== 'done' && !t.dueDate);
+
+  const setDates = () => {
+    const probe = undated.map(t => {
+      const m = t.milestoneId !== '' && t.milestoneId != null ? milestones[Number(t.milestoneId)] : null;
+      return { id: t.id, title: t.title, milestone: m ? m.title : null, dueDate: '' };
+    });
+    const dates = new Map(fillDates(probe, data).map(s => [s.id, s.dueDate]));
+    onSave({ tasks: tasks.map(t => (dates.has(t.id) ? { ...t, dueDate: dates.get(t.id) } : t)) });
+  };
+
+  return (
+    <>
+      {undated.length > 0 && (
+        <section style={st.dateBar} aria-label="Tasks without dates">
+          <p style={st.dateText}>
+            {undated.length} task{undated.length === 1 ? ' has' : 's have'} no due date, so {undated.length === 1 ? 'it' : 'they'} cannot show as overdue or send a reminder.
+          </p>
+          <button type="button" style={st.quiet} onClick={setDates}>Suggest dates from the timeline</button>
+        </section>
+      )}
+      <SuggestedPanel data={data} onSave={onSave} />
+    </>
+  );
+}
+
 const st = {
   card: { background: 'var(--accent-tint)', border: '1px solid var(--accent-border)', borderRadius: 12, padding: '14px 16px', marginBottom: 18 },
   head: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 10 },
@@ -132,4 +164,6 @@ const st = {
   smallQuiet: { padding: '3px 10px', background: 'var(--surface)', color: 'var(--muted)', border: '1px solid var(--border)', borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' },
   input: { width: '100%', boxSizing: 'border-box', padding: '8px 10px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 14, color: 'var(--text)', fontFamily: 'inherit' },
   error: { fontSize: 13, color: 'var(--bad-text)', margin: 0 },
+  dateBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', background: 'var(--warn-tint)', border: '1px solid var(--warn-border)', borderRadius: 10, padding: '10px 14px', marginBottom: 14 },
+  dateText: { margin: 0, fontSize: 14, color: 'var(--text)', lineHeight: 1.45, flex: '1 1 260px' },
 };

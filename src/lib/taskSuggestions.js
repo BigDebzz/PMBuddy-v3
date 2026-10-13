@@ -38,15 +38,15 @@ export function buildSuggestionPrompt(project, today = new Date()) {
     '- Start each task with a verb. Keep it under 90 characters. Plain English, no emoji.',
     '- Do not repeat anything already on the board.',
     '- Do not invent names, numbers, budgets or facts that are not given above. These are recommendations the person will review.',
-    '- "due_date" is YYYY-MM-DD, between today and the end of the project or of that milestone, or null if you cannot tell.',
+    '- Every task needs a "due_date" in YYYY-MM-DD. Spread the tasks over the timeline so earlier work is due earlier, and each task is due on or before its milestone date. Never use a date before today.',
     '',
     'Return ONLY a JSON object, no explanation, in this exact shape:',
-    '{"tasks":[{"title":"string","milestone":"exact milestone title or null","due_date":"YYYY-MM-DD or null"}]}',
+    '{"tasks":[{"title":"string","milestone":"exact milestone title or null","due_date":"YYYY-MM-DD"}]}',
   ].join('\n');
 }
 
 // Turns the AI's reply into a safe list. Anything unusable is dropped quietly.
-export function parseSuggestions(text, project, stamp = Date.now()) {
+export function parseSuggestions(text, project, stamp = Date.now(), today = new Date()) {
   const raw = String(text || '').replace(/```json|```/g, '');
   const a = raw.indexOf('{');
   const b = raw.lastIndexOf('}');
@@ -74,7 +74,68 @@ export function parseSuggestions(text, project, stamp = Date.now()) {
       dueDate: DATE.test(String(item.due_date || '')) ? String(item.due_date) : '',
     });
   });
-  return out;
+  return fillDates(out, project, today);
+}
+
+// ---------- dates ----------
+const DAY = 86400000;
+const pad = (n) => String(n).padStart(2, '0');
+const toDate = (s) => { const [y, m, d] = String(s).slice(0, 10).split('-').map(Number); return new Date(y, (m || 1) - 1, d || 1); };
+const toIso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const validDate = (s) => DATE.test(String(s || '').slice(0, 10)) && !Number.isNaN(toDate(s).getTime());
+const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+// A deadline that falls on a weekend moves back to the Friday before it, but never before today.
+const workday = (d, floor) => {
+  const w = d.getDay();
+  const x = w === 6 ? addDays(d, -1) : w === 0 ? addDays(d, -2) : d;
+  return x < floor ? floor : x;
+};
+
+// Gives every suggestion a due date from the project's timeline and milestones.
+// A date the AI gave is kept when it is today or later. The others are spread out:
+// tasks towards a milestone are spaced between the previous milestone and its date,
+// and general tasks are spread across the project.
+export function fillDates(list, project, today = new Date()) {
+  const items = Array.isArray(list) ? list : [];
+  const t0 = startOfDay(today);
+  const timeline = (project && project.timeline) || {};
+  const milestones = ((project && project.milestones) || []).filter(m => m && m.title);
+
+  const winStart = validDate(timeline.start) && toDate(timeline.start) > t0 ? toDate(timeline.start) : t0;
+  const msDates = milestones.filter(m => validDate(m.date)).map(m => toDate(m.date)).sort((a, b) => a - b);
+  let winEnd = validDate(timeline.end) ? toDate(timeline.end) : null;
+  if (!winEnd || winEnd <= winStart) winEnd = msDates.length && msDates[msDates.length - 1] > winStart ? msDates[msDates.length - 1] : addDays(winStart, 84);
+
+  const needs = items.filter(s => !(validDate(s.dueDate) && toDate(s.dueDate) >= t0));
+  const groups = new Map();
+  const general = [];
+  needs.forEach(s => {
+    const m = milestones.find(x => x.title === s.milestone);
+    if (m && validDate(m.date)) {
+      if (!groups.has(m.title)) groups.set(m.title, { date: toDate(m.date), tasks: [] });
+      groups.get(m.title).tasks.push(s);
+    } else general.push(s);
+  });
+
+  const assigned = new Map();
+  groups.forEach(({ date, tasks }) => {
+    const earlier = msDates.filter(d => d < date);
+    let lower = earlier.length ? earlier[earlier.length - 1] : winStart;
+    if (lower < winStart) lower = winStart;
+    tasks.forEach((s, k) => {
+      let d;
+      if (date <= lower) d = addDays(lower, k + 1);
+      else d = new Date(lower.getTime() + Math.round(((date - lower) * (k + 1)) / tasks.length / DAY) * DAY);
+      assigned.set(s.id, workday(startOfDay(d), t0));
+    });
+  });
+  general.forEach((s, g) => {
+    const d = new Date(winStart.getTime() + Math.round(((winEnd - winStart) * (g + 1)) / (general.length + 1) / DAY) * DAY);
+    assigned.set(s.id, workday(startOfDay(d), t0));
+  });
+
+  return items.map(s => (assigned.has(s.id) ? { ...s, dueDate: toIso(assigned.get(s.id)) } : s));
 }
 
 // Turns an accepted suggestion into a real task. The milestone link is the milestone's position, as the board expects.
