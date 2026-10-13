@@ -217,6 +217,25 @@ function Tour() {
   );
 }
 
+// The demo video starts loading just before it scrolls into view, so it is ready when someone presses play.
+function DemoVideo() {
+  const ref = useRef(null);
+  const [near, setNear] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') { setNear(true); return undefined; }
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setNear(true); obs.disconnect(); } }, { rootMargin: '600px' });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return (
+    <video ref={ref} controls playsInline preload={near ? 'auto' : 'none'} poster="/demo/poster.jpg" style={{ width: '100%', display: 'block', background: '#171412' }}>
+      <source src="/demo/pmbuddy-demo.mp4" type="video/mp4" />
+      Your browser cannot play this video.
+    </video>
+  );
+}
+
 export default function LandingScreen({ onSelectMode, onSignup, onDashboard, user }) {
   const start = user ? onDashboard : onSignup;
   const scrollTo = (id) => { const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: 'smooth' }); };
@@ -281,10 +300,7 @@ export default function LandingScreen({ onSelectMode, onSignup, onDashboard, use
           <Reveal><h2 style={s.h2}>Watch the demo</h2></Reveal>
           <p style={{ color: 'var(--muted)', fontSize: 16, lineHeight: 1.6, marginTop: 10, maxWidth: 620 }}>See PM Buddy turn a concept note into a working project, with suggested tasks and a funder report.</p>
           <div style={s.videoWrap}>
-            <video controls playsInline preload="none" poster="/demo/poster.jpg" style={{ width: '100%', display: 'block', background: '#171412' }}>
-              <source src="/demo/pmbuddy-demo.mp4" type="video/mp4" />
-              Your browser cannot play this video.
-            </video>
+            <DemoVideo />
           </div>
         </div>
       </div>
