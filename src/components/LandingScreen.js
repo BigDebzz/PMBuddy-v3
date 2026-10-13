@@ -217,6 +217,25 @@ function Tour() {
   );
 }
 
+// The demo video starts loading just before it scrolls into view, so it is ready when someone presses play.
+function DemoVideo() {
+  const ref = useRef(null);
+  const [near, setNear] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') { setNear(true); return undefined; }
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setNear(true); obs.disconnect(); } }, { rootMargin: '600px' });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return (
+    <video ref={ref} controls playsInline preload={near ? 'auto' : 'none'} poster="/demo/poster.jpg" style={{ width: '100%', display: 'block', background: '#171412' }}>
+      <source src="/demo/pmbuddy-demo.mp4" type="video/mp4" />
+      Your browser cannot play this video.
+    </video>
+  );
+}
+
 export default function LandingScreen({ onSelectMode, onSignup, onDashboard, user }) {
   const start = user ? onDashboard : onSignup;
   const scrollTo = (id) => { const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: 'smooth' }); };
@@ -276,6 +295,16 @@ export default function LandingScreen({ onSelectMode, onSignup, onDashboard, use
         </div>
       </div>
 
+      <div id="demo" style={{ ...s.section, paddingTop: 0 }}>
+        <div style={s.inner}>
+          <Reveal><h2 style={s.h2}>Watch the demo</h2></Reveal>
+          <p style={{ color: 'var(--muted)', fontSize: 16, lineHeight: 1.6, marginTop: 10, maxWidth: 620 }}>See PM Buddy turn a concept note into a working project, with suggested tasks and a funder report.</p>
+          <div style={s.videoWrap}>
+            <DemoVideo />
+          </div>
+        </div>
+      </div>
+
       <div style={{ ...s.section, paddingTop: 0 }}>
         <div style={s.inner}>
           <div className="lp-sky" style={s.finalCta}>
@@ -293,8 +322,9 @@ export default function LandingScreen({ onSelectMode, onSignup, onDashboard, use
 
       <div style={s.footer}>
         <div style={{ ...s.inner, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-          <p style={{ fontSize: 15, color: 'var(--muted)' }}><b style={{ fontFamily: 'var(--font-head)', color: 'var(--text)', fontWeight: 800 }}>PM Buddy.</b> Project management for everyone else.</p>
+          <p style={{ fontSize: 15, color: 'var(--muted)' }}><b style={{ fontFamily: 'var(--font-head)', color: 'var(--text)', fontWeight: 800 }}>PM Buddy.</b> Project management for everyone.</p>
           <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button type="button" style={{ ...s.footLink, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }} onClick={() => scrollTo('demo')}>Watch demo</button>
             <a href="/about.html" style={s.footLink}>About</a>
             <a href="/privacy.html" style={s.footLink}>Privacy</a>
             <a href="/terms.html" style={s.footLink}>Terms</a>
@@ -346,6 +376,7 @@ const s = {
 
   featIcon: { width: 36, height: 36, borderRadius: 8, display: 'grid', placeItems: 'center', background: 'var(--surface-2)', color: 'var(--text-2)' },
   finalCta: { position: 'relative', overflow: 'hidden', borderRadius: 12, padding: 'clamp(32px, 6vw, 64px)', border: '1px solid var(--border)' },
+  videoWrap: { marginTop: 28, maxWidth: 960, borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)', background: '#171412' },
   footer: { borderTop: '1px solid var(--border)', padding: '32px 24px' },
   footLink: { fontSize: 15, color: 'var(--muted)', textDecoration: 'none', fontWeight: 600 },
 };

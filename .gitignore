@@ -6,3 +6,6 @@ build/
 npm-debug.log*
 .vercel
 .env*
+
+# working files for the demo videos
+/demo/

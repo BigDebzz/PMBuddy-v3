@@ -20,6 +20,7 @@ self.addEventListener('fetch', (event) => {
   if (event.request.url.includes('supabase.co')) return;
   if (event.request.url.includes('googleapis.com')) return;
   if (event.request.url.includes('googletagmanager.com')) return;
+  if (event.request.url.includes('/demo/')) return; // the demo video is streamed, never stored
 
   const url = new URL(event.request.url);
 
