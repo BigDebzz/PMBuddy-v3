@@ -78,6 +78,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
   const [savedInfo, setSavedInfo] = useState(''); // what the database holds after the last save
   const [acceptedMembers, setAcceptedMembers] = useState([]);
   const [showReport, setShowReport] = useState(false);
+  const [reportType, setReportType] = useState('team');
   const [showUpdate, setShowUpdate] = useState(false);
   const [docsVersion, setDocsVersion] = useState(0);
   const saveTimerRef = useRef(null);
@@ -167,11 +168,11 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
           {tab === 'Risks' && <RisksTab data={data} onSave={save} />}
           {tab === 'People' && <PeopleTab data={data} onSave={save} project={project} acceptedMembers={acceptedMembers} />}
           {tab === 'History' && <HistoryTab data={data} project={project} />}
-          {tab === 'Documents' && <DocumentsTab data={data} history={data.history || []} onSave={save} project={project} onCreateReport={() => setShowReport(true)} docsVersion={docsVersion} />}
+          {tab === 'Documents' && <DocumentsTab data={data} history={data.history || []} onSave={save} project={project} onCreateReport={(t) => { setReportType(typeof t === 'string' ? t : 'team'); setShowReport(true); }} docsVersion={docsVersion} />}
         </div>
       </div>
       {showUpdate && <UpdateProject data={data} project={project} onApply={save} onClose={() => setShowUpdate(false)} />}
-      {showReport && <ReportBuilder data={data} project={project} onClose={() => setShowReport(false)} onSaved={() => setDocsVersion(v => v + 1)} />}
+      {showReport && <ReportBuilder data={data} project={project} initialType={reportType} funding={(data.scope && data.scope.funding) || null} onSaveFunding={(f) => save({ scope: { ...(data.scope || {}), funding: f } })} onClose={() => { setShowReport(false); setReportType('team'); }} onSaved={() => setDocsVersion(v => v + 1)} />}
       <PMBuddyAssistant project={data} />
     </div>
   );
@@ -1207,6 +1208,13 @@ function DocumentsTab({ data, history, onSave, project, onCreateReport, docsVers
 
       {section === 'reports' && (
         <div>
+          <div style={{ background: 'var(--accent-tint)', border: '1px solid var(--accent-border)', borderRadius: 12, padding: '16px 18px', marginBottom: 18 }}>
+            <p style={{ fontSize: 16, fontWeight: 800, color: BL, margin: '0 0 4px' }}>Funder report</p>
+            <p style={{ fontSize: 14, color: 'var(--text-2)', lineHeight: 1.6, margin: '0 0 12px', maxWidth: 640 }}>
+              Show your funder that the work is moving towards what the funding was given for. PM Buddy builds a detailed report from your goal, milestones and tasks, in the style your funder expects, or in their own template.
+            </p>
+            <button type="button" style={s.reportBtn} onClick={() => onCreateReport('funder')}><Icon name="file" size={16} style={{ marginRight: 8 }} />Generate funder report</button>
+          </div>
           <p style={{ fontSize: 15, color: 'var(--muted)', lineHeight: 1.7, marginBottom: 16 }}>Team updates, funder reports, investor updates and personal progress reports, written from your live project.</p>
           <button type="button" style={s.reportBtn} onClick={onCreateReport}><Icon name="file" size={16} style={{ marginRight: 8 }} />Create a report</button>
           <p style={{ fontSize: 14, color: 'var(--muted)', marginTop: 14 }}>Finished reports are saved under Saved Docs.</p>

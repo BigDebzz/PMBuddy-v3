@@ -9,6 +9,15 @@ export const REPORT_TYPES = [
   { id: 'personal', label: 'Personal progress report', desc: 'For yourself or a line manager. Covers everything in the project.' },
 ];
 
+// The styles of funder report a person can choose from. Each one changes what the report puts first.
+export const FUNDER_STYLES = [
+  { id: 'standard', label: 'Standard donor or grant report', desc: 'Progress against objectives, activities, outputs, use of funds, risks, next period.' },
+  { id: 'foundation', label: 'Foundation report', desc: 'Outcomes and learning first: what changed and what was learned.' },
+  { id: 'government', label: 'Government or ministry report', desc: 'Factual: activities, outputs against targets, compliance, expenditure.' },
+  { id: 'corporate', label: 'Corporate partner (CSR) report', desc: 'Impact, a short story of the work, and how the support was used.' },
+  { id: 'own', label: "Follow my funder's own template", desc: "Paste the funder's headings and the report follows them." },
+];
+
 const TITLES = { team: 'Team update', funder: 'Funder report', investor: 'Investor update', personal: 'Personal progress report' };
 const MAX_ITEMS = 12;
 
@@ -130,9 +139,9 @@ const STRUCTURES = {
     'Sections: Overall status (say On track, At risk or Off track, with one sentence why: At risk if anything is overdue or blocked, Off track if the end date has passed with open milestones or more than a third of tasks are overdue, otherwise On track); Done this period; Coming up next; Blockers and who needs to act; Deadlines in the next 14 days.',
   ],
   funder: [
-    'Write a FUNDER OR DONOR REPORT. Formal tone, about 500 words.',
-    'Begin with a cover block listing: Project name, Prepared for, Reporting period, Prepared by, Date.',
-    'Sections: Executive summary (one paragraph); Progress against objectives (a table with columns Objective, Planned, Achieved, Status, built from the project goal and the milestones, with Status as Complete, In progress, Behind or Not started); Milestones completed this period and upcoming milestones; Key activities carried out; Challenges and how they were addressed; Risks and mitigation; Budget utilisation (only from the user key figures, otherwise [Add budget figure]); Plan for next period; Lessons learned (only what the facts support, otherwise a short placeholder such as [Add lessons learned]).',
+    'Write a FUNDER OR DONOR REPORT. Formal, plain English and detailed: about 900 to 1,200 words. Its job is to show the funder that the work is moving towards what the funding was given for.',
+    'Begin with a cover block listing: Project name, Funder, Funding purpose, Reporting period, Prepared by, Date.',
+    'Sections: Executive summary (one paragraph with the overall status and the headline progress); Purpose of the funding and objectives (restate them from FUNDING DETAILS, or from the project goal if none are given); Progress against objectives (a table with columns Objective, Target, Achieved to date, Status, Evidence; Target comes from FUNDING DETAILS, Achieved comes only from the facts or the user key figures, otherwise [Add figure]; Status is Complete, In progress, Behind or Not started); How this period\'s work moves the project towards the funding purpose (a short narrative that links the completed tasks and milestones to the objectives); Milestones reached this period and upcoming milestones; Activities completed this period, grouped by milestone where the facts allow; Outputs and outcomes (only what the facts or key figures support, otherwise placeholders); Use of funds (only from the user key figures, otherwise [Add amount spent] and [Add amount remaining]); Challenges and how they were handled; Risks and how they are managed; Lessons learned (only what the facts support, otherwise [Add lessons learned]); Plan for the next period; Support or decisions needed from the funder (only if the user notes ask for one, otherwise leave this section out).',
   ],
   investor: [
     'Write an INVESTOR UPDATE in a direct founder voice, using "we". Short, under 350 words.',
@@ -144,15 +153,37 @@ const STRUCTURES = {
   ],
 };
 
+const FUNDER_STYLE_NOTES = {
+  standard: [],
+  foundation: ['STYLE: a foundation grant report. Put outcomes and learning first: what changed for the people the work serves, what was learned, and what will be done differently. Keep the list of activities shorter.'],
+  government: ['STYLE: a government or ministry report. Be factual and structured: activities, outputs against targets, compliance and approvals, expenditure against budget lines, and any deviation from the plan with the reason.'],
+  corporate: ['STYLE: a corporate partner (CSR) report. Lead with the impact in plain numbers and a short account of the work, acknowledge the partner, and show how their support was used. Positive but honest.'],
+};
+
 export function buildPrompt(type, facts, form, today = new Date()) {
+  const funding = (type === 'funder' && form.funding) || {};
+  const style = type === 'funder' ? (form.funderStyle || 'standard') : '';
+  const own = style === 'own' && String(funding.template || '').trim();
   const lines = [
     RULES,
     ...(STRUCTURES[type] || STRUCTURES.team),
+    ...(own
+      ? ["IMPORTANT: follow the FUNDER'S OWN TEMPLATE below instead of the section list above. Use its headings exactly and in its order, and fill each one only from the facts. Where a heading needs information that is not in the facts, write a placeholder in square brackets. Do not add sections it does not ask for, apart from a short cover block."]
+      : (FUNDER_STYLE_NOTES[style] || [])),
     '',
     `REPORTING PERIOD: ${formatPeriod(form.start, form.end)}`,
     `TODAY: ${fmt(today)}`,
     `PREPARED BY: ${form.preparedBy || '[Add name]'}`,
-    `PREPARED FOR: ${form.preparedFor || (type === 'funder' ? '[Add funder name]' : 'not specified')}`,
+    `PREPARED FOR: ${form.preparedFor || funding.funder || (type === 'funder' ? '[Add funder name]' : 'not specified')}`,
+    ...(type === 'funder' ? [
+      '',
+      'FUNDING DETAILS (given by the user):',
+      `FUNDER: ${String(funding.funder || '').trim() || 'not given'}`,
+      `WHAT THE FUNDING IS FOR: ${String(funding.purpose || '').trim() || 'not given, use the project goal'}`,
+      `FUNDING AMOUNT AND PERIOD: ${String(funding.amount || '').trim() || 'not given'}`,
+      `OBJECTIVES AND TARGETS (one per line): ${String(funding.objectives || '').trim() || 'not given, use the project goal and milestones'}`,
+      ...(own ? [`FUNDER'S OWN TEMPLATE:`, String(funding.template).trim().slice(0, 4000)] : []),
+    ] : []),
     '',
     'FACTS:',
     facts.text,
