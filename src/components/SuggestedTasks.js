@@ -119,29 +119,43 @@ function SuggestedPanel({ data, onSave }) {
   );
 }
 
-// Tasks without a due date cannot be tracked as overdue or reminded about, so offer to date them.
+// Tasks need dates that sit inside their milestone, or they cannot be tracked as overdue or reminded about.
+// This offers to date the ones with no date, and to move the ones that fall after the milestone they support.
 export default function SuggestedTasks({ data, onSave }) {
   const tasks = data.tasks || [];
   const milestones = data.milestones || [];
-  const undated = tasks.filter(t => t.status !== 'done' && !t.dueDate);
+  const milestoneOf = (t) => (t.milestoneId !== '' && t.milestoneId != null ? milestones[Number(t.milestoneId)] : null);
 
-  const setDates = () => {
-    const probe = undated.map(t => {
-      const m = t.milestoneId !== '' && t.milestoneId != null ? milestones[Number(t.milestoneId)] : null;
+  const needsDate = (t) => t.status !== 'done' && !t.dueDate;
+  const afterMilestone = (t) => {
+    const m = milestoneOf(t);
+    return t.status !== 'done' && !!t.dueDate && !!m && !!m.date && String(t.dueDate).slice(0, 10) > String(m.date).slice(0, 10);
+  };
+  const undated = tasks.filter(needsDate);
+  const late = tasks.filter(afterMilestone);
+  const fixable = [...undated, ...late];
+
+  const alignDates = () => {
+    const probe = fixable.map(t => {
+      const m = milestoneOf(t);
       return { id: t.id, title: t.title, milestone: m ? m.title : null, dueDate: '' };
     });
     const dates = new Map(fillDates(probe, data).map(s => [s.id, s.dueDate]));
     onSave({ tasks: tasks.map(t => (dates.has(t.id) ? { ...t, dueDate: dates.get(t.id) } : t)) });
   };
 
+  const parts = [];
+  if (undated.length) parts.push(`${undated.length} ${undated.length === 1 ? 'task has' : 'tasks have'} no due date`);
+  if (late.length) parts.push(`${late.length} ${late.length === 1 ? 'task is' : 'tasks are'} due after ${late.length === 1 ? 'its' : 'their'} milestone`);
+
   return (
     <>
-      {undated.length > 0 && (
-        <section style={st.dateBar} aria-label="Tasks without dates">
+      {fixable.length > 0 && (
+        <section style={st.dateBar} aria-label="Task dates need attention">
           <p style={st.dateText}>
-            {undated.length} task{undated.length === 1 ? ' has' : 's have'} no due date, so {undated.length === 1 ? 'it' : 'they'} cannot show as overdue or send a reminder.
+            {parts.join(' and ')}. Dates need to follow the timeline for overdue tracking and reminders to work.
           </p>
-          <button type="button" style={st.quiet} onClick={setDates}>Suggest dates from the timeline</button>
+          <button type="button" style={st.quiet} onClick={alignDates}>Align dates to the timeline</button>
         </section>
       )}
       <SuggestedPanel data={data} onSave={onSave} />
