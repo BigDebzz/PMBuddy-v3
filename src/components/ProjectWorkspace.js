@@ -1013,6 +1013,7 @@ function HistoryTab({ data, project }) {
   const storeKey = `pmb-history-hidden-${project.id}-${me}`;
   const [hidden, setHidden] = useState(() => { try { return JSON.parse(localStorage.getItem(storeKey) || '[]'); } catch (e) { return []; } });
   const [showHidden, setShowHidden] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
   const [filter, setFilter] = useState('all');
   const check = useMemo(() => verifyHistory(history), [history]);
 
@@ -1042,9 +1043,20 @@ function HistoryTab({ data, project }) {
         ))}
         <span style={{ marginLeft: 'auto', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {hiddenCount > 0 && <button type="button" style={s.miniBtn} onClick={() => setShowHidden(v => !v)}>{showHidden ? 'Hide again' : `Show ${hiddenCount} hidden`}</button>}
-          {history.length > 0 && hidden.length < history.length && <button type="button" style={s.miniBtn} onClick={hideAll}>Clear my view</button>}
+          {history.length > 0 && hidden.length < history.length && <button type="button" style={s.miniBtn} onClick={() => setConfirmClear(true)}>Clear my view</button>}
         </span>
       </div>
+
+      {confirmClear && (
+        <div role="alertdialog" aria-label="Clear your view of the history" style={{ border: `1px solid ${RULE}`, background: GREY, borderRadius: 10, padding: '14px 16px', marginBottom: 16 }}>
+          <p style={{ fontSize: 15, fontWeight: 700, color: BL, margin: '0 0 4px' }}>Are you sure you want to clear this?</p>
+          <p style={{ fontSize: 14, color: 'var(--text-2)', lineHeight: 1.5, margin: '0 0 12px' }}>This only clears what you see. Everyone else on the project still sees the full history, and you can bring your entries back with "Show hidden".</p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button type="button" style={{ ...s.miniBtn, background: BLUE, color: '#FFFFFF', borderColor: BLUE, padding: '6px 14px', fontSize: 13 }} onClick={() => { hideAll(); setConfirmClear(false); }}>Yes, clear my view</button>
+            <button type="button" style={{ ...s.miniBtn, padding: '6px 14px', fontSize: 13 }} onClick={() => setConfirmClear(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
 
       {history.length === 0 && <p style={s.emptyText}>No history yet. Changes to tasks, milestones, risks, notes and people will appear here, with who made them and when.</p>}
       {history.length > 0 && visible.length === 0 && <p style={s.emptyText}>Nothing to show here. {hiddenCount > 0 ? 'Entries you cleared are still in the team history.' : ''}</p>}
@@ -1070,7 +1082,7 @@ function HistoryTab({ data, project }) {
         );
       })}
 
-      <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 16, lineHeight: 1.5 }}>Hide and Clear my view only tidy what you see on this device. The team history is not changed.</p>
+      <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 16, lineHeight: 1.5 }}>Hide and Clear my view only tidy what you see on this device. Everyone else on the project still sees the full history.</p>
     </div>
   );
 }
