@@ -6,6 +6,7 @@ import AiLoading from './AiLoading';
 import Icon from './Icon';
 import { DOC_LAYOUT_RULES } from '../lib/docStyle';
 import { inviteToProject, looksLikeEmail } from '../lib/invite';
+import { suggestTasks } from '../lib/suggestTasks';
 
 const EXTRACTION_PROMPT = `You are PM Buddy, a project management assistant. Read the attached document and extract the following project information. Return ONLY a valid JSON object with this exact structure:
 
@@ -41,6 +42,7 @@ const EXTRACTION_PROMPT = `You are PM Buddy, a project management assistant. Rea
 }
 
 Rules:
+- If the goal has a target number and a period (for example "train 100 people in 3 months"), split it into measurable milestones (for example 30 people by the end of month 1, 65 by the end of month 2, 100 by the end of month 3) and give each a due_date when the timeline allows.
 - Tasks are the everyday pieces of work. Milestones are the few checkpoints that show progress. Never put the same item in both lists, and never turn tasks into milestones.
 - If a field is not found in the document, use null or an empty array, never omit the key.
 - Infer reasonable values where the document implies them but does not state explicitly.
@@ -296,6 +298,15 @@ export default function DocumentImport({ user, onComplete, onBack, onCancel }) {
           blockers: '',
         },
       };
+
+      // PM Buddy recommends tasks under the milestones. They wait on the task board for the owner to add, change or dismiss.
+      try {
+        setLoadingLabel('Suggesting tasks...');
+        const suggested = await suggestTasks({ ...projectPayload, description: projectPayload.description });
+        if (suggested.tasks.length) projectPayload.scope = { ...projectPayload.scope, suggestedTasks: suggested.tasks };
+      } catch (suggestErr) {
+        console.error('[PM Buddy] Task suggestions failed (non-blocking):', suggestErr);
+      }
 
       const { data, error: dbError } = await supabase
         .from('pm_projects')
