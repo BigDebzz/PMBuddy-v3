@@ -293,7 +293,7 @@ export default function LandingScreen({ onSelectMode, onSignup, onDashboard, use
 
       <div style={s.footer}>
         <div style={{ ...s.inner, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-          <p style={{ fontSize: 15, color: 'var(--muted)' }}><b style={{ fontFamily: 'var(--font-head)', color: 'var(--text)', fontWeight: 800 }}>PM Buddy.</b> Project management for everyone else.</p>
+          <p style={{ fontSize: 15, color: 'var(--muted)' }}><b style={{ fontFamily: 'var(--font-head)', color: 'var(--text)', fontWeight: 800 }}>PM Buddy.</b> Project management for everyone.</p>
           <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
             <a href="/about.html" style={s.footLink}>About</a>
             <a href="/privacy.html" style={s.footLink}>Privacy</a>
