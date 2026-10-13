@@ -4,7 +4,7 @@ import AiLoading from './AiLoading';
 import DocView from './DocView';
 import Icon from './Icon';
 import { sanitizeHtml } from '../lib/docExport';
-import { REPORT_TYPES, buildFacts, buildPrompt, reportTitle } from '../lib/reportFacts';
+import { REPORT_TYPES, FUNDER_STYLES, buildFacts, buildPrompt, reportTitle } from '../lib/reportFacts';
 
 async function getAuthHeader() {
   try {
@@ -25,19 +25,25 @@ function defaultName(user) {
 }
 
 // A short form, then a generated report that can be edited, saved and downloaded.
-export default function ReportBuilder({ data, project, onClose, onSaved }) {
+export default function ReportBuilder({ data, project, onClose, onSaved, initialType, funding, onSaveFunding }) {
   const today = new Date();
   const monthAgo = new Date();
   monthAgo.setDate(monthAgo.getDate() - 30);
 
   const [form, setForm] = useState({
-    type: 'team',
+    type: initialType || 'team',
     start: toInputDate(monthAgo),
     end: toInputDate(today),
-    preparedFor: '',
+    preparedFor: (funding && funding.funder) || '',
     preparedBy: defaultName(project._currentUser),
     keyFigures: '',
     notes: '',
+    funderStyle: 'standard',
+    fFunder: (funding && funding.funder) || '',
+    fPurpose: (funding && funding.purpose) || '',
+    fAmount: (funding && funding.amount) || '',
+    fObjectives: (funding && funding.objectives) || '',
+    fTemplate: (funding && funding.template) || '',
   });
   const [phase, setPhase] = useState('form');
   const [html, setHtml] = useState('');
@@ -55,7 +61,9 @@ export default function ReportBuilder({ data, project, onClose, onSaved }) {
     setPhase('working');
     try {
       const facts = buildFacts(data, form.start, form.end);
-      const prompt = buildPrompt(form.type, facts, form);
+      const fundingNow = { funder: form.fFunder, purpose: form.fPurpose, amount: form.fAmount, objectives: form.fObjectives, template: form.fTemplate };
+      if (form.type === 'funder' && onSaveFunding) onSaveFunding(fundingNow);
+      const prompt = buildPrompt(form.type, facts, { ...form, funding: fundingNow });
       const res = await fetch('/api/claude', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await getAuthHeader()) },
@@ -119,6 +127,50 @@ export default function ReportBuilder({ data, project, onClose, onSaved }) {
                 ))}
               </div>
 
+              {form.type === 'funder' && (
+                <div style={s.fund}>
+                  <p style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', margin: '0 0 4px' }}>About the funding</p>
+                  <p style={{ fontSize: 14, color: 'var(--muted)', margin: '0 0 14px', lineHeight: 1.5 }}>
+                    A good funder report shows that the work is moving towards what the money was given for. Fill in what you know. PM Buddy saves it with the project, so next time you only update it.
+                  </p>
+                  <div style={s.row}>
+                    <label style={s.field}><span style={s.label}>Funder or donor</span>
+                      <input type="text" style={s.input} placeholder="e.g. Ford Foundation" value={form.fFunder} onChange={e => set('fFunder', e.target.value)} /></label>
+                    <label style={s.field}><span style={s.label}>Amount and period</span>
+                      <input type="text" style={s.input} placeholder="e.g. $20,000 for 12 months" value={form.fAmount} onChange={e => set('fAmount', e.target.value)} /></label>
+                  </div>
+                  <label style={{ ...s.field, marginBottom: 14 }}><span style={s.label}>What the funding is for</span>
+                    <textarea style={{ ...s.input, minHeight: 72, resize: 'vertical' }} rows={3}
+                      placeholder="e.g. To train 100 young people in digital skills and help 40 of them find work within 12 months."
+                      value={form.fPurpose} onChange={e => set('fPurpose', e.target.value)} /></label>
+                  <label style={{ ...s.field, marginBottom: 14 }}><span style={s.label}>Objectives and targets (one per line)</span>
+                    <textarea style={{ ...s.input, minHeight: 90, resize: 'vertical' }} rows={4}
+                      placeholder={'Train 100 young people, target 100 people\nSet up a learning platform, target 1 platform live\nPlace trainees in jobs, target 40 placements'}
+                      value={form.fObjectives} onChange={e => set('fObjectives', e.target.value)} />
+                    <span style={{ fontSize: 13, color: 'var(--muted)' }}>Not sure? Copy them from your grant agreement or proposal. If you have none, PM Buddy uses your project goal and milestones.</span>
+                  </label>
+                  <p style={s.label}>Which style of report?</p>
+                  <div style={{ ...s.types, marginBottom: 12 }}>
+                    {FUNDER_STYLES.map(st => (
+                      <button key={st.id} type="button" onClick={() => set('funderStyle', st.id)}
+                        style={{ ...s.typeBtn, ...(form.funderStyle === st.id ? s.typeOn : null) }} aria-pressed={form.funderStyle === st.id}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: form.funderStyle === st.id ? 'var(--accent-text)' : 'var(--text)' }}>{st.label}</span>
+                        <span style={{ fontSize: 13, color: 'var(--muted)' }}>{st.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {form.funderStyle === 'own' && (
+                    <label style={{ ...s.field, marginBottom: 14 }}><span style={s.label}>Paste your funder's template or headings</span>
+                      <textarea style={{ ...s.input, minHeight: 110, resize: 'vertical' }} rows={5}
+                        placeholder={'1. Summary of progress\n2. Activities against the work plan\n3. Results and indicators\n4. Financial summary\n5. Challenges\n6. Next steps'}
+                        value={form.fTemplate} onChange={e => set('fTemplate', e.target.value)} /></label>
+                  )}
+                  <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
+                    PM Buddy writes the report from your project's goal, milestones and tasks. Numbers only come from what you type here, and anything missing becomes a [placeholder]. Always check it against your funder's requirements before sending.
+                  </p>
+                </div>
+              )}
+
               <div style={s.row}>
                 <label style={s.field}><span style={s.label}>Period starts</span>
                   <input id="rb-start" type="date" style={s.input} value={form.start} onChange={e => set('start', e.target.value)} /></label>
@@ -173,6 +225,7 @@ const s = {
   close: { background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', padding: 6, display: 'flex' },
   body: { padding: '22px 24px 26px' },
   label: { fontSize: 14, fontWeight: 700, color: 'var(--text-2)', marginBottom: 6, display: 'block' },
+  fund: { background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px', marginBottom: 20 },
   types: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 10, marginBottom: 20 },
   typeBtn: { display: 'grid', gap: 4, textAlign: 'left', padding: '12px 14px', background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit' },
   typeOn: { background: 'var(--accent-tint)', borderColor: 'var(--accent)' },
