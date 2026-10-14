@@ -37,7 +37,7 @@ PM Buddy turns existing project documents into a structured project (milestones,
 ## Domain, email and sign-in setup
 - **Domain:** `pmbuddy.app`, bought at Cloudflare. DNS: two `A` records (`@` and `www`) to `76.76.21.21`, set to "DNS only" (grey cloud). Added to the Vercel project `pmbuddy-v3`.
 - **Redirects** (`vercel.json`): `pmbuddy-v3.vercel.app` and `www.pmbuddy.app` redirect permanently to `pmbuddy.app`. `/api/` is excluded so cron jobs keep working.
-- **SEO:** `public/sitemap.xml`, `public/robots.txt`, canonical tags on the four public pages. Search Console property for `pmbuddy.app` is verified and the sitemap is submitted. `public/og-image.png` is still missing.
+- **SEO:** `public/sitemap.xml`, `public/robots.txt`, canonical tags on the four public pages. Search Console property for `pmbuddy.app` is verified and the sitemap is submitted. `public/og-image.png` (1200x630) is the link-preview picture used by the Open Graph and Twitter tags.
 - **Receiving email:** Cloudflare Email Routing forwards `hello@pmbuddy.app` to the owner's Gmail. Its MX and SPF records are locked by Cloudflare, so do not edit them.
 - **Sending email:** the domain is authenticated in Brevo (DKIM and DMARC). All code sends as `PM Buddy <hello@pmbuddy.app>`. Brevo's free plan allows 300 emails a day and cannot turn off link tracking, so first emails from the new domain may land in spam until reputation builds.
 - **Supabase auth:** Site URL `https://pmbuddy.app`; redirect URLs include `https://pmbuddy.app/**` and the old vercel.app address.
@@ -66,7 +66,7 @@ PM Buddy turns existing project documents into a structured project (milestones,
 - **Create a project:** a 3-step flow (`ProjectWizard.js`: name and what it is for, who and when, key steps). The AI suggests steps. The draft is kept per user in `localStorage` (`pmb_wizard_draft_v2_<id>`). Or import a document (`DocumentImport.js`), which also offers to invite people named in it.
 - **Add new information** (`UpdateProject.js`): paste a message or upload a file; the AI proposes changes; the user ticks what to apply; one history entry is written.
 - **Next steps card** (`NextSteps.js`): add tasks, invite people, create a report. Ticks itself.
-- **Task board** with shared **project notes** (`ProjectNotes.js`) and notes on each task card.
+- **Task board** with shared **project notes** (`ProjectNotes.js`) and notes on each task card. Each task can be given to **several people**: `AssigneePicker.js` (tick team members or type a name), shown as chips on the card, with an Assign / Change people button on the card. `assignees` (array) and `assignee` (names joined with ", ") are kept in step by `src/lib/assignees.js`, so reports, reminders and history keep reading the single `assignee` text.
 - **(i) pointers** (`InfoTip.js`, wording in `src/lib/glossary.js`) explain project terms in plain English.
 - **Reports** (`ReportBuilder.js`, facts and prompts in `src/lib/reportFacts.js`): team update, funder report, investor update, personal progress report.
 - **Documents:** every generated document opens in `DocView.js`, which lets the user ask the AI to change it (quick chips or free text), undo, edit by hand, and download real **.docx** and **.pdf** (`docFormats.js` builds both from the blocks in `docModel.js`; `docExport.js` triggers the download; `docStyle.js` holds the writing rules and refine prompt).
@@ -114,6 +114,5 @@ PM Buddy turns existing project documents into a structured project (milestones,
 - **Not started:** WhatsApp reminders (needs the Meta Business verification, an approved number and message templates; the owner does the setup).
 - The PM Buddy chat opens on its own with a suggestion when a project opens, and covers half the screen on a phone. Proposed: show only a badge on small screens.
 - Weekly summary covers projects people own, not ones they were invited to.
-- `public/og-image.png` is missing, so shared links have no preview picture.
 - `src/data/analysis.js` still lists "Gemini API" as a suggested tool for founders. That is advice content, not the app's own AI. Leave it unless the owner wants it changed.
 - Set a monthly spend limit in the Anthropic console (owner action).

@@ -13,6 +13,8 @@ import NextSteps from './NextSteps';
 import InfoTip from './InfoTip';
 import ProjectNotes from './ProjectNotes';
 import SuggestedTasks from './SuggestedTasks';
+import AssigneePicker from './AssigneePicker';
+import { taskAssignees, withAssignees, initials } from '../lib/assignees';
 import { DOC_LAYOUT_RULES } from '../lib/docStyle';
 import { downloadWord, downloadPDF } from '../lib/docExport';
 import { entriesForSave, appendEntries, verifyHistory } from '../lib/historyLog';
@@ -399,7 +401,7 @@ function InsightCard({ title, icon, savedValue, savedEdited, onSave, generatePro
 function TasksTab({ data, onSave }) {
   const tasks = data.tasks || [];
   const milestones = data.milestones || [];
-  const [newTask, setNewTask] = useState({ title: '', assignee: '', dueDate: '', milestoneId: '' });
+  const [newTask, setNewTask] = useState({ title: '', assignees: [], dueDate: '', milestoneId: '' });
   const [showAddTask, setShowAddTask] = useState(false);
   const [expandedTaskId, setExpandedTaskId] = useState(null);
   const [noteDraft, setNoteDraft] = useState('');
@@ -411,6 +413,7 @@ function TasksTab({ data, onSave }) {
   const [editMilestoneDraft, setEditMilestoneDraft] = useState({});
   const [activeView, setActiveView] = useState('kanban'); // 'kanban' | 'list'
   const [askTeam, setAskTeam] = useState(null); // { title, to } while the team question is showing
+  const [quickAssignId, setQuickAssignId] = useState(null); // task whose people are being changed on the card
 
   const COLUMNS = [
     { id: 'todo', label: 'To Do', color: 'var(--muted)', bg: GREY },
@@ -423,9 +426,9 @@ function TasksTab({ data, onSave }) {
 
   const addTask = () => {
     if (!newTask.title.trim()) return;
-    const task = { id: Date.now().toString(), title: newTask.title.trim(), assignee: newTask.assignee.trim(), dueDate: newTask.dueDate, status: 'todo', milestoneId: newTask.milestoneId, notes: '', isBlocker: false, createdAt: new Date().toISOString() };
-    onSave({ tasks: [...tasks, task] }, { type: 'task_added', label: 'Task added', detail: `${newTask.title.trim()}${newTask.assignee.trim() ? ' (assigned to ' + newTask.assignee.trim() + ')' : ''}` });
-    setNewTask({ title: '', assignee: '', dueDate: '', milestoneId: '' });
+    const task = withAssignees({ id: Date.now().toString(), title: newTask.title.trim(), dueDate: newTask.dueDate, status: 'todo', milestoneId: newTask.milestoneId, notes: '', isBlocker: false, createdAt: new Date().toISOString() }, newTask.assignees);
+    onSave({ tasks: [...tasks, task] }, { type: 'task_added', label: 'Task added', detail: `${newTask.title.trim()}${task.assignee ? ' (assigned to ' + task.assignee + ')' : ''}` });
+    setNewTask({ title: '', assignees: [], dueDate: '', milestoneId: '' });
     setShowAddTask(false);
   };
 
@@ -444,9 +447,18 @@ function TasksTab({ data, onSave }) {
   const deleteTask = (taskId) => onSave({ tasks: tasks.filter(t => t.id !== taskId) });
 
   const saveTaskEdit = () => {
-    const updated = tasks.map((t, idx) => idx === editingTaskIdx ? { ...t, ...editTaskDraft } : t);
+    const updated = tasks.map((t, idx) => {
+      if (idx !== editingTaskIdx) return t;
+      const merged = { ...t, ...editTaskDraft };
+      return withAssignees(merged, editTaskDraft.assignees || taskAssignees(t));
+    });
     onSave({ tasks: updated });
     setEditingTaskIdx(null);
+  };
+
+  // Change who a task is for straight from its card.
+  const setTaskPeople = (taskId, people) => {
+    onSave({ tasks: tasks.map(t => t.id === taskId ? withAssignees(t, people) : t) });
   };
 
   const addMilestone = () => {
@@ -528,17 +540,10 @@ function TasksTab({ data, onSave }) {
         <div style={{ ...s.card, marginBottom: 16 }}>
           <p style={{ fontSize: 14, fontWeight: 700, color: BL, marginBottom: 12 }}>New Task</p>
           <input style={s.input} placeholder="What needs to be done?" value={newTask.title} onChange={e => setNewTask(p => ({ ...p, title: e.target.value }))} onKeyDown={e => e.key === 'Enter' && addTask()} />
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {teamMembers.length > 0 ? (
-              <select style={{ ...s.input, flex: 1, marginBottom: 0 }} value={newTask.assignee} onChange={e => setNewTask(p => ({ ...p, assignee: e.target.value }))}>
-                <option value="">Who is doing this?</option>
-                {teamMembers.map(m => <option key={m} value={m}>{m}</option>)}
-              </select>
-            ) : (
-              <input style={{ ...s.input, flex: 1, marginBottom: 0 }} placeholder="Who is doing this?" value={newTask.assignee} onChange={e => setNewTask(p => ({ ...p, assignee: e.target.value }))} />
-            )}
-            <input style={{ ...s.input, flex: 1, marginBottom: 0 }} type="date" value={newTask.dueDate} onChange={e => setNewTask(p => ({ ...p, dueDate: e.target.value }))} />
+          <div style={{ marginBottom: 12 }}>
+            <AssigneePicker value={newTask.assignees} people={teamMembers} onChange={list => setNewTask(p => ({ ...p, assignees: list }))} />
           </div>
+          <input style={{ ...s.input, marginBottom: 0 }} type="date" value={newTask.dueDate} onChange={e => setNewTask(p => ({ ...p, dueDate: e.target.value }))} />
           {milestones.length > 0 && (
             <select style={{ ...s.input, marginTop: 10 }} value={newTask.milestoneId} onChange={e => setNewTask(p => ({ ...p, milestoneId: e.target.value }))}>
               <option value="">Link to a milestone (optional)</option>
@@ -595,7 +600,9 @@ function TasksTab({ data, onSave }) {
                     return (
                       <div key={task.id} style={{ background: WH, borderRadius: 10, padding: 10, marginBottom: 8, border: `1px solid ${BLUE}` }}>
                         <input style={{ ...s.input, marginBottom: 6, fontSize: 14 }} value={editTaskDraft.title || ''} onChange={e => setEditTaskDraft(p => ({ ...p, title: e.target.value }))} />
-                        <input style={{ ...s.input, marginBottom: 6, fontSize: 13 }} placeholder="Who is doing this?" value={editTaskDraft.assignee || ''} onChange={e => setEditTaskDraft(p => ({ ...p, assignee: e.target.value }))} />
+                        <div style={{ marginBottom: 8 }}>
+                          <AssigneePicker value={editTaskDraft.assignees || []} people={teamMembers} onChange={list => setEditTaskDraft(p => ({ ...p, assignees: list }))} />
+                        </div>
                         <input style={{ ...s.input, marginBottom: 8, fontSize: 13 }} type="date" value={editTaskDraft.dueDate || ''} onChange={e => setEditTaskDraft(p => ({ ...p, dueDate: e.target.value }))} />
                         <div style={{ display: 'flex', gap: 6 }}>
                           <button style={{ ...s.smallBtn, background: BLUE, color: '#FFFFFF', borderColor: BLUE, fontSize: 12 }} onClick={saveTaskEdit}>Save</button>
@@ -614,7 +621,21 @@ function TasksTab({ data, onSave }) {
                       )}
                       <p style={{ fontSize: 14, fontWeight: 600, color: BL, marginBottom: 4, lineHeight: 1.4 }}>{task.title}</p>
                       {task.milestoneId !== '' && task.milestoneId != null && milestones[Number(task.milestoneId)] && <p style={{ fontSize: 12, color: 'var(--accent-text)', marginBottom: 4 }}>Towards: {milestones[Number(task.milestoneId)].title}</p>}
-                      {task.assignee && <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}><Icon name="user" size={12} style={{ marginRight: 4 }} />{task.assignee}</p>}
+                      {taskAssignees(task).length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 4 }}>
+                          {taskAssignees(task).map(n => (
+                            <span key={n} title={n} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--text-2)', background: 'var(--surface-2)', borderRadius: 999, padding: '2px 8px 2px 3px' }}>
+                              <span aria-hidden="true" style={{ width: 18, height: 18, borderRadius: '50%', background: 'var(--accent-tint)', color: 'var(--accent-text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, lineHeight: 1 }}>{initials(n).slice(0, 1)}</span>{n}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {quickAssignId === task.id && (
+                        <div style={{ margin: '6px 0', padding: 8, background: 'var(--surface-2)', borderRadius: 8 }}>
+                          <AssigneePicker value={taskAssignees(task)} people={teamMembers} onChange={list => setTaskPeople(task.id, list)} />
+                          <button type="button" style={{ ...s.miniBtn, marginTop: 8 }} onClick={() => setQuickAssignId(null)}>Done</button>
+                        </div>
+                      )}
                       {task.dueDate && <p style={{ fontSize: 12, color: overdue ? 'var(--bad-text)' : 'var(--muted)', fontWeight: overdue ? 700 : 400 }}>{overdue ? <><Icon name="alert" size={12} style={{ marginRight: 4 }} />Overdue · </> : ''}{formatDate(task.dueDate)}</p>}
                       {task.notes && !isExpanded && <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, fontStyle: 'italic', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }}><Icon name="file" size={12} style={{ marginRight: 4 }} />{task.notes}</p>}
 
@@ -664,7 +685,8 @@ function TasksTab({ data, onSave }) {
                         {col.id !== 'done' && <button style={{ ...s.miniBtn, background: 'var(--ok-tint)', color: 'var(--ok-text)', borderColor: 'var(--ok-border)' }} onClick={() => moveTask(task.id, 'done')}>Done</button>}
                         </div>
                       <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
-                        <button style={s.miniBtn} onClick={() => { setEditingTaskIdx(taskIdx); setEditTaskDraft({ ...task }); }}>Edit</button>
+                        <button style={{ ...s.miniBtn, color: 'var(--accent-text)', borderColor: 'var(--accent-border)', background: 'var(--accent-tint)' }} onClick={() => setQuickAssignId(quickAssignId === task.id ? null : task.id)}><Icon name="user" size={12} style={{ marginRight: 4 }} />{taskAssignees(task).length ? 'Change people' : 'Assign'}</button>
+                        <button style={s.miniBtn} onClick={() => { setEditingTaskIdx(taskIdx); setEditTaskDraft({ ...task, assignees: taskAssignees(task) }); }}>Edit</button>
                         <button style={{ ...s.miniBtn, color: 'var(--accent-text)', borderColor: 'var(--accent-border)', background: 'var(--accent-tint)' }} onClick={() => { setExpandedTaskId(isExpanded ? null : task.id); setNoteDraft(task.notes || ''); setEditTaskDraft({ isBlocker: task.isBlocker || false }); }}>
                           {isExpanded ? 'Close' : <><Icon name="file" size={12} style={{ marginRight: 4 }} />Notes</>}
                         </button>
@@ -699,7 +721,7 @@ function TasksTab({ data, onSave }) {
                   <p style={{ fontSize: 13, color: overdue ? 'var(--bad-text)' : 'var(--muted)' }}>{task.assignee ? `${task.assignee} · ` : ''}{task.dueDate ? <>{overdue ? <><Icon name="alert" size={12} style={{ marginRight: 4 }} />Overdue · </> : null}{formatDate(task.dueDate)}</> : ''}</p>
                 </div>
                 <span style={{ fontSize: 12, fontWeight: 600, padding: '2px 8px', borderRadius: 100, background: status.bg, color: status.color, whiteSpace: 'nowrap' }}>{status.label}</span>
-                <button style={{ ...s.smallBtn, fontSize: 12 }} onClick={() => { setEditingTaskIdx(taskIdx); setEditTaskDraft({ ...task }); setActiveView('kanban'); }}>Edit</button>
+                <button style={{ ...s.smallBtn, fontSize: 12 }} onClick={() => { setEditingTaskIdx(taskIdx); setEditTaskDraft({ ...task, assignees: taskAssignees(task) }); setActiveView('kanban'); }}>Edit</button>
                 <button style={{ ...s.miniBtn, color: 'var(--bad-text)', borderColor: 'var(--bad-border)' }} onClick={() => deleteTask(task.id)}><Icon name="x" size={14} /></button>
               </div>
             );
