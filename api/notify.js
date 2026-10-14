@@ -51,6 +51,61 @@ async function sendEmail(emails, subject, html) {
   });
 }
 
+function escapeHtml(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Tells people they were given tasks. Recipients are checked against the project here, on the
+// server, so this cannot be used to send mail to addresses that are not on the project.
+async function handleTaskAssigned({ user, projectId, projectName, data, response }) {
+  const headers = { 'apikey': SUPABASE_SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` };
+  const id = encodeURIComponent(String(projectId));
+  const projRes = await fetch(`${SUPABASE_URL}/rest/v1/pm_projects?id=eq.${id}&select=user_id,owner_email,name`, { headers });
+  const projects = await projRes.json();
+  const project = Array.isArray(projects) ? projects[0] : null;
+  if (!project) return response.status(404).json({ error: 'Project not found' });
+
+  const memRes = await fetch(`${SUPABASE_URL}/rest/v1/project_members?project_id=eq.${id}&status=eq.accepted&select=email,user_id`, { headers });
+  const members = await memRes.json();
+  const list = Array.isArray(members) ? members : [];
+
+  const allowedCaller = project.user_id === user.id || list.some(m => m.user_id === user.id);
+  if (!allowedCaller) return response.status(403).json({ error: 'You are not on this project.' });
+
+  const valid = new Set();
+  if (project.owner_email) valid.add(String(project.owner_email).trim().toLowerCase());
+  list.forEach(m => { if (m.email) valid.add(String(m.email).trim().toLowerCase()); });
+  const me = String(user.email || '').trim().toLowerCase();
+
+  const assignments = Array.isArray(data && data.assignments) ? data.assignments.slice(0, 10) : [];
+  const by = String((data && data.assignedBy) || 'A team member').slice(0, 80);
+  let sent = 0;
+  let skipped = 0;
+  for (const a of assignments) {
+    const email = String((a && a.email) || '').trim().toLowerCase();
+    const tasks = Array.isArray(a && a.tasks) ? a.tasks.slice(0, 10) : [];
+    if (!email || email === me || !valid.has(email) || tasks.length === 0) { skipped++; continue; }
+    const lines = tasks.map(t => {
+      const due = t && t.dueDate ? ` (due ${escapeHtml(t.dueDate)})` : '';
+      return `&bull; ${escapeHtml(String((t && t.title) || '').slice(0, 160))}${due}`;
+    }).join('<br>');
+    const many = tasks.length > 1;
+    const subject = many
+      ? `${tasks.length} tasks assigned to you on ${String(projectName).slice(0, 80)}`
+      : `Task assigned to you: ${String((tasks[0] && tasks[0].title) || 'a task').slice(0, 80)}`;
+    const html = buildUpdateEmail(
+      escapeHtml(projectName),
+      many ? 'You have been given some tasks' : 'You have been given a task',
+      `${escapeHtml(by)} assigned ${many ? 'these tasks' : 'this task'} to you:<br><br>${lines}`,
+      'Open the task board'
+    );
+    await sendEmail([email], subject, html);
+    sent++;
+  }
+  return response.status(200).json({ success: true, sent, skipped });
+}
+
 function buildUpdateEmail(projectName, eventTitle, eventDetail, actionLabel) {
   return `<!DOCTYPE html>
 <html>
@@ -149,6 +204,8 @@ export default async function handler(request, response) {
     if (!user) return response.status(401).json({ error: 'Unauthorised. Please log in.' });
 
     if (!type || !projectId || !projectName) return response.status(400).json({ error: 'Missing fields' });
+
+    if (type === 'task_assigned') return await handleTaskAssigned({ user, projectId, projectName, data, response });
 
     const emails = await getProjectEmails(projectId, ownerEmail);
     if (!emails.length) return response.status(200).json({ skipped: true, reason: 'No emails to notify' });

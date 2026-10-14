@@ -32,6 +32,7 @@ export default function TeamTab({ project, currentUser, onSave }) {
   const [loading, setLoading] = useState(true);
   const [ownerEmail, setOwnerEmail] = useState('');
   const [email, setEmail] = useState('');
+  const [inviteName, setInviteName] = useState('');
   const [role, setRole] = useState('editor');
   const [inviting, setSending] = useState(false);
   const [inviteMsg, setInviteMsg] = useState('');
@@ -107,7 +108,19 @@ export default function TeamTab({ project, currentUser, onSave }) {
       const result = await res.json();
       if (res.ok) {
         setInviteMsg(`Invitation sent to ${email.trim()}`);
+        // Remember the name next to the address, so tasks can be given to them by name and they are emailed.
+        const nm = inviteName.trim();
+        const address = email.trim().toLowerCase();
+        const team = project.team || [];
+        if (nm && onSave && !team.some(m => String(m.email || '').toLowerCase() === address)) {
+          const same = team.findIndex(m => String(m.name || '').trim().toLowerCase() === nm.toLowerCase() && !m.email);
+          const next = same >= 0
+            ? team.map((m, i) => i === same ? { ...m, email: address } : m)
+            : [...team, { name: nm, role: ROLE_LABELS[role] || '', email: address }];
+          onSave({ team: next });
+        }
         setEmail('');
+        setInviteName('');
         fetchMembers();
       } else {
         setInviteError(`Email failed: ${result.error || 'Unknown error'}. Invite record saved — ask them to check PM Buddy.`);
@@ -183,6 +196,8 @@ export default function TeamTab({ project, currentUser, onSave }) {
       {isOwner && (
         <div style={s.inviteCard}>
           <p style={s.inviteTitle}>Invite Someone</p>
+          <label style={s.label}>Their name (so you can give them tasks by name)</label>
+          <input style={s.input} type="text" placeholder="e.g. Ada Obi" value={inviteName} onChange={e => setInviteName(e.target.value)} />
           <label style={s.label}>Email address</label>
           <input style={s.input} type="email" placeholder="colleague@example.com" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendInvite()} />
           <label style={s.label}>Role</label>

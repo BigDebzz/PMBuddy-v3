@@ -14,7 +14,7 @@ import InfoTip from './InfoTip';
 import ProjectNotes from './ProjectNotes';
 import SuggestedTasks from './SuggestedTasks';
 import AssigneePicker from './AssigneePicker';
-import { taskAssignees, withAssignees, initials } from '../lib/assignees';
+import { taskAssignees, withAssignees, initials, projectPeople, emailFor, newlyAssigned } from '../lib/assignees';
 import { DOC_LAYOUT_RULES } from '../lib/docStyle';
 import { downloadWord, downloadPDF } from '../lib/docExport';
 import { entriesForSave, appendEntries, verifyHistory } from '../lib/historyLog';
@@ -84,6 +84,8 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
   const [showUpdate, setShowUpdate] = useState(false);
   const [docsVersion, setDocsVersion] = useState(0);
   const saveTimerRef = useRef(null);
+  const dataRef = useRef(project); // the latest project, so a save can see what changed
+  dataRef.current = data;
   const pendingRef = useRef({}); // changes waiting to be written, so quick back-to-back changes are not lost
 
   useEffect(() => {
@@ -95,8 +97,37 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
       .then(({ data: members }) => setAcceptedMembers(members || []));
   }, [project.id]);
 
+  const me = project._currentUser;
+  const ownerIsMe = !!me && project.user_id === me.id;
+  const ownerPerson = ownerIsMe
+    ? { name: (me.user_metadata && me.user_metadata.first_name) || me.email, email: me.email }
+    : (project.owner_email ? { name: project.owner_email, email: project.owner_email } : null);
+  const people = useMemo(() => projectPeople(data, acceptedMembers, ownerPerson), [data, acceptedMembers, ownerPerson && ownerPerson.email]); // eslint-disable-line react-hooks/exhaustive-deps
+  const joinedEmails = useMemo(() => [...acceptedMembers.map(m => m.email), ownerPerson && ownerPerson.email].filter(Boolean).map(e => String(e).toLowerCase()), [acceptedMembers, ownerPerson && ownerPerson.email]); // eslint-disable-line react-hooks/exhaustive-deps
+  const peopleRef = useRef({ people: [], joinedEmails: [] });
+  peopleRef.current = { people, joinedEmails };
+  const canEmail = useCallback((name) => {
+    const e = emailFor(name, people, joinedEmails);
+    if (!e) return 'no';
+    return e === String((me && me.email) || '').toLowerCase() ? 'you' : 'email';
+  }, [people, joinedEmails, me]);
+
   const save = useCallback(async (updates, historyEntry) => {
     const by = project._currentUser?.user_metadata?.first_name || project._currentUser?.email || 'You';
+    // Anyone newly given a task who is on the project is told by email.
+    if (updates.tasks) {
+      const { people: ppl, joinedEmails: joined } = peopleRef.current;
+      const mine = String((project._currentUser && project._currentUser.email) || '').toLowerCase();
+      const byEmail = {};
+      newlyAssigned(dataRef.current.tasks, updates.tasks).forEach(({ task, names }) => {
+        names.forEach(n => {
+          const e = emailFor(n, ppl, joined);
+          if (e && e !== mine) (byEmail[e] = byEmail[e] || []).push({ title: task.title, dueDate: task.dueDate ? formatDate(task.dueDate) : '' });
+        });
+      });
+      const assignments = Object.keys(byEmail).map(email => ({ email, tasks: byEmail[email] }));
+      if (assignments.length) notify('task_assigned', project, { assignments, assignedBy: by });
+    }
     setData(prev => {
       const stamped = { ...updates };
       if (updates.tasks) stamped.tasks = stampCompletion(prev.tasks, updates.tasks, (p, i) => p.id === i.id);
@@ -132,7 +163,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
       }, 600);
       return updated;
     });
-  }, [project.id, onUpdate, project._currentUser]);
+  }, [project, onUpdate]);
 
   return (
     <div style={s.page}>
@@ -166,7 +197,7 @@ export default function ProjectWorkspace({ project, onBack, onUpdate }) {
         <div style={s.content}>
           {tab === 'Overview' && <NextSteps data={data} project={project} version={docsVersion} onTab={setTab} onReport={() => setShowReport(true)} />}
           {tab === 'Overview' && <OverviewTab data={data} onSave={save} acceptedMembers={acceptedMembers} />}
-          {tab === 'Tasks' && <TasksTab data={data} onSave={save} />}
+          {tab === 'Tasks' && <TasksTab data={data} onSave={save} people={people} canEmail={canEmail} />}
           {tab === 'Risks' && <RisksTab data={data} onSave={save} />}
           {tab === 'People' && <PeopleTab data={data} onSave={save} project={project} acceptedMembers={acceptedMembers} />}
           {tab === 'History' && <HistoryTab data={data} project={project} />}
@@ -398,7 +429,7 @@ function InsightCard({ title, icon, savedValue, savedEdited, onSave, generatePro
 
 // ─── TASKS TAB ────────────────────────────────────────────────
 
-function TasksTab({ data, onSave }) {
+function TasksTab({ data, onSave, people, canEmail }) {
   const tasks = data.tasks || [];
   const milestones = data.milestones || [];
   const [newTask, setNewTask] = useState({ title: '', assignees: [], dueDate: '', milestoneId: '' });
@@ -507,7 +538,7 @@ function TasksTab({ data, onSave }) {
     if (before && to && to !== before.status && NOTIFY_FLAG[to] && !before[NOTIFY_FLAG[to]]) setAskTeam({ title: editMilestoneDraft.title || before.title, to });
   };
 
-  const teamMembers = (data.team || []).map(m => m.name).filter(Boolean);
+  const teamMembers = (people || data.team || []).map(m => m.name).filter(Boolean);
   const noteAuthor = (data._currentUser && ((data._currentUser.user_metadata && data._currentUser.user_metadata.first_name) || data._currentUser.email)) || 'Someone';
 
   return (
@@ -541,7 +572,7 @@ function TasksTab({ data, onSave }) {
           <p style={{ fontSize: 14, fontWeight: 700, color: BL, marginBottom: 12 }}>New Task</p>
           <input style={s.input} placeholder="What needs to be done?" value={newTask.title} onChange={e => setNewTask(p => ({ ...p, title: e.target.value }))} onKeyDown={e => e.key === 'Enter' && addTask()} />
           <div style={{ marginBottom: 12 }}>
-            <AssigneePicker value={newTask.assignees} people={teamMembers} onChange={list => setNewTask(p => ({ ...p, assignees: list }))} />
+            <AssigneePicker value={newTask.assignees} people={teamMembers} canEmail={canEmail} onChange={list => setNewTask(p => ({ ...p, assignees: list }))} />
           </div>
           <input style={{ ...s.input, marginBottom: 0 }} type="date" value={newTask.dueDate} onChange={e => setNewTask(p => ({ ...p, dueDate: e.target.value }))} />
           {milestones.length > 0 && (
@@ -601,7 +632,7 @@ function TasksTab({ data, onSave }) {
                       <div key={task.id} style={{ background: WH, borderRadius: 10, padding: 10, marginBottom: 8, border: `1px solid ${BLUE}` }}>
                         <input style={{ ...s.input, marginBottom: 6, fontSize: 14 }} value={editTaskDraft.title || ''} onChange={e => setEditTaskDraft(p => ({ ...p, title: e.target.value }))} />
                         <div style={{ marginBottom: 8 }}>
-                          <AssigneePicker value={editTaskDraft.assignees || []} people={teamMembers} onChange={list => setEditTaskDraft(p => ({ ...p, assignees: list }))} />
+                          <AssigneePicker value={editTaskDraft.assignees || []} people={teamMembers} canEmail={canEmail} onChange={list => setEditTaskDraft(p => ({ ...p, assignees: list }))} />
                         </div>
                         <input style={{ ...s.input, marginBottom: 8, fontSize: 13 }} type="date" value={editTaskDraft.dueDate || ''} onChange={e => setEditTaskDraft(p => ({ ...p, dueDate: e.target.value }))} />
                         <div style={{ display: 'flex', gap: 6 }}>
@@ -632,7 +663,7 @@ function TasksTab({ data, onSave }) {
                       )}
                       {quickAssignId === task.id && (
                         <div style={{ margin: '6px 0', padding: 8, background: 'var(--surface-2)', borderRadius: 8 }}>
-                          <AssigneePicker value={taskAssignees(task)} people={teamMembers} onChange={list => setTaskPeople(task.id, list)} />
+                          <AssigneePicker value={taskAssignees(task)} people={teamMembers} canEmail={canEmail} onChange={list => setTaskPeople(task.id, list)} />
                           <button type="button" style={{ ...s.miniBtn, marginTop: 8 }} onClick={() => setQuickAssignId(null)}>Done</button>
                         </div>
                       )}

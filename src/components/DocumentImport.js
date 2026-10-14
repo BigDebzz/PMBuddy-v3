@@ -6,6 +6,7 @@ import AiLoading from './AiLoading';
 import Icon from './Icon';
 import { DOC_LAYOUT_RULES } from '../lib/docStyle';
 import { inviteToProject, looksLikeEmail } from '../lib/invite';
+import { taskAssignees } from '../lib/assignees';
 import { suggestTasks } from '../lib/suggestTasks';
 
 const EXTRACTION_PROMPT = `You are PM Buddy, a project management assistant. Read the attached document and extract the following project information. Return ONLY a valid JSON object with this exact structure:
@@ -269,10 +270,11 @@ export default function DocumentImport({ user, onComplete, onBack, onCancel }) {
           level: (r.impact || 'Medium').toLowerCase(),
           status: 'open',
         })),
-        team: (extractedData.stakeholders || []).map(s => ({
-          name: s.name || '',
-          role: s.role || '',
-        })),
+        team: (extractedData.stakeholders || []).map((s, i) => {
+          const typed = invites[i] && invites[i].email;
+          const address = looksLikeEmail(typed) ? typed : (looksLikeEmail(s.email) ? s.email : '');
+          return { name: s.name || '', role: s.role || '', ...(address ? { email: address.trim().toLowerCase() } : {}) };
+        }),
         milestones: (extractedData.milestones || []).map(m => ({
           title: m.title || '',
           date: m.due_date || '',
@@ -282,6 +284,7 @@ export default function DocumentImport({ user, onComplete, onBack, onCancel }) {
           id: `${Date.now()}${i}`,
           title: String(t.title).trim(),
           assignee: t.assignee || '',
+          assignees: taskAssignees({ assignee: t.assignee || '' }),
           dueDate: t.due_date || '',
           status: 'todo',
           milestoneId: '',
@@ -424,7 +427,7 @@ Write a concise project brief of about 450 words with these sections: Project Ov
             onChange={v => updateField('tasks', v)}
             fields={[
               { key: 'title', label: 'What needs doing', width: '50%' },
-              { key: 'assignee', label: 'Who', width: '25%' },
+              { key: 'assignee', label: 'Who (pick from the people below or type a name)', width: '25%', type: 'combo', options: (extractedData.stakeholders || []).map(p => p.name).filter(Boolean) },
               { key: 'due_date', label: 'Due Date', width: '25%', type: 'date' },
             ]}
           />
@@ -669,6 +672,11 @@ function ArrayEditor({ label, items, onChange, fields, simple = false }) {
                 <select key={f.key} value={item[f.key] || ''} onChange={e => updateItem(i, f.key, e.target.value)} style={{ width: f.width, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 15, background: 'var(--surface)', color: 'var(--text)' }}>
                   {f.options.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
+              ) : f.type === 'combo' ? (
+                <React.Fragment key={f.key}>
+                  <input list={`people-${f.key}`} value={item[f.key] || ''} onChange={e => updateItem(i, f.key, e.target.value)} placeholder={f.label} style={{ width: f.width, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 15, background: 'var(--surface)', color: 'var(--text)' }} />
+                  <datalist id={`people-${f.key}`}>{(f.options || []).map(o => <option key={o} value={o} />)}</datalist>
+                </React.Fragment>
               ) : f.textarea ? (
                 <textarea key={f.key} value={item[f.key] || ''} onChange={e => updateItem(i, f.key, e.target.value)} placeholder={f.label} rows={2} style={{ width: f.width, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-strong)', fontSize: 15, resize: 'vertical', background: 'var(--surface)', color: 'var(--text)' }} />
               ) : (

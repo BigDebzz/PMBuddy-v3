@@ -4,13 +4,19 @@ import { cleanNames, toggleName, initials } from '../lib/assignees';
 
 // Pick one or more people for a task. People on the team show as buttons you can tick;
 // anyone else can be typed in. Calls onChange with the full list every time.
-export default function AssigneePicker({ value, people, onChange, label = 'Who is doing this?' }) {
+export default function AssigneePicker({ value, people, onChange, canEmail, label = 'Who is doing this?' }) {
   const [typed, setTyped] = useState('');
   const selected = cleanNames(value);
   const team = cleanNames(people);
   const teamKeys = new Set(team.map(n => n.toLowerCase()));
   const others = selected.filter(n => !teamKeys.has(n.toLowerCase()));
   const isOn = (n) => selected.some(x => x.toLowerCase() === n.toLowerCase());
+
+  // Plain-English note about who gets an email when this is saved.
+  // canEmail(name) says 'email' (will be told), 'you' (the person using the app) or 'no' (not on the project).
+  const joined = canEmail ? selected.filter(n => canEmail(n) === 'email') : [];
+  const notJoined = canEmail ? selected.filter(n => canEmail(n) === 'no') : [];
+  const list = (a) => a.length <= 2 ? a.join(' and ') : `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}`;
 
   const addTyped = () => {
     if (!typed.trim()) return;
@@ -49,6 +55,12 @@ export default function AssigneePicker({ value, people, onChange, label = 'Who i
         {team.map(n => chip(n, isOn(n), false))}
         {others.map(n => chip(n, true, true))}
       </div>
+      {canEmail && (joined.length > 0 || notJoined.length > 0) && (
+        <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.5, color: 'var(--text-2)' }}>
+          {joined.length > 0 && <p style={{ margin: 0 }}><Icon name="bell" size={12} style={{ marginRight: 4 }} />{list(joined)} will get an email about this task.</p>}
+          {notJoined.length > 0 && <p style={{ margin: joined.length ? '4px 0 0' : 0, color: 'var(--muted)' }}>{list(notJoined)} {notJoined.length === 1 ? "isn't" : "aren't"} on the project yet, so no email will go out. Invite them from the People tab.</p>}
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
         <input
           value={typed}
