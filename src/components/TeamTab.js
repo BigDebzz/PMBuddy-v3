@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import Icon from './Icon';
+import { inviteToProject, looksLikeEmail } from '../lib/invite';
 
 const BLUE = 'var(--accent)';
 const BL = 'var(--text)';
@@ -229,11 +230,14 @@ export default function TeamTab({ project, currentUser, onSave }) {
         </div>
       )}
 
+      {isOwner && <NamedPeople project={project} members={members} currentUser={currentUser} onSave={onSave} refresh={fetchMembers} />}
+
       {isOwner && (
         <div style={s.inviteCard}>
           <p style={s.inviteTitle}>Invite Someone</p>
           <label style={s.label}>Their name (so you can give them tasks by name)</label>
-          <input style={s.input} type="text" placeholder="e.g. Ada Obi" value={inviteName} onChange={e => setInviteName(e.target.value)} />
+          <input style={s.input} type="text" list="named-people-names" placeholder="e.g. Ada Obi" value={inviteName} onChange={e => setInviteName(e.target.value)} />
+          <datalist id="named-people-names">{(project.team || []).filter(m => m.name && !m.email).map((m, i) => <option key={i} value={m.name} />)}</datalist>
           <label style={s.label}>Email address</label>
           <input style={s.input} type="email" placeholder="colleague@example.com" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendInvite()} />
           <label style={s.label}>Role</label>
@@ -257,6 +261,84 @@ export default function TeamTab({ project, currentUser, onSave }) {
 
       {onSave && <WhoDoesWhat project={project} onSave={onSave} />}
       {onSave && <CommunicationPlan project={project} onSave={onSave} />}
+    </div>
+  );
+}
+
+// People named in the project brief who have no email yet. Adding or choosing an email links the
+// name to a real account, so tasks given to that name reach the right person.
+function NamedPeople({ project, members, currentUser, onSave, refresh }) {
+  const team = project.team || [];
+  const [drafts, setDrafts] = useState({});
+  const [busy, setBusy] = useState(null);
+  const [note, setNote] = useState({});
+  const lower = (v) => String(v || '').trim().toLowerCase();
+  const rows = team.map((m, i) => ({ m, i })).filter(x => x.m && x.m.name && !x.m.email);
+  if (rows.length === 0) return null;
+
+  const linked = new Set(team.map(m => lower(m.email)).filter(Boolean));
+  const unlinked = (members || []).filter(m => !linked.has(lower(m.email)));
+
+  const link = (i, address) => {
+    onSave({ team: team.map((m, idx) => idx === i ? { ...m, email: lower(address) } : m) });
+  };
+
+  const invite = async (i) => {
+    const address = lower(drafts[i]);
+    if (!looksLikeEmail(address)) { setNote(p => ({ ...p, [i]: { bad: true, text: 'That email address does not look right.' } })); return; }
+    setBusy(i);
+    const already = (members || []).some(m => lower(m.email) === address);
+    let ok = already;
+    let why = '';
+    if (!already) {
+      const r = await inviteToProject({ project, email: address, role: 'editor', currentUser });
+      ok = r.ok;
+      why = r.error || '';
+    }
+    if (ok) {
+      link(i, address);
+      setNote(p => ({ ...p, [i]: { bad: false, text: already ? 'Linked to the person already invited.' : `Invitation sent to ${address}.` } }));
+      setDrafts(p => ({ ...p, [i]: '' }));
+      refresh();
+    } else {
+      setNote(p => ({ ...p, [i]: { bad: true, text: why || 'Could not invite this person.' } }));
+    }
+    setBusy(null);
+  };
+
+  return (
+    <div style={{ ...s.inviteCard, marginTop: 24 }}>
+      <p style={s.inviteTitle}>Named in your project</p>
+      <p style={{ ...s.sub, fontSize: 14, marginBottom: 14 }}>These people are in your plan but have no email yet. Add an email to invite them, or pick someone you already invited, so tasks given to their name reach the right person.</p>
+      {rows.map(({ m, i }) => (
+        <div key={i} style={{ padding: '12px 0', borderTop: '1px solid var(--border)' }}>
+          <p style={{ fontSize: 15, fontWeight: 600, color: BL, margin: '0 0 8px' }}>{m.name}{m.role ? <span style={{ fontWeight: 400, color: 'var(--muted)' }}> ({m.role})</span> : null}</p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <input
+              style={{ ...s.input, flex: '2 1 220px', marginBottom: 0 }}
+              type="email"
+              aria-label={`Email for ${m.name}`}
+              placeholder="Their email, to invite them"
+              value={drafts[i] || ''}
+              onChange={e => setDrafts(p => ({ ...p, [i]: e.target.value }))}
+              onKeyDown={e => e.key === 'Enter' && invite(i)}
+            />
+            <button type="button" style={{ ...s.sendBtn, padding: '10px 16px', opacity: busy === i || !(drafts[i] || '').trim() ? 0.6 : 1 }} disabled={busy === i || !(drafts[i] || '').trim()} onClick={() => invite(i)}>
+              {busy === i ? 'Sending...' : 'Invite'}
+            </button>
+          </div>
+          {unlinked.length > 0 && (
+            <div style={{ marginTop: 8 }}>
+              <label style={{ ...s.label, fontWeight: 600, marginBottom: 4 }}>Or this person is already invited as</label>
+              <select style={{ ...s.roleSelect, maxWidth: '100%' }} value="" aria-label={`Link ${m.name} to someone already invited`} onChange={e => { if (e.target.value) { link(i, e.target.value); setNote(p => ({ ...p, [i]: { bad: false, text: `Linked to ${e.target.value}.` } })); } }}>
+                <option value="">Choose an email</option>
+                {unlinked.map(u => <option key={u.id || u.email} value={u.email}>{u.email}{u.status === 'pending' ? ' (not accepted yet)' : ''}</option>)}
+              </select>
+            </div>
+          )}
+          {note[i] && <p role="status" style={{ margin: '8px 0 0', fontSize: 13, fontWeight: 600, color: note[i].bad ? 'var(--bad-text)' : 'var(--ok-text)' }}>{note[i].text}</p>}
+        </div>
+      ))}
     </div>
   );
 }
