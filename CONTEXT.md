@@ -76,6 +76,7 @@ PM Buddy turns existing project documents into a structured project (milestones,
 
 ## Emails
 - **Transactional (no unsubscribe needed):** invites, task and milestone reminders, "done" notifications, the task digest.
+- **"Joined" email** (`/api/notify` type `member_joined`): sent when someone accepts an invite. The server looks up the owner (even if `owner_email` was never saved on the project), the person who invited them and everyone already on the project from the database, and sends to all of them except the person who joined. The browser sends nothing it could get wrong.
 - **Invite reminder** (`api/remind-invites.js`, daily 09:30 UTC): an invite still pending 72 to 96 hours after it was sent gets one reminder. The 24-hour window plus a daily run means each invite is reminded once, so no column tracks it. Resend on the People tab shows "Sending..." then a green confirmation on the person's row.
 - **Marketing (must carry unsubscribe and a postal address):** the newsletter (`broadcast.js`), the two "start your first project" nudges, and the weekly summary. Helpers are in `api/_shared.js`.
 - **Unsubscribe:** the link goes to `/api/unsubscribe`, which checks an HMAC token and sets `marketing_opt_out` on the user. Settings has a matching "Weekly summary and tips" switch. All marketing jobs skip opted-out users.

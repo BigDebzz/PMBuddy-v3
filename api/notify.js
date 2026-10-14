@@ -106,6 +106,58 @@ async function handleTaskAssigned({ user, projectId, projectName, data, response
   return response.status(200).json({ success: true, sent, skipped });
 }
 
+async function authEmail(userId) {
+  if (!userId) return '';
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
+      headers: { 'apikey': SUPABASE_SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+    });
+    if (!res.ok) return '';
+    const u = await res.json();
+    return String(u.email || '').trim().toLowerCase();
+  } catch { return ''; }
+}
+
+// Tells the project that someone accepted an invitation. Everything is looked up here from the
+// database, not taken from the browser, so the person who invited them and the owner are always
+// told, whichever device the invitation was accepted on.
+async function handleMemberJoined({ user, projectId, response }) {
+  const headers = { 'apikey': SUPABASE_SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` };
+  const id = encodeURIComponent(String(projectId));
+  const me = String(user.email || '').trim().toLowerCase();
+
+  const projRes = await fetch(`${SUPABASE_URL}/rest/v1/pm_projects?id=eq.${id}&select=user_id,owner_email,name`, { headers });
+  const projects = await projRes.json();
+  const project = Array.isArray(projects) ? projects[0] : null;
+  if (!project) return response.status(404).json({ error: 'Project not found' });
+
+  const memRes = await fetch(`${SUPABASE_URL}/rest/v1/project_members?project_id=eq.${id}&status=eq.accepted&select=email,role,invited_by,user_id`, { headers });
+  const members = await memRes.json();
+  const list = Array.isArray(members) ? members : [];
+  const mine = list.find(m => m.user_id === user.id || String(m.email || '').trim().toLowerCase() === me);
+  if (!mine) return response.status(403).json({ error: 'You have not accepted an invitation to this project.' });
+
+  const to = new Set();
+  const add = (e) => { const v = String(e || '').trim().toLowerCase(); if (v && v !== me) to.add(v); };
+  add(project.owner_email);
+  add(await authEmail(project.user_id));   // the owner, even if owner_email was never saved on the project
+  add(await authEmail(mine.invited_by));   // whoever sent this invitation
+  list.forEach(m => add(m.email));         // everyone else already on the project
+
+  if (to.size === 0) return response.status(200).json({ skipped: true, reason: 'No one to tell' });
+
+  const name = (user.user_metadata && user.user_metadata.first_name) || user.email;
+  const role = mine.role || 'editor';
+  const html = buildUpdateEmail(
+    escapeHtml(project.name),
+    'New team member joined',
+    `${escapeHtml(name)} (${escapeHtml(user.email)}) has accepted their invitation and joined ${escapeHtml(project.name)} as ${escapeHtml(role)}.`,
+    'View Team'
+  );
+  await sendEmail([...to], `${String(name).slice(0, 60)} joined ${String(project.name).slice(0, 80)}`, html);
+  return response.status(200).json({ success: true, recipients: to.size });
+}
+
 function buildUpdateEmail(projectName, eventTitle, eventDetail, actionLabel) {
   return `<!DOCTYPE html>
 <html>
@@ -206,6 +258,7 @@ export default async function handler(request, response) {
     if (!type || !projectId || !projectName) return response.status(400).json({ error: 'Missing fields' });
 
     if (type === 'task_assigned') return await handleTaskAssigned({ user, projectId, projectName, data, response });
+    if (type === 'member_joined') return await handleMemberJoined({ user, projectId, response });
 
     const emails = await getProjectEmails(projectId, ownerEmail);
     if (!emails.length) return response.status(200).json({ skipped: true, reason: 'No emails to notify' });
