@@ -132,12 +132,21 @@ export default function TeamTab({ project, currentUser, onSave }) {
     setSending(false);
   };
 
-  // "Invitation pending" with how long ago it went out, and a hint that a reminder follows by itself.
-  const pendingNote = (m) => {
+  const fmtWhen = (iso) => {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} at ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
+  };
+
+  // The lines under a pending person: when it was first sent, when it was last resent and how often.
+  const pendingLines = (m) => {
+    const lines = [];
+    if (m.created_at) lines.push(`First sent ${fmtWhen(m.created_at)}.`);
+    const log = ((project.scope || {}).inviteSent || {})[String(m.email || '').toLowerCase()];
+    if (log && log.last) lines.push(`Last resent ${fmtWhen(log.last)}${log.count > 1 ? ` (${log.count} times)` : ''}.`);
     const days = m.created_at ? Math.floor((Date.now() - new Date(m.created_at).getTime()) / 86400000) : null;
-    if (days === null || isNaN(days)) return 'Invitation pending';
-    const ago = days <= 0 ? 'today' : days === 1 ? 'yesterday' : `${days} days ago`;
-    return `Invitation pending. Sent ${ago}.${days < 3 ? ' A reminder goes out by itself after 3 days.' : ''}`;
+    if (days !== null && !isNaN(days) && days < 3) lines.push('A reminder goes out by itself after 3 days.');
+    return lines;
   };
 
   const removeMember = async (id) => { await supabase.from('project_members').delete().eq('id', id); fetchMembers(); };
@@ -155,7 +164,13 @@ export default function TeamTab({ project, currentUser, onSave }) {
         body: JSON.stringify({ email: member.email, role: member.role, projectId: project.id, projectName: project.name, inviterName, token: member.token }),
       });
       if (res.ok) {
-        mark({ state: 'sent', text: `Invitation emailed to ${member.email} just now.` });
+        const now = new Date().toISOString();
+        mark({ state: 'sent', text: `Invitation emailed to ${member.email} on ${fmtWhen(now)}.` });
+        // Remember when and how often, so it is clear who has already been emailed.
+        const scope = project.scope || {};
+        const key = String(member.email || '').toLowerCase();
+        const prev = (scope.inviteSent || {})[key] || {};
+        if (onSave) onSave({ scope: { ...scope, inviteSent: { ...(scope.inviteSent || {}), [key]: { last: now, count: (prev.count || 0) + 1 } } } });
       } else {
         const r = await res.json().catch(() => ({}));
         mark({ state: 'error', text: `Could not resend: ${r.error || 'Unknown error'}. Please try again.` });
@@ -188,7 +203,8 @@ export default function TeamTab({ project, currentUser, onSave }) {
               <div style={s.avatar}>{m.email[0].toUpperCase()}</div>
               <div style={s.memberInfo}>
                 <p style={s.memberEmail}>{m.email}</p>
-                <p style={s.memberStatus}>{m.status === 'pending' ? pendingNote(m) : 'Active'}</p>
+                <p style={s.memberStatus}>{m.status === 'pending' ? 'Invitation pending' : 'Active'}</p>
+                {m.status === 'pending' && pendingLines(m).map((t, i) => <p key={i} style={{ ...s.memberStatus, fontSize: 13, margin: '2px 0 0' }}>{t}</p>)}
                 {resend[m.id] && resend[m.id].text && (
                   <p role="status" style={{ margin: '4px 0 0', fontSize: 13, fontWeight: 600, color: resend[m.id].state === 'error' ? 'var(--bad-text)' : 'var(--ok-text)' }}>
                     {resend[m.id].state === 'sent' && <Icon name="check" size={13} strokeWidth={3} style={{ marginRight: 5 }} />}{resend[m.id].text}

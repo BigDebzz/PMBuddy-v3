@@ -65,6 +65,11 @@ describe('what changed', () => {
     expect(n[0].detail).toContain('Book venue');
   });
 
+  test('remembering when an invitation was sent is not history', () => {
+    const next = { scope: { ...prev.scope, inviteSent: { 'ada@x.org': { last: '2026-10-14T09:00:00Z', count: 2 } } } };
+    expect(describeChanges(prev, next)).toHaveLength(0);
+  });
+
   test('suggested tasks waiting for review are not history', () => {
     const next = { scope: { ...prev.scope, suggestedTasks: [{ id: 's1', title: 'x' }] } };
     expect(describeChanges(prev, next)).toHaveLength(0);
