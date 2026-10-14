@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import AiLoading from './AiLoading';
 import Icon from './Icon';
 import useSpeech from '../lib/useSpeech';
+import { inviteToProject, looksLikeEmail } from '../lib/invite';
 
 const BLUE = 'var(--accent)';
 const BL = 'var(--text)';
@@ -57,7 +58,7 @@ export default function ProjectWizard({ user, onComplete, onBack, onImport }) {
 
   const blank = {
     name: '', description: '', industry: '',
-    teamType: 'solo', teamMembers: [{ name: '', role: '' }],
+    teamType: 'solo', teamMembers: [{ name: '', role: '', email: '' }],
     startDate: today, endDate: '', noEnd: false,
     doneSoFar: '', milestones: [],
   };
@@ -180,7 +181,7 @@ export default function ProjectWizard({ user, onComplete, onBack, onImport }) {
 
   // ── People and steps lists ──
   const updateMember = (i, field, val) => setData(p => ({ ...p, teamMembers: p.teamMembers.map((m, idx) => (idx === i ? { ...m, [field]: val } : m)) }));
-  const addMember = () => setData(p => ({ ...p, teamMembers: [...p.teamMembers, { name: '', role: '' }] }));
+  const addMember = () => setData(p => ({ ...p, teamMembers: [...p.teamMembers, { name: '', role: '', email: '' }] }));
   const removeMember = (i) => setData(p => ({ ...p, teamMembers: p.teamMembers.filter((_, idx) => idx !== i) }));
   const updateStep = (i, field, val) => setData(p => ({ ...p, milestones: p.milestones.map((m, idx) => (idx === i ? { ...m, [field]: val } : m)) }));
   const addStep = () => setData(p => ({ ...p, milestones: [...p.milestones, { title: '', date: '', status: 'pending' }] }));
@@ -192,6 +193,13 @@ export default function ProjectWizard({ user, onComplete, onBack, onImport }) {
     setSaveMsg('');
     if (!userId) { setSaveMsg('You need to be logged in to create a project.'); setSaving(false); return; }
     const withOthers = data.teamType === 'team';
+    // An email typed into the name box counts as an email. Anyone with an email is invited once the project exists.
+    const people = withOthers ? data.teamMembers.map(m => {
+      const typed = (m.name || '').trim();
+      const mail = (m.email || '').trim().toLowerCase();
+      const email = looksLikeEmail(mail) ? mail : (looksLikeEmail(typed) ? typed.toLowerCase() : '');
+      return { name: looksLikeEmail(typed) ? '' : typed, role: (m.role || '').trim(), email };
+    }).filter(p => p.name || p.email) : [];
     const { data: project, error } = await supabase.from('pm_projects').insert({
       user_id: userId,
       owner_email: typeof user === 'string' ? '' : (user?.email || ''),
@@ -205,7 +213,7 @@ export default function ProjectWizard({ user, onComplete, onBack, onImport }) {
       timeline: { start: data.startDate, end: data.noEnd ? '' : data.endDate },
       resources: { tools: [], budget: '' },
       risks: [],
-      team: withOthers ? data.teamMembers.filter(m => m.name.trim()).map(m => ({ name: m.name.trim(), role: m.role.trim() })) : [],
+      team: people.map(p => ({ name: p.name || p.email.split('@')[0], role: p.role, ...(p.email ? { email: p.email } : {}) })),
       milestones: data.milestones.filter(m => m.title.trim()).map(m => ({ title: m.title.trim(), date: m.date || '', status: m.status || 'pending' })),
       compliance: { industry: data.industry || 'General', flags: [] },
       planning: { communications: '', blockers: '' },
@@ -215,6 +223,18 @@ export default function ProjectWizard({ user, onComplete, onBack, onImport }) {
     if (error) { setSaveMsg(`Could not create the project: ${error.message}`); return; }
     if (!project) { setSaveMsg('Something went wrong. Please try again.'); return; }
     clearDraft();
+    const own = (typeof user === 'string' ? '' : (user && user.email) || '').toLowerCase();
+    const toInvite = people.filter(p => p.email && p.email !== own);
+    if (toInvite.length) {
+      let who = typeof user === 'string' ? null : user;
+      if (!who) { try { who = (await supabase.auth.getUser()).data.user; } catch (e) { who = null; } }
+      if (who) {
+        for (const p of toInvite) {
+          // Best effort: a failed email still leaves the invite in the People tab, where it can be resent.
+          await inviteToProject({ project, email: p.email, role: 'editor', currentUser: who });
+        }
+      }
+    }
     onComplete(project);
   };
 
@@ -291,11 +311,12 @@ export default function ProjectWizard({ user, onComplete, onBack, onImport }) {
               </div>
               {data.teamType === 'team' && (
                 <div style={{ marginBottom: 22 }}>
-                  <p style={s.hint}>Names are optional. You can also invite people by email from the People tab once the project is created.</p>
+                  <p style={s.hint}>Names are optional. Add an email and we will send that person an invitation as soon as the project is created. You can also invite people later from the People tab.</p>
                   {data.teamMembers.map((m, i) => (
                     <div key={i} style={s.memberRow}>
                       <input style={s.inputInline} aria-label={`Person ${i + 1} name`} placeholder="Name" value={m.name} onChange={e => updateMember(i, 'name', e.target.value)} />
                       <input style={s.inputInline} aria-label={`Person ${i + 1} role`} placeholder="Role (optional)" value={m.role} onChange={e => updateMember(i, 'role', e.target.value)} />
+                      <input style={{ ...s.inputInline, flex: '2 1 200px' }} type="email" aria-label={`Person ${i + 1} email`} placeholder="Email (to invite them)" value={m.email || ''} onChange={e => updateMember(i, 'email', e.target.value)} />
                       {data.teamMembers.length > 1 && <button type="button" style={s.removeBtn} onClick={() => removeMember(i)} aria-label={`Remove person ${i + 1}`}><Icon name="x" size={16} /></button>}
                     </div>
                   ))}
@@ -408,7 +429,7 @@ const s = {
   seg: { display: 'flex', gap: 10, marginBottom: 22, flexWrap: 'wrap' },
   segBtn: { flex: 1, minWidth: 140, padding: '14px 16px', border: '1.5px solid var(--border)', borderRadius: 14, fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', background: WH, color: 'var(--text-2)', minHeight: 52 },
   segOn: { background: 'var(--accent-tint)', color: 'var(--accent-text)', borderColor: 'var(--accent)' },
-  memberRow: { display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 },
+  memberRow: { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 },
   stepRow: { display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' },
   dateRow: { display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 12 },
   check: { display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, color: 'var(--text-2)', cursor: 'pointer', minHeight: 44 },
