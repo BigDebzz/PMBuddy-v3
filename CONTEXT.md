@@ -3,7 +3,7 @@
 Read this first in any new session, then the specific files you will change. Last updated October 2026.
 
 ## What it is
-PM Buddy turns existing project documents into a structured project (milestones, tasks, risks, team, reports) for people who are not project managers. Built by a non-developer working through Claude. Production: https://pmbuddy.app
+PM Buddy turns existing project documents into a structured project (milestones, tasks, risks, team, reports) for anyone with a project to deliver, including people with no project management experience. Built by a non-developer working through Claude. Production: https://pmbuddy.app
 
 ## Current focus
 - **Project management features are the priority.** The goal is more visitors who become users, and keeping the people who sign up.
@@ -37,7 +37,7 @@ PM Buddy turns existing project documents into a structured project (milestones,
 ## Domain, email and sign-in setup
 - **Domain:** `pmbuddy.app`, bought at Cloudflare. DNS: two `A` records (`@` and `www`) to `76.76.21.21`, set to "DNS only" (grey cloud). Added to the Vercel project `pmbuddy-v3`.
 - **Redirects** (`vercel.json`): `pmbuddy-v3.vercel.app` and `www.pmbuddy.app` redirect permanently to `pmbuddy.app`. `/api/` is excluded so cron jobs keep working.
-- **SEO:** `public/sitemap.xml`, `public/robots.txt`, canonical tags on the four public pages. Search Console property for `pmbuddy.app` is verified and the sitemap is submitted. `public/og-image.png` (1200x630) is the link-preview picture used by the Open Graph and Twitter tags.
+- **SEO:** `public/sitemap.xml`, `public/robots.txt`, canonical tags on the four public pages. Search Console property for `pmbuddy.app` is verified and the sitemap is submitted. `public/og-image-2.png` (1200x630, shows the tagline; give a new file name whenever it changes so apps fetch it fresh) is the link-preview picture used by the Open Graph and Twitter tags.
 - **Receiving email:** Cloudflare Email Routing forwards `hello@pmbuddy.app` to the owner's Gmail. Its MX and SPF records are locked by Cloudflare, so do not edit them.
 - **Sending email:** the domain is authenticated in Brevo (DKIM and DMARC). All code sends as `PM Buddy <hello@pmbuddy.app>`. Brevo's free plan allows 300 emails a day and cannot turn off link tracking, so first emails from the new domain may land in spam until reputation builds.
 - **Supabase auth:** Site URL `https://pmbuddy.app`; redirect URLs include `https://pmbuddy.app/**` and the old vercel.app address.

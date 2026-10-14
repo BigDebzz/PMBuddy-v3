@@ -1,6 +1,6 @@
 # PM Buddy
 
-**Project management for people who aren't project managers.**
+**Project management for anyone with a project to deliver.**
 
 PM Buddy is a web app that takes your existing project documents — a plan, a proposal, a brief, even a WhatsApp message — and turns them into a structured project with milestones, a task board, risks, a communication plan, and downloadable reports. No PM training required.
 
@@ -201,4 +201,4 @@ PM Buddy is built by a non-developer working with Claude as the developer. Work 
 
 ---
 
-*PM Buddy. Built for everyone running a project without a PM degree.*
+*PM Buddy. Project management for anyone with a project to deliver.*

@@ -3,7 +3,7 @@
 Decisions made once. `DESIGN.md` turns these into rules.
 
 ## Personality
-Warm, confident and clear. A capable guide for people who are not project managers. Premium, not corporate. Never loud for the sake of it, never timid.
+Warm, confident and clear. A capable guide for anyone with a project to deliver, including people new to project management. Premium, not corporate. Never loud for the sake of it, never timid.
 
 ## Colour
 - A warm neutral base: page `#F7F5F2`, cards white, ink `#1E1919`. In dark: `#171412`, `#221E1B`, `#F6F2EC`.
