@@ -76,6 +76,7 @@ PM Buddy turns existing project documents into a structured project (milestones,
 
 ## Emails
 - **Transactional (no unsubscribe needed):** invites, task and milestone reminders, "done" notifications, the task digest.
+- **Invite reminder** (`api/remind-invites.js`, daily 09:30 UTC): an invite still pending 72 to 96 hours after it was sent gets one reminder. The 24-hour window plus a daily run means each invite is reminded once, so no column tracks it. Resend on the People tab shows "Sending..." then a green confirmation on the person's row.
 - **Marketing (must carry unsubscribe and a postal address):** the newsletter (`broadcast.js`), the two "start your first project" nudges, and the weekly summary. Helpers are in `api/_shared.js`.
 - **Unsubscribe:** the link goes to `/api/unsubscribe`, which checks an HMAC token and sets `marketing_opt_out` on the user. Settings has a matching "Weekly summary and tips" switch. All marketing jobs skip opted-out users.
 - **`POSTAL_ADDRESS` in `api/_shared.js` is empty.** Until the owner provides a real postal address, the weekly summary will not send, and marketing emails go out without an address. Fill it in before relying on these emails.

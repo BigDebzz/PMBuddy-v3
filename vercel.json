@@ -20,7 +20,8 @@
     "api/check-inactive-users.js": { "maxDuration": 30 },
     "api/check-inactive-users-weekly.js": { "maxDuration": 60 },
     "api/weekly-summary.js": { "maxDuration": 60 },
-    "api/fortnightly-report.js": { "maxDuration": 60 }
+    "api/fortnightly-report.js": { "maxDuration": 60 },
+    "api/remind-invites.js": { "maxDuration": 60 }
   },
   "crons": [
     {
@@ -42,6 +43,10 @@
     {
       "path": "/api/fortnightly-report",
       "schedule": "30 7 * * 1"
+    },
+    {
+      "path": "/api/remind-invites",
+      "schedule": "30 9 * * *"
     }
   ]
 }

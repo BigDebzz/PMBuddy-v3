@@ -33,6 +33,7 @@ export default function TeamTab({ project, currentUser, onSave }) {
   const [ownerEmail, setOwnerEmail] = useState('');
   const [email, setEmail] = useState('');
   const [inviteName, setInviteName] = useState('');
+  const [resend, setResend] = useState({}); // member id -> { state: 'sending' | 'sent' | 'error', text }
   const [role, setRole] = useState('editor');
   const [inviting, setSending] = useState(false);
   const [inviteMsg, setInviteMsg] = useState('');
@@ -131,10 +132,20 @@ export default function TeamTab({ project, currentUser, onSave }) {
     setSending(false);
   };
 
+  // "Invitation pending" with how long ago it went out, and a hint that a reminder follows by itself.
+  const pendingNote = (m) => {
+    const days = m.created_at ? Math.floor((Date.now() - new Date(m.created_at).getTime()) / 86400000) : null;
+    if (days === null || isNaN(days)) return 'Invitation pending';
+    const ago = days <= 0 ? 'today' : days === 1 ? 'yesterday' : `${days} days ago`;
+    return `Invitation pending. Sent ${ago}.${days < 3 ? ' A reminder goes out by itself after 3 days.' : ''}`;
+  };
+
   const removeMember = async (id) => { await supabase.from('project_members').delete().eq('id', id); fetchMembers(); };
   const changeRole = async (id, newRole) => { await supabase.from('project_members').update({ role: newRole }).eq('id', id); fetchMembers(); };
 
   const resendInvite = async (member) => {
+    const mark = (v) => setResend(p => ({ ...p, [member.id]: v }));
+    mark({ state: 'sending', text: '' });
     const inviterName = currentUser?.user_metadata?.first_name || currentUser?.email?.split('@')[0] || 'A team member';
     try {
       const authHeader = await getAuthHeader();
@@ -144,13 +155,13 @@ export default function TeamTab({ project, currentUser, onSave }) {
         body: JSON.stringify({ email: member.email, role: member.role, projectId: project.id, projectName: project.name, inviterName, token: member.token }),
       });
       if (res.ok) {
-        setInviteMsg(`Invite resent to ${member.email}`);
+        mark({ state: 'sent', text: `Invitation emailed to ${member.email} just now.` });
       } else {
-        const r = await res.json();
-        setInviteError(`Could not resend: ${r.error || 'Unknown error'}`);
+        const r = await res.json().catch(() => ({}));
+        mark({ state: 'error', text: `Could not resend: ${r.error || 'Unknown error'}. Please try again.` });
       }
     } catch (err) {
-      setInviteError(`Network error: ${err.message}`);
+      mark({ state: 'error', text: `Network error: ${err.message}. Please try again.` });
     }
   };
 
@@ -177,7 +188,12 @@ export default function TeamTab({ project, currentUser, onSave }) {
               <div style={s.avatar}>{m.email[0].toUpperCase()}</div>
               <div style={s.memberInfo}>
                 <p style={s.memberEmail}>{m.email}</p>
-                <p style={s.memberStatus}>{m.status === 'pending' ? 'Invitation pending' : 'Active'}</p>
+                <p style={s.memberStatus}>{m.status === 'pending' ? pendingNote(m) : 'Active'}</p>
+                {resend[m.id] && resend[m.id].text && (
+                  <p role="status" style={{ margin: '4px 0 0', fontSize: 13, fontWeight: 600, color: resend[m.id].state === 'error' ? 'var(--bad-text)' : 'var(--ok-text)' }}>
+                    {resend[m.id].state === 'sent' && <Icon name="check" size={13} strokeWidth={3} style={{ marginRight: 5 }} />}{resend[m.id].text}
+                  </p>
+                )}
               </div>
               <div style={s.memberActions}>
                 {isOwner ? (
@@ -185,7 +201,11 @@ export default function TeamTab({ project, currentUser, onSave }) {
                     {ROLES.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
                   </select>
                 ) : <span style={s.roleBadge}>{ROLE_LABELS[m.role]}</span>}
-                {isOwner && m.status === 'pending' && <button style={s.smBtn} onClick={() => resendInvite(m)}>Resend</button>}
+                {isOwner && m.status === 'pending' && (
+                  <button style={{ ...s.smBtn, opacity: resend[m.id] && resend[m.id].state === 'sending' ? 0.6 : 1 }} disabled={!!resend[m.id] && resend[m.id].state === 'sending'} onClick={() => resendInvite(m)}>
+                    {resend[m.id] && resend[m.id].state === 'sending' ? 'Sending...' : resend[m.id] && resend[m.id].state === 'sent' ? 'Sent. Resend again' : 'Resend'}
+                  </button>
+                )}
                 {isOwner && <button style={{ ...s.smBtn, color: 'var(--bad-text)', borderColor: 'var(--bad-border)' }} onClick={() => removeMember(m.id)}>Remove</button>}
               </div>
             </div>
