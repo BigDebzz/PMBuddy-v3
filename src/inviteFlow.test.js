@@ -19,7 +19,7 @@ const apiCalls = [];
 const fakeFetch = async (url, opts) => {
   const body = opts && opts.body ? JSON.parse(opts.body) : {};
   apiCalls.push([url, body.action || body.type, body.confirmDifferentEmail]);
-  if (url === '/api/invite-join') {
+  if (url === '/api/invite') {
     if (body.action === 'info') return { ok: true, status: 200, json: async () => ({ projectName: 'Youth training', description: 'Train 100', role: 'editor', email: 'ada@x.org' }) };
     if (body.action === 'accept') return { ok: true, status: 200, json: async () => ({ success: true, project: { id: 'p1', name: 'Youth training', owner_email: 'o@x.org' } }) };
   }

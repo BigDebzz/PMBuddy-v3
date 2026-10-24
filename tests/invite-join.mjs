@@ -5,9 +5,10 @@ import assert from 'assert';
 // Run with:  node tests/invite-join.mjs
 import { fileURLToPath } from 'url';
 const here = path.dirname(fileURLToPath(import.meta.url));
-const src = fs.readFileSync(path.join(here, '..', 'api', 'invite-join.js'), 'utf8');
-const copy = path.join(here, 'invite-join.under-test.mjs');
-fs.writeFileSync(copy, src);
+const helperCopy = path.join(here, '_invite-join.under-test.mjs');
+fs.writeFileSync(helperCopy, fs.readFileSync(path.join(here, '..', 'api', '_invite-join.js'), 'utf8'));
+const copy = path.join(here, 'invite.under-test.mjs');
+fs.writeFileSync(copy, fs.readFileSync(path.join(here, '..', 'api', 'invite.js'), 'utf8').replace("'./_invite-join.js'", "'./_invite-join.under-test.mjs'"));
 
 process.env.SUPABASE_URL = 'https://db.test';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
@@ -111,11 +112,15 @@ await t('declining removes only your own invitation', async () => {
   assert.equal((await call({ action: 'decline', token: 'tokenChi99999' }, 'jwt-chi')).status, 200);
   assert.equal(db.members.some(m => m.id === 9), false);
 });
-await t('unknown actions and wrong methods are refused', async () => {
+await t('the normal invite email still needs a login, and unknown actions fall through to it', async () => {
+  assert.equal((await call({ email: 'x@x.org', projectId: 'p1', token: 'tokenNew12345' })).status, 401);
   assert.equal((await call({ action: 'delete-everything', token: 'tokenAda12345' }, 'jwt-ada')).status, 400);
+});
+await t('wrong methods are refused', async () => {
   let out = {}; await handler({ method: 'GET', headers: {} }, { status(s) { out.s = s; return this; }, json() { return this; } });
   assert.equal(out.s, 405);
 });
 console.log(results.join('\n'));
 console.log(results.some(r => r.startsWith('FAIL')) ? '\nSOME FAILED' : '\nALL PASSED');
 fs.unlinkSync(copy);
+fs.unlinkSync(helperCopy);

@@ -1,6 +1,7 @@
 // Lets a person join a project from an invitation, without the app having to read the invitations table directly.
+// It is called from api/invite.js, so it does not count as a separate server function.
 //
-// POST { action: 'info', token }                       no login needed: who invited, which project, which role
+// POST /api/invite { action: 'info', token }                       no login needed: who invited, which project, which role
 // POST { action: 'accept', token, confirmDifferentEmail? }   needs login: joins the project and returns it
 // POST { action: 'decline', token }                    needs login: removes the invitation
 // POST { action: 'mine' }                              needs login: pending invitations sent to this person's email
@@ -9,8 +10,6 @@
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-export const config = { api: { bodyParser: true } };
 
 const headers = () => ({ apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` });
 const norm = (e) => String(e || '').trim().toLowerCase();
@@ -41,11 +40,10 @@ async function projectById(id) {
   return Array.isArray(list) && list[0] ? list[0] : null;
 }
 
-export default async function handler(request, response) {
-  if (request.method !== 'POST') return response.status(405).json({ error: 'Method not allowed' });
+export const JOIN_ACTIONS = ['info', 'accept', 'decline', 'mine'];
+
+export async function handleJoin(request, response, body) {
   try {
-    let body = request.body;
-    if (typeof body === 'string') body = JSON.parse(body);
     const { action, token } = body || {};
 
     if (action === 'info') {

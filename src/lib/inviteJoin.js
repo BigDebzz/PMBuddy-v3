@@ -23,7 +23,7 @@ export async function inviteApi(action, payload = {}) {
   try {
     const { data } = await supabase.auth.getSession();
     const access = data && data.session && data.session.access_token;
-    const res = await fetch('/api/invite-join', {
+    const res = await fetch('/api/invite', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(access ? { Authorization: `Bearer ${access}` } : {}) },
       body: JSON.stringify({ action, ...payload }),
