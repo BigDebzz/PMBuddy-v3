@@ -214,6 +214,56 @@ export default function App() {
     prevScreen.current = screen;
   }, [screen, activeProject]);
 
+  // ---- the browser's Back button: every screen is a step in the browser history, so Back goes to the screen before ----
+  const popping = useRef(false);
+  const lastScreen = useRef(null);
+  const screenRef = useRef(screen);
+  const projectRef = useRef(activeProject);
+  useEffect(() => { screenRef.current = screen; projectRef.current = activeProject; }, [screen, activeProject]);
+
+  useEffect(() => {
+    const was = lastScreen.current;
+    lastScreen.current = screen;
+    if (popping.current) { popping.current = false; return; }
+    const pid = screen === S.PROJECT_OPEN && activeProject ? activeProject.id : null;
+    const st = window.history.state && window.history.state.pmb;
+    if (st && st.screen === screen && st.pid === pid) return;
+    const next = { pmb: { screen, pid, depth: st ? st.depth + 1 : 0 } };
+    // the first screen of a visit takes over the current entry; screens like log in, the invite and the wizards
+    // are replaced by the screen that follows them, so Back never returns to a finished form
+    const replaceIt = !st || ((was === S.AUTH || was === S.INVITE || was === S.PROJECT_NEW || was === S.CAMPAIGN_NEW) && (screen === S.DASHBOARD || screen === S.PROJECT_OPEN));
+    if (replaceIt) window.history.replaceState({ pmb: { ...next.pmb, depth: st ? st.depth : 0 } }, '');
+    else window.history.pushState(next, '');
+  }, [screen, activeProject]);
+
+  useEffect(() => {
+    const onPop = async (e) => {
+      const st = e.state && e.state.pmb;
+      if (!st) return;
+      let target = st.screen;
+      if (target === S.INVITE) target = S.DASHBOARD;
+      if (target === S.PROJECT_OPEN) {
+        const open = projectRef.current;
+        if (!open || String(open.id) !== String(st.pid)) {
+          const { data: row } = await supabase.from('pm_projects').select('*').eq('id', st.pid).single();
+          if (!row) target = S.DASHBOARD;
+          else setActiveProject({ ...row, _currentUser: user });
+        }
+      }
+      if (target !== screenRef.current) popping.current = true;
+      setScreen(target);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The in-app back buttons do what the browser's Back does, when there is a screen to go back to
+  const goBack = (fallback) => {
+    const st = window.history.state && window.history.state.pmb;
+    if (st && st.depth > 0) window.history.back();
+    else setScreen(fallback || S.DASHBOARD);
+  };
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('invite');
@@ -413,10 +463,10 @@ export default function App() {
       {screen === S.RESULTS && analysis && <ResultsDashboard mode={mode} answers={answers} analysis={analysis} onReset={reset} onEdit={() => setScreen(S.QA)} onSave={saveValidation} user={user} projectId={projectId} />}
       {screen === S.AUTH && <AuthScreen onAuth={handleAuthSuccess} onBack={() => setScreen(S.LAND)} prefillEmail={(inviteData && inviteData.email) || ''} inviteToken={(inviteData && inviteData.token) || ''} inviteProject={(inviteData && inviteData.pm_projects && inviteData.pm_projects.name) || ''} />}
       {screen === S.DASHBOARD && user && <Dashboard user={user} onOpenValidation={openValidation} onOpenProject={openProject} onNewValidation={() => setShowValidationModal(true)} onNewProject={() => setScreen(S.PROJECT_NEW)} onNewCampaign={() => setScreen(S.CAMPAIGN_NEW)} onNewQuickDoc={() => setScreen(S.QUICK_DOC)} onLogout={logout} />}
-      {screen === S.CAMPAIGN_NEW && user && <CampaignWizard user={user} onComplete={(p) => { setActiveProject({ ...p, _currentUser: user }); setScreen(S.PROJECT_OPEN); }} onBack={() => setScreen(S.DASHBOARD)} />}
-      {screen === S.PROJECT_NEW && user && <ProjectWizard user={user} onComplete={(p) => { setActiveProject({ ...p, _currentUser: user }); setScreen(S.PROJECT_OPEN); }} onBack={() => setScreen(S.DASHBOARD)} onImport={() => { try { sessionStorage.setItem('pmb-open-import', '1'); } catch (e) { /* ignore */ } setScreen(S.DASHBOARD); }} />}
-      {screen === S.QUICK_DOC && user && <QuickDoc user={user} onBack={() => setScreen(S.DASHBOARD)} onStartProject={() => setScreen(S.PROJECT_NEW)} onStartCampaign={() => setScreen(S.CAMPAIGN_NEW)} />}
-      {screen === S.PROJECT_OPEN && activeProject && activeProject.id && <ProjectWorkspace project={activeProject} onBack={() => setScreen(S.DASHBOARD)} onUpdate={(p) => setActiveProject({ ...p, _currentUser: user })} />}
+      {screen === S.CAMPAIGN_NEW && user && <CampaignWizard user={user} onComplete={(p) => { setActiveProject({ ...p, _currentUser: user }); setScreen(S.PROJECT_OPEN); }} onBack={() => goBack()} />}
+      {screen === S.PROJECT_NEW && user && <ProjectWizard user={user} onComplete={(p) => { setActiveProject({ ...p, _currentUser: user }); setScreen(S.PROJECT_OPEN); }} onBack={() => goBack()} onImport={() => { try { sessionStorage.setItem('pmb-open-import', '1'); } catch (e) { /* ignore */ } setScreen(S.DASHBOARD); }} />}
+      {screen === S.QUICK_DOC && user && <QuickDoc user={user} onBack={() => goBack()} onStartProject={() => setScreen(S.PROJECT_NEW)} onStartCampaign={() => setScreen(S.CAMPAIGN_NEW)} />}
+      {screen === S.PROJECT_OPEN && activeProject && activeProject.id && <ProjectWorkspace project={activeProject} onBack={() => goBack()} onUpdate={(p) => setActiveProject({ ...p, _currentUser: user })} />}
       {user && <FeedbackButton raised={screen === S.PROJECT_OPEN} />}
       <CookieBanner />
       {showValidationModal && <ValidationModeModal onSelect={selectMode} onClose={() => setShowValidationModal(false)} />}
