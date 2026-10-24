@@ -134,6 +134,8 @@ export default function PMBuddyAssistant({ project, context }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [hasPopped, setHasPopped] = useState(false);
+  const [hint, setHint] = useState(false);
+  const hintKey = 'pmb-assistant-hint-' + projectId;
   const [unread, setUnread] = useState(0);
   const [userId, setUserId] = useState(null);
   const [sessionToken, setSessionToken] = useState(null);
@@ -174,7 +176,7 @@ export default function PMBuddyAssistant({ project, context }) {
     load();
   }, [projectId, userId]);
 
-  // Auto-pop after 10 seconds
+  // After 10 seconds, prepare a friendly first message and show a small hint. The chat never opens by itself.
   useEffect(function() {
     if (hasPopped) return;
     var timer = setTimeout(async function() {
@@ -190,11 +192,11 @@ export default function PMBuddyAssistant({ project, context }) {
           if (userId) saveToSupabase(projectId, userId, opening[0]);
         }
       }
-      setOpen(true);
       setHasPopped(true);
+      try { if (!localStorage.getItem(hintKey)) setHint(true); } catch (e) { setHint(true); }
     }, 10000);
     return function() { clearTimeout(timer); };
-  }, [project, projectId, hasPopped, userId]);
+  }, [project, projectId, hasPopped, userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(function() {
     if (open && messagesEndRef.current) {
@@ -202,7 +204,8 @@ export default function PMBuddyAssistant({ project, context }) {
     }
   }, [messages, open]);
 
-  var handleOpen = function() { setOpen(true); setUnread(0); setTimeout(function() { if (inputRef.current) inputRef.current.focus(); }, 100); };
+  var dismissHint = function() { setHint(false); try { localStorage.setItem(hintKey, '1'); } catch (e) { /* ignore */ } };
+  var handleOpen = function() { dismissHint(); setOpen(true); setUnread(0); setTimeout(function() { if (inputRef.current) inputRef.current.focus(); }, 100); };
   var handleClose = function() { setOpen(false); };
 
   var sendMessage = async function(text) {
@@ -283,7 +286,25 @@ export default function PMBuddyAssistant({ project, context }) {
   };
 
   if (!open) {
+    var hintBubble = hint && React.createElement('div', {
+      role: 'status',
+      style: {
+        position: 'fixed', bottom: 76, right: 16, zIndex: 9999, maxWidth: 'min(240px, calc(100vw - 32px))',
+        background: WH, border: '1px solid var(--border-strong)', borderRadius: 14, padding: '10px 12px 10px 14px',
+        boxShadow: 'var(--shadow)', display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'inherit',
+      }
+    },
+      React.createElement('button', {
+        type: 'button', onClick: handleOpen,
+        style: { background: 'none', border: 'none', padding: 0, margin: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, color: 'var(--text)', lineHeight: 1.4 }
+      }, 'Need a hand? Ask PM Buddy'),
+      React.createElement('button', {
+        type: 'button', onClick: dismissHint, 'aria-label': 'Hide this hint',
+        style: { background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 18, lineHeight: 1, padding: '2px 4px', flexShrink: 0 }
+      }, '\u00d7')
+    );
     return (
+      React.createElement(React.Fragment, null, hintBubble,
       React.createElement('button', {
         onClick: handleOpen,
         title: 'PM Buddy Assistant',
@@ -305,7 +326,7 @@ export default function PMBuddyAssistant({ project, context }) {
             border: '2px solid var(--surface)',
           }
         }, unread)
-      )
+      ))
     );
   }
 

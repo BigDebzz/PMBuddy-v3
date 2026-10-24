@@ -12,6 +12,7 @@ import QuickDoc from './components/QuickDoc';
 import FeedbackButton from './components/FeedbackButton';
 import CookieBanner from './components/CookieBanner';
 import { initConsent } from './lib/consent';
+import { useNarrow } from './lib/useNarrow';
 import { supabase } from './lib/supabase';
 import { Analytics } from './lib/analytics';
 import { analyze } from './data/analysis';
@@ -105,6 +106,7 @@ export default function App() {
   const [inviteError, setInviteError] = useState('');
   const [inviteAccepting, setInviteAccepting] = useState(false);
   const [showValidationModal, setShowValidationModal] = useState(false);
+  const narrow = useNarrow();
 
   const modeRef = useRef(mode);
   const answersRef = useRef(answers);
@@ -467,7 +469,7 @@ export default function App() {
       {screen === S.PROJECT_NEW && user && <ProjectWizard user={user} onComplete={(p) => { setActiveProject({ ...p, _currentUser: user }); setScreen(S.PROJECT_OPEN); }} onBack={() => goBack()} onImport={() => { try { sessionStorage.setItem('pmb-open-import', '1'); } catch (e) { /* ignore */ } setScreen(S.DASHBOARD); }} />}
       {screen === S.QUICK_DOC && user && <QuickDoc user={user} onBack={() => goBack()} onStartProject={() => setScreen(S.PROJECT_NEW)} onStartCampaign={() => setScreen(S.CAMPAIGN_NEW)} />}
       {screen === S.PROJECT_OPEN && activeProject && activeProject.id && <ProjectWorkspace project={activeProject} onBack={() => goBack()} onUpdate={(p) => setActiveProject({ ...p, _currentUser: user })} />}
-      {user && <FeedbackButton raised={screen === S.PROJECT_OPEN} />}
+      {user && !(narrow && screen === S.PROJECT_OPEN) && <FeedbackButton raised={screen === S.PROJECT_OPEN} />}
       <CookieBanner />
       {showValidationModal && <ValidationModeModal onSelect={selectMode} onClose={() => setShowValidationModal(false)} />}
     </div>
