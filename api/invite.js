@@ -2,6 +2,8 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
 
+import { handleJoin, JOIN_ACTIONS } from './_invite-join.js';
+
 export const config = { api: { bodyParser: true } };
 
 async function verifyAuth(request) {
@@ -23,6 +25,11 @@ async function verifyAuth(request) {
 
 export default async function handler(request, response) {
   if (request.method !== 'POST') return response.status(405).json({ error: 'Method not allowed' });
+
+  // joining from an invitation (looking it up, accepting, declining) is handled by the helper
+  let early = request.body;
+  try { if (typeof early === 'string') early = JSON.parse(early); } catch (e) { early = null; }
+  if (early && JOIN_ACTIONS.includes(early.action)) return handleJoin(request, response, early);
 
   const user = await verifyAuth(request);
   if (!user) return response.status(401).json({ error: 'Unauthorised. Please log in.' });

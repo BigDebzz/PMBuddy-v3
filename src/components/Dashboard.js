@@ -53,6 +53,8 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
   const [profile, setProfile] = useState(user?.user_metadata || {});
   const [profileSkipped, setProfileSkipped] = useState(() => { try { return localStorage.getItem('pmb-profile-skipped') === '1'; } catch (e) { return false; } });
   const isAdmin = ADMIN_EMAILS.includes(user?.email);
+  const [checklistOpen, setChecklistOpen] = useState(null); // null: open on a wide screen, folded on a phone
+  const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -228,17 +230,28 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
           {/* HOME */}
           {activeNav === 'home' && (
             <div>
-              <div style={s.pageHead}>
-                <h1 style={s.pageTitle}>{greeting}, {firstName}.</h1>
-                <p style={s.pageSub}>Here is where your work lives.</p>
+              <div style={{ ...s.pageHead, marginBottom: isMobile ? 12 : 28 }}>
+                <h1 style={{ ...s.pageTitle, marginBottom: 0 }}>{greeting}, {firstName}.</h1>
+                {!isMobile && <p style={s.pageSub}>Here is where your work lives.</p>}
               </div>
 
-              {isNewUser && (
+              {isNewUser && !(checklistOpen === null ? !isMobile : checklistOpen) && (
+                <div style={s.slimBar}>
+                  <button type="button" style={s.slimMain} onClick={() => setChecklistOpen(true)}>
+                    <span style={s.slimLabel}>Getting started</span>
+                    <span style={s.slimCount}>{checklistDoneCount} of {checklistTotal} done</span>
+                  </button>
+                  <button type="button" style={s.slimAction} onClick={() => setChecklistOpen(true)}>Show</button>
+                </div>
+              )}
+
+              {isNewUser && (checklistOpen === null ? !isMobile : checklistOpen) && (
                 <div style={s.checklistCard}>
                   <div style={s.checklistHead}>
                     <div>
                       <p style={s.checklistTitle}>Get started with PM Buddy</p>
                       <p style={s.checklistSub}>Complete these steps to get the most out of the platform.</p>
+                      <button type="button" style={s.foldBtn} onClick={() => setChecklistOpen(false)}>Fold up</button>
                     </div>
                     <div style={s.checklistProgress}>
                       <span style={s.checklistCount}>{checklistDoneCount}<span style={{ fontSize: 15, color: 'var(--muted)' }}>/{checklistTotal}</span></span>
@@ -267,7 +280,18 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                 </div>
               )}
 
-              {!profile.use_case && !profileSkipped && (
+              {!profile.use_case && !profileSkipped && !profileOpen && (
+                <div style={s.slimBar}>
+                  <button type="button" style={s.slimMain} onClick={() => setProfileOpen(true)}>
+                    <span style={s.slimLabel}>Tell us about you</span>
+                    <span style={s.slimCount}>30 seconds</span>
+                  </button>
+                  <button type="button" style={s.slimAction} onClick={() => setProfileOpen(true)}>Add</button>
+                  <button type="button" style={s.slimClose} aria-label="Not now" onClick={() => { setProfileSkipped(true); try { localStorage.setItem('pmb-profile-skipped', '1'); } catch (e) { /* ignore */ } }}>x</button>
+                </div>
+              )}
+
+              {!profile.use_case && !profileSkipped && profileOpen && (
                 <div style={s.checklistCard}>
                   <p style={s.checklistTitle}>Tell us a little about you</p>
                   <p style={{ ...s.checklistSub, marginBottom: 16 }}>It helps PM Buddy suggest the right things. You can change it any time in Settings.</p>
@@ -275,43 +299,55 @@ export default function Dashboard({ user, onOpenValidation, onOpenProject, onNew
                 </div>
               )}
 
-              <div style={s.statsRow}>
+              <div style={isMobile ? s.statsInline : s.statsRow}>
                 {[
                   { label: 'Projects', value: projects.length, color: 'var(--accent-text)', action: () => setNav('projects') },
                   { label: 'Documents', value: documents.length, color: 'var(--warn-text)', action: () => setNav('docs') },
                 ].map((stat, i) => (
-                  <button key={i} style={s.statCard} onClick={stat.action}>
-                    <p style={{ ...s.statNum, color: stat.color }}>{stat.value}</p>
-                    <p style={s.statLabel}>{stat.label}</p>
+                  <button key={i} style={isMobile ? s.statChip : s.statCard} onClick={stat.action}>
+                    {isMobile ? (
+                      <><b style={{ color: stat.color, fontSize: 16 }}>{stat.value}</b> {stat.label.toLowerCase()}</>
+                    ) : (
+                      <>
+                        <p style={{ ...s.statNum, color: stat.color }}>{stat.value}</p>
+                        <p style={s.statLabel}>{stat.label}</p>
+                      </>
+                    )}
                   </button>
                 ))}
               </div>
 
-              <p style={s.sectionLabel}>Quick actions</p>
-              <div style={s.quickGrid}>
+              {(!isMobile || projects.length === 0) && <p style={s.sectionLabel}>Quick actions</p>}
+              {(!isMobile || projects.length === 0) && <div style={isMobile ? s.quickGridMobile : s.quickGrid}>
                 {[
                   { icon: 'board', label: 'New Project', sub: 'Start a structured project', action: onNewProject, bg: 'var(--accent)', color: '#FFFFFF' },
                   { icon: 'upload', label: 'Import Document', sub: 'Paste or upload an existing plan', action: () => setShowImport(true), bg: 'var(--accent-tint)', color: 'var(--accent-text)' },
                 ].map((item, i) => (
-                  <button key={i} style={s.quickCard} onClick={item.action}>
+                  <button key={i} style={isMobile ? { ...s.quickCard, padding: '10px 12px', gap: 8 } : s.quickCard} onClick={item.action}>
                     <div style={{ ...s.quickIcon, background: item.bg, color: item.color }}><Icon name={item.icon} size={20} /></div>
                     <div>
                       <p style={s.quickLabel}>{item.label}</p>
-                      <p style={s.quickSub}>{item.sub}</p>
+                      {!isMobile && <p style={s.quickSub}>{item.sub}</p>}
                     </div>
                   </button>
                 ))}
-              </div>
+              </div>}
 
               {projects.length > 0 && (
                 <>
                   <div style={s.sectionHead}>
-                    <p style={s.sectionLabel}>Recent projects</p>
+                    <p style={s.sectionLabel}>{isMobile ? 'Your projects' : 'Recent projects'}</p>
                     <button style={s.seeAll} onClick={() => setNav('projects')}>See all</button>
                   </div>
-                  <div style={s.projectsGrid}>
-                    {projects.slice(0, 3).map(p => <ProjectCard key={p.id} p={p} onOpen={() => onOpenProject(p)} onDelete={() => confirmAndDelete('project', p.id, p.name)} />)}
-                  </div>
+                  {isMobile ? (
+                    <div style={{ display: 'grid', gap: 8 }}>
+                      {projects.slice(0, 4).map(p => <ProjectRow key={p.id} p={p} onOpen={() => onOpenProject(p)} />)}
+                    </div>
+                  ) : (
+                    <div style={s.projectsGrid}>
+                      {projects.slice(0, 3).map(p => <ProjectCard key={p.id} p={p} onOpen={() => onOpenProject(p)} onDelete={() => confirmAndDelete('project', p.id, p.name)} />)}
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -550,6 +586,24 @@ function DocRow({ doc, type, typeBg, typeColor, onOpen }) {
   );
 }
 
+function ProjectRow({ p, onOpen }) {
+  const end = p.timeline?.end ? new Date(p.timeline.end) : null;
+  const daysLeft = end ? Math.ceil((end - new Date()) / 86400000) : null;
+  const openTasks = (p.tasks || []).filter(t => t.status !== 'done').length;
+  const done = (p.milestones || []).filter(m => m.status === 'done').length;
+  const total = (p.milestones || []).length;
+  const bits = [total ? `${done}/${total} milestones` : null, `${openTasks} open task${openTasks === 1 ? '' : 's'}`, daysLeft !== null ? (daysLeft >= 0 ? `${daysLeft}d left` : 'past end date') : null].filter(Boolean);
+  return (
+    <button type="button" style={s.projectRow} onClick={onOpen}>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={s.rowName}>{p.name}</span>
+        <span style={s.rowMeta}>{bits.join(' · ')}</span>
+      </span>
+      <Icon name="arrow-right" size={16} style={{ color: 'var(--muted)', flexShrink: 0 }} />
+    </button>
+  );
+}
+
 function ProjectCard({ p, onOpen, onDelete, isCampaign }) {
   const end = p.timeline?.end ? new Date(p.timeline.end) : null;
   const today = new Date();
@@ -660,6 +714,19 @@ const s = {
   checkLabel: { fontSize: 15, fontWeight: 500 },
   checkHint: { fontSize: 13, color: 'var(--muted)', marginTop: 2 },
   checkAction: { padding: '5px 12px', background: 'var(--accent-tint)', color: 'var(--accent-text)', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 },
+  slimBar: { display: 'flex', alignItems: 'center', gap: 6, background: 'var(--accent-tint)', border: '1px solid var(--accent-border)', borderRadius: 12, padding: '2px 6px 2px 14px', marginBottom: 12 },
+  slimMain: { flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '10px 0', color: BL },
+  slimLabel: { fontSize: 14, fontWeight: 700 },
+  slimCount: { fontSize: 13, color: 'var(--text-2)' },
+  slimAction: { background: 'none', border: 'none', color: 'var(--accent-text)', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', padding: '0 10px', minHeight: 40 },
+  slimClose: { background: 'none', border: 'none', color: 'var(--muted)', fontSize: 16, cursor: 'pointer', fontFamily: 'inherit', width: 36, minHeight: 40 },
+  foldBtn: { background: 'none', border: 'none', color: 'var(--accent-text)', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', padding: '8px 0 0' },
+  statsInline: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 },
+  statChip: { background: WH, border: `1px solid ${RULE}`, borderRadius: 100, padding: '6px 14px', fontSize: 14, color: 'var(--text-2)', cursor: 'pointer', fontFamily: 'inherit' },
+  quickGridMobile: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 },
+  projectRow: { display: 'flex', alignItems: 'center', gap: 10, width: '100%', background: WH, border: `1px solid ${RULE}`, borderRadius: 12, padding: '12px 14px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', color: BL },
+  rowName: { display: 'block', fontSize: 15, fontWeight: 700, color: BL, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  rowMeta: { display: 'block', fontSize: 13, color: 'var(--muted)', marginTop: 2 },
   statsRow: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 28 },
   statCard: { background: WH, border: `1px solid ${RULE}`, borderRadius: 16, padding: '16px', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' },
   statNum: { fontSize: 28, fontWeight: 800, letterSpacing: '-0.5px', marginBottom: 4 },

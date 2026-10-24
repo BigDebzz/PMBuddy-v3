@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import Icon from './Icon';
+import { useNarrow } from '../lib/useNarrow';
 
 const dismissKey = (id) => `pmb-nextsteps-dismissed-${id}`;
 
 // A short checklist at the top of a project. Each line ticks itself when it is done.
 // It disappears once all three are done, or when the person closes it.
 export default function NextSteps({ data, project, onTab, onReport, version }) {
+  const narrow = useNarrow();
+  const [shown, setShown] = useState(null);     // null: use the default for this screen size
   const [people, setPeople] = useState(null);   // invitations sent or accepted
   const [reports, setReports] = useState(null); // reports saved for this project
   const [hidden, setHidden] = useState(() => {
@@ -43,6 +46,22 @@ export default function NextSteps({ data, project, onTab, onReport, version }) {
     setHidden(true);
   };
 
+  // A beginner sees one calm line. The full list opens when they ask for it (or straight away on a wide screen when nothing is done yet).
+  const isOpen = shown === null ? (!narrow && doneCount === 0) : shown;
+  const next = steps.find(x => !x.done);
+  if (!isOpen) {
+    return (
+      <section style={s.bar} aria-label="Next steps">
+        <button type="button" style={s.barMain} onClick={() => setShown(true)} aria-expanded="false">
+          <span style={s.barLabel}>Next step</span>
+          <span style={s.barText}>{next.title}</span>
+          <span style={s.barCount}>{doneCount} of {steps.length} done</span>
+        </button>
+        <button type="button" style={s.close} onClick={close} aria-label="Hide next steps"><Icon name="x" size={18} /></button>
+      </section>
+    );
+  }
+
   return (
     <section style={s.card} aria-label="Next steps">
       <div style={s.head}>
@@ -50,7 +69,10 @@ export default function NextSteps({ data, project, onTab, onReport, version }) {
           <p style={s.title}>Your project is ready. Here is what to do next.</p>
           <p style={s.count}>{doneCount} of {steps.length} done</p>
         </div>
-        <button type="button" style={s.close} onClick={close} aria-label="Hide next steps"><Icon name="x" size={18} /></button>
+        <div style={{ display: 'flex', gap: 2 }}>
+          <button type="button" style={s.fold} onClick={() => setShown(false)}>Fold up</button>
+          <button type="button" style={s.close} onClick={close} aria-label="Hide next steps"><Icon name="x" size={18} /></button>
+        </div>
       </div>
       <ol style={s.list}>
         {steps.map((step, i) => (
@@ -71,6 +93,12 @@ export default function NextSteps({ data, project, onTab, onReport, version }) {
 }
 
 const s = {
+  bar: { display: 'flex', alignItems: 'center', gap: 6, background: 'var(--accent-tint)', border: '1px solid var(--accent-border)', borderRadius: 12, padding: '4px 4px 4px 14px', marginBottom: 16 },
+  barMain: { flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '8px 0', color: 'var(--text)' },
+  barLabel: { fontSize: 12, fontWeight: 800, color: 'var(--accent-text)', textTransform: 'uppercase', letterSpacing: '0.06em' },
+  barText: { fontSize: 15, fontWeight: 700 },
+  barCount: { fontSize: 13, color: 'var(--text-2)' },
+  fold: { background: 'none', border: 'none', color: 'var(--accent-text)', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', padding: '0 8px', minHeight: 40 },
   card: { background: 'var(--accent-tint)', border: '1px solid var(--accent-border)', borderRadius: 16, padding: '18px 20px', marginBottom: 20 },
   head: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 12 },
   title: { fontSize: 17, fontWeight: 700, color: 'var(--text)', margin: 0, lineHeight: 1.35 },

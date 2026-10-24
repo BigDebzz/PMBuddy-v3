@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import AiLoading from './AiLoading';
 import { suggestTasks } from '../lib/suggestTasks';
 import { suggestionToTask, fillDates } from '../lib/taskSuggestions';
+import { useNarrow } from '../lib/useNarrow';
 
 function shortDate(iso) {
   try { return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return ''; }
@@ -17,6 +18,8 @@ function SuggestedPanel({ data, onSave }) {
   // every suggestion shows a date: the AI's, or one worked out from the timeline and milestones
   const suggestions = useMemo(() => fillDates(stored, data), [stored, data.timeline, data.milestones]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const narrow = useNarrow();
+  const [reviewing, setReviewing] = useState(false); // on a phone the list stays folded until asked for
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(null); // { id, title, dueDate }
@@ -74,6 +77,15 @@ function SuggestedPanel({ data, onSave }) {
     );
   }
 
+  if (narrow && !reviewing) {
+    return (
+      <section style={st.slim} aria-label="Suggested tasks">
+        <span style={st.slimText}>PM Buddy suggests <b>{suggestions.length}</b> task{suggestions.length === 1 ? '' : 's'}</span>
+        <button type="button" style={st.small} onClick={() => setReviewing(true)}>Review</button>
+      </section>
+    );
+  }
+
   return (
     <section style={st.card} aria-label="Suggested tasks">
       <div style={st.head}>
@@ -84,6 +96,7 @@ function SuggestedPanel({ data, onSave }) {
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button type="button" style={st.primary} onClick={addAll}>Add all {suggestions.length}</button>
           <button type="button" style={st.quiet} onClick={() => setSuggestions([])}>Dismiss all</button>
+          {narrow && <button type="button" style={st.quiet} onClick={() => setReviewing(false)}>Fold up</button>}
         </div>
       </div>
 
@@ -131,6 +144,7 @@ export default function SuggestedTasks({ data, onSave }) {
     const m = milestoneOf(t);
     return t.status !== 'done' && !!t.dueDate && !!m && !!m.date && String(t.dueDate).slice(0, 10) > String(m.date).slice(0, 10);
   };
+  const narrowBar = useNarrow();
   const undated = tasks.filter(needsDate);
   const late = tasks.filter(afterMilestone);
   const fixable = [...undated, ...late];
@@ -153,9 +167,9 @@ export default function SuggestedTasks({ data, onSave }) {
       {fixable.length > 0 && (
         <section style={st.dateBar} aria-label="Task dates need attention">
           <p style={st.dateText}>
-            {parts.join(' and ')}. Dates need to follow the timeline for overdue tracking and reminders to work.
+            {narrowBar ? `${fixable.length} task${fixable.length === 1 ? ' needs' : 's need'} a date` : `${parts.join(' and ')}. Dates need to follow the timeline for overdue tracking and reminders to work.`}
           </p>
-          <button type="button" style={st.quiet} onClick={alignDates}>Align dates to the timeline</button>
+          <button type="button" style={st.quiet} onClick={alignDates}>{narrowBar ? 'Fix dates' : 'Align dates to the timeline'}</button>
         </section>
       )}
       <SuggestedPanel data={data} onSave={onSave} />
@@ -164,6 +178,8 @@ export default function SuggestedTasks({ data, onSave }) {
 }
 
 const st = {
+  slim: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, background: 'var(--accent-tint)', border: '1px solid var(--accent-border)', borderRadius: 10, padding: '8px 12px', marginBottom: 14 },
+  slimText: { fontSize: 14, color: 'var(--text)' },
   card: { background: 'var(--accent-tint)', border: '1px solid var(--accent-border)', borderRadius: 12, padding: '14px 16px', marginBottom: 18 },
   head: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 10 },
   title: { margin: 0, fontSize: 15, fontWeight: 800, color: 'var(--text)' },
