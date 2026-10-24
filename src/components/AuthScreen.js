@@ -6,13 +6,13 @@ const B = 'var(--accent)';
 const BL = 'var(--text)';
 const WH = 'var(--surface)';
 
-export default function AuthScreen({ onAuth, onBack }) {
-  const [mode, setMode] = useState('login');
+export default function AuthScreen({ onAuth, onBack, prefillEmail = '', inviteToken = '', inviteProject = '' }) {
+  const [mode, setMode] = useState(inviteToken ? 'signup' : 'login');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [role, setRole] = useState('');
   const [agreed, setAgreed] = useState(false);
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(prefillEmail || '');
   const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState('');
@@ -121,6 +121,8 @@ export default function AuthScreen({ onAuth, onBack }) {
         email,
         password,
         options: {
+          // the confirmation email brings the person back to the invitation, so they land in the project
+          emailRedirectTo: inviteToken ? `${window.location.origin}/?invite=${encodeURIComponent(inviteToken)}` : undefined,
           data: {
             first_name: firstName.trim(),
             last_name: lastName.trim(),
@@ -142,7 +144,7 @@ export default function AuthScreen({ onAuth, onBack }) {
         onAuth(data.user);
       } else {
         sendWelcome();
-        setMessage('Account created. Check your email to confirm, then log in.');
+        setMessage(inviteToken ? 'Account created. Check your email and click the confirmation link. You will land straight in the project.' : 'Account created. Check your email to confirm, then log in.');
         setMode('login');
       }
     }
@@ -223,6 +225,12 @@ export default function AuthScreen({ onAuth, onBack }) {
             <h1 style={s.title}>Create your account</h1>
             <p style={s.sub}>Save your reports and track your progress as you build.</p>
           </>
+        )}
+
+        {inviteProject && (
+          <div style={{ background: 'var(--accent-tint)', border: '1px solid var(--accent-border)', borderRadius: 10, padding: '12px 14px', marginBottom: 14, fontSize: 14, color: 'var(--text)', lineHeight: 1.5 }}>
+            You are joining <b>{inviteProject}</b>. {mode === 'signup' ? 'Create your account below.' : 'Log in below.'}
+          </div>
         )}
 
         {error && <div style={s.error}>{error}</div>}

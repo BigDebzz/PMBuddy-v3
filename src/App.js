@@ -6,6 +6,7 @@ import AuthScreen from './components/AuthScreen';
 import Dashboard from './components/Dashboard';
 import ProjectWizard from './components/ProjectWizard';
 import ProjectWorkspace from './components/ProjectWorkspace';
+import { inviteApi, sameEmail, getPendingToken, setPendingToken, clearPendingToken } from './lib/inviteJoin';
 import CampaignWizard from './components/CampaignWizard';
 import QuickDoc from './components/QuickDoc';
 import FeedbackButton from './components/FeedbackButton';
@@ -113,6 +114,96 @@ export default function App() {
   useEffect(() => { answersRef.current = answers; }, [answers]);
   useEffect(() => { analysisRef.current = analysis; }, [analysis]);
 
+  // ---- invitations: someone who comes from an invite link is taken straight into the project ----
+  const openJoinedProject = (project, u) => {
+    if (project && project.id) { setActiveProject({ ...project, _currentUser: u }); setScreen(S.PROJECT_OPEN); }
+    else setScreen(S.DASHBOARD);
+  };
+
+  // Joins the project, tells the owner, and opens it. Returns true when it worked.
+  const joinWithToken = async (tok, u, confirmDifferent, role) => {
+    setInviteAccepting(true);
+    setInviteError('');
+    const res = await inviteApi('accept', { token: tok, confirmDifferentEmail: !!confirmDifferent });
+    if (res.needsConfirm) {
+      setInviteAccepting(false);
+      setInviteData(d => ({ ...(d || {}), token: tok, email: res.invitedEmail || (d && d.email) || '' }));
+      setScreen(S.INVITE);
+      return false;
+    }
+    if (!res.ok) {
+      setInviteAccepting(false);
+      setInviteError(res.error || 'Could not join the project. Please try again.');
+      setScreen(S.INVITE);
+      return false;
+    }
+    clearPendingToken();
+    if (res.project && !res.already) {
+      try {
+        const { data: sd } = await supabase.auth.getSession();
+        const access = sd && sd.session && sd.session.access_token;
+        await fetch('/api/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(access ? { Authorization: `Bearer ${access}` } : {}) },
+          body: JSON.stringify({
+            type: 'member_joined',
+            projectId: res.project.id,
+            projectName: res.project.name || 'your project',
+            ownerEmail: res.project.owner_email,
+            data: { email: u.email, name: (u.user_metadata && u.user_metadata.first_name) || u.email, role: role || 'editor' },
+          }),
+        });
+      } catch (err) { console.error('Notify error:', err); }
+    }
+    setInviteAccepting(false);
+    setInviteData(null);
+    openJoinedProject(res.project, u);
+    return true;
+  };
+
+  // After someone logs in or signs up: finish the invitation they came for. Returns true when it took over the screen.
+  const tryPendingInvite = async (u, lookupByEmail) => {
+    const tok = getPendingToken();
+    if (tok) {
+      const info = await inviteApi('info', { token: tok });
+      if (!info.ok) {
+        if (info.status === 404) clearPendingToken();
+        setInviteError(info.error || 'This invite link could not be opened. Please try again.');
+        setScreen(S.INVITE);
+        return true;
+      }
+      if (info.accepted) { clearPendingToken(); return false; }
+      setInviteData({ token: tok, role: info.role, email: info.email, pm_projects: { name: info.projectName, description: info.description } });
+      setScreen(S.INVITE);
+      // the invitation was sent to this very email address, so there is nothing more to ask
+      if (sameEmail(info.email, u.email)) await joinWithToken(tok, u, false, info.role);
+      return true;
+    }
+    if (lookupByEmail) {
+      const mine = await inviteApi('mine');
+      const first = mine.ok && mine.invites && mine.invites[0];
+      if (first) {
+        setInviteData({ token: first.token, role: first.role, email: first.email, pm_projects: { name: first.projectName, description: first.description } });
+        setScreen(S.INVITE);
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const showInviteForGuest = async (tok) => {
+    const info = await inviteApi('info', { token: tok });
+    if (!info.ok) {
+      if (info.status === 404) clearPendingToken();
+      setInviteError(info.error || 'This invite link could not be opened. Please try again.');
+      setScreen(S.INVITE);
+      return;
+    }
+    if (info.accepted) { clearPendingToken(); setScreen(S.AUTH); return; }
+    setInviteData({ token: tok, role: info.role, email: info.email, pm_projects: { name: info.projectName, description: info.description } });
+    setScreen(S.INVITE);
+  };
+
   // Remember which project is open in this tab, so a reload or a returning tab puts you back where you were.
   const prevScreen = useRef(screen);
   useEffect(() => {
@@ -127,71 +218,48 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('invite');
 
-    // Save token to localStorage so it survives login/signup redirects
+    // Keep the invite token so it survives sign-up, email confirmation and login
     if (token) {
-      localStorage.setItem('pmbuddy_pending_invite', token);
+      setPendingToken(token);
       window.history.replaceState(null, '', window.location.pathname);
     }
 
-    const loadInvite = async (tok) => {
-      const { data: member } = await supabase
-        .from('project_members')
-        .select('*')
-        .eq('token', tok)
-        .single();
-      if (!member) {
-        setInviteError('This invite link is invalid or has expired.');
-        setScreen(S.INVITE);
-        return;
-      }
-      if (member.status === 'accepted') {
-        localStorage.removeItem('pmbuddy_pending_invite');
-        setScreen(S.DASHBOARD);
-        return;
-      }
-      const { data: project } = await supabase
-        .from('pm_projects')
-        .select('*')
-        .eq('id', member.project_id)
-        .single();
-      setInviteData({ ...member, pm_projects: project });
-      setScreen(S.INVITE);
-    };
-
     const handleAuth = async () => {
+      // Coming back from the confirmation email, or from Google
       if (window.location.hash && window.location.hash.includes('access_token')) {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           setUser(session.user);
           window.history.replaceState(null, '', window.location.pathname);
-          setScreen(S.DASHBOARD);
+          const handled = await tryPendingInvite(session.user, true);
+          if (!handled) setScreen(S.DASHBOARD);
           return;
         }
       }
 
       const { data: { session } } = await supabase.auth.getSession();
-      const pendingToken = token || localStorage.getItem('pmbuddy_pending_invite');
+      const pendingToken = token || getPendingToken();
 
       if (session?.user) {
         setUser(session.user);
         if (pendingToken) {
-          loadInvite(pendingToken);
-        } else {
-          let savedId = null;
-          try { savedId = sessionStorage.getItem('pmb-open-project'); } catch (e) { savedId = null; }
-          if (savedId) {
-            const { data: saved } = await supabase.from('pm_projects').select('*').eq('id', savedId).single();
-            if (saved) {
-              setActiveProject({ ...saved, _currentUser: session.user });
-              setScreen(S.PROJECT_OPEN);
-              return;
-            }
-          }
-          setScreen(S.DASHBOARD);
+          const handled = await tryPendingInvite(session.user, false);
+          if (handled) return;
         }
+        let savedId = null;
+        try { savedId = sessionStorage.getItem('pmb-open-project'); } catch (e) { savedId = null; }
+        if (savedId) {
+          const { data: saved } = await supabase.from('pm_projects').select('*').eq('id', savedId).single();
+          if (saved) {
+            setActiveProject({ ...saved, _currentUser: session.user });
+            setScreen(S.PROJECT_OPEN);
+            return;
+          }
+        }
+        setScreen(S.DASHBOARD);
       } else if (pendingToken) {
-        // Not logged in but has an invite — show invite screen so they can log in
-        loadInvite(pendingToken);
+        // Not logged in but has an invite: show the invitation, with a way to sign up or log in
+        showInviteForGuest(pendingToken);
       }
     };
 
@@ -200,6 +268,8 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user && _event === 'SIGNED_IN') {
         setUser(session.user);
+        // someone is joining from an invitation: the invite step decides where they go next
+        if (getPendingToken()) return;
         // Only move to the dashboard from the home or login screens. Coming back to the tab re-sends SIGNED_IN and must not reset where you were.
         setScreen(prev => (prev === S.LAND || prev === S.AUTH ? S.DASHBOARD : prev));
       }
@@ -217,41 +287,14 @@ export default function App() {
 
   const acceptInvite = async () => {
     if (!inviteData || !user) return;
-    setInviteAccepting(true);
-    await supabase.from('project_members').update({
-      status: 'accepted',
-      user_id: user.id,
-    }).eq('id', inviteData.id);
-
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      await fetch('/api/notify', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          type: 'member_joined',
-          projectId: inviteData.project_id,
-          projectName: inviteData.pm_projects?.name || 'your project',
-          ownerEmail: inviteData.pm_projects?.owner_email,
-          data: { email: user.email, name: user.user_metadata?.first_name || user.email, role: inviteData.role },
-        }),
-      });
-    } catch (err) { console.error('Notify error:', err); }
-
-    localStorage.removeItem('pmbuddy_pending_invite');
-    setInviteAccepting(false);
-    setScreen(S.DASHBOARD);
+    // pressing the button is the person's own confirmation, even when the invitation went to another email address
+    await joinWithToken(inviteData.token, user, !sameEmail(inviteData.email, user.email), inviteData.role);
   };
 
   const declineInvite = async () => {
-    if (inviteData) {
-      await supabase.from('project_members').delete().eq('id', inviteData.id);
-    }
-    localStorage.removeItem('pmbuddy_pending_invite');
+    if (inviteData && inviteData.token) await inviteApi('decline', { token: inviteData.token });
+    clearPendingToken();
+    setInviteData(null);
     setScreen(S.DASHBOARD);
   };
 
@@ -285,26 +328,9 @@ export default function App() {
   const handleAuthSuccess = async (u) => {
     setUser(u);
     await autoSavePendingValidation(u);
-    // Check if there is a pending invite to handle after login
-    const pendingToken = localStorage.getItem('pmbuddy_pending_invite');
-    if (pendingToken) {
-      const { data: member } = await supabase
-        .from('project_members')
-        .select('*')
-        .eq('token', pendingToken)
-        .single();
-      if (member && member.status !== 'accepted') {
-        const { data: project } = await supabase
-          .from('pm_projects')
-          .select('*')
-          .eq('id', member.project_id)
-          .single();
-        setInviteData({ ...member, pm_projects: project });
-        setScreen(S.INVITE);
-        return;
-      }
-      localStorage.removeItem('pmbuddy_pending_invite');
-    }
+    // finish any invitation this person came for, then open the project
+    const handled = await tryPendingInvite(u, true);
+    if (handled) return;
     setScreen(S.DASHBOARD);
   };
 
@@ -324,12 +350,17 @@ export default function App() {
             <>
               <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>You have been invited</h2>
               <p style={{ fontSize: 15, color: 'var(--muted)', lineHeight: 1.7, marginBottom: 8 }}>
-                You have been invited to join <strong style={{ color: 'var(--text)' }}>{inviteData.pm_projects?.name}</strong> as a <strong style={{ color: 'var(--text)' }}>{inviteData.role}</strong>.
+                You have been invited to join <strong style={{ color: 'var(--text)' }}>{inviteData.pm_projects?.name}</strong> as {/^[aeiou]/i.test(inviteData.role || '') ? 'an' : 'a'} <strong style={{ color: 'var(--text)' }}>{inviteData.role}</strong>.
               </p>
               <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 28 }}>{inviteData.pm_projects?.description}</p>
               {!user && (
-                <p style={{ fontSize: 14, color: 'var(--bad-text)', marginBottom: 16, fontWeight: 600 }}>
-                  You need to log in or sign up to accept this invitation.
+                <p style={{ fontSize: 14, color: 'var(--text-2)', marginBottom: 16, lineHeight: 1.6 }}>
+                  Create your free account or log in to join. It takes a minute, and you will land straight in the project.
+                </p>
+              )}
+              {user && inviteData.email && !sameEmail(inviteData.email, user.email) && (
+                <p style={{ fontSize: 14, color: 'var(--warn-text)', marginBottom: 16, lineHeight: 1.6 }}>
+                  This invitation was sent to {inviteData.email}. You are signed in as {user.email}. You can still join with this account.
                 </p>
               )}
               {!user && (
@@ -337,7 +368,7 @@ export default function App() {
                   style={{ width: '100%', padding: '12px', background: 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 12 }}
                   onClick={() => setScreen(S.AUTH)}
                 >
-                  Log in or Sign up to Accept
+                  Sign up or log in to join
                 </button>
               )}
               {user && (
@@ -347,7 +378,7 @@ export default function App() {
                     onClick={acceptInvite}
                     disabled={inviteAccepting}
                   >
-                    {inviteAccepting ? 'Accepting...' : 'Accept Invitation'}
+                    {inviteAccepting ? 'Joining...' : 'Join the project'}
                   </button>
                   <button
                     style={{ padding: '12px 20px', background: 'none', color: 'var(--muted)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 15, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
@@ -380,7 +411,7 @@ export default function App() {
       {(screen === S.LAND || (screen === S.DASHBOARD && !user)) && <LandingScreen onSelectMode={selectMode} onLogin={() => setScreen(S.AUTH)} onSignup={() => setScreen(S.AUTH)} onDashboard={() => setScreen(S.DASHBOARD)} user={user} />}
       {screen === S.QA && mode && <QuestionWizard mode={mode} onComplete={complete} onBack={() => setScreen(S.LAND)} />}
       {screen === S.RESULTS && analysis && <ResultsDashboard mode={mode} answers={answers} analysis={analysis} onReset={reset} onEdit={() => setScreen(S.QA)} onSave={saveValidation} user={user} projectId={projectId} />}
-      {screen === S.AUTH && <AuthScreen onAuth={handleAuthSuccess} onBack={() => setScreen(S.LAND)} />}
+      {screen === S.AUTH && <AuthScreen onAuth={handleAuthSuccess} onBack={() => setScreen(S.LAND)} prefillEmail={(inviteData && inviteData.email) || ''} inviteToken={(inviteData && inviteData.token) || ''} inviteProject={(inviteData && inviteData.pm_projects && inviteData.pm_projects.name) || ''} />}
       {screen === S.DASHBOARD && user && <Dashboard user={user} onOpenValidation={openValidation} onOpenProject={openProject} onNewValidation={() => setShowValidationModal(true)} onNewProject={() => setScreen(S.PROJECT_NEW)} onNewCampaign={() => setScreen(S.CAMPAIGN_NEW)} onNewQuickDoc={() => setScreen(S.QUICK_DOC)} onLogout={logout} />}
       {screen === S.CAMPAIGN_NEW && user && <CampaignWizard user={user} onComplete={(p) => { setActiveProject({ ...p, _currentUser: user }); setScreen(S.PROJECT_OPEN); }} onBack={() => setScreen(S.DASHBOARD)} />}
       {screen === S.PROJECT_NEW && user && <ProjectWizard user={user} onComplete={(p) => { setActiveProject({ ...p, _currentUser: user }); setScreen(S.PROJECT_OPEN); }} onBack={() => setScreen(S.DASHBOARD)} onImport={() => { try { sessionStorage.setItem('pmb-open-import', '1'); } catch (e) { /* ignore */ } setScreen(S.DASHBOARD); }} />}
